@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useSettings } from '@/contexts/SettingsContext';
-import { computeTourEligibility } from '@/components/tour360/data/tourConfig';
+import { computeTourEligibility, isBetaDomain } from '@/components/tour360/data/tourConfig';
 
 const Tour360Shell = dynamic(() => import('./tour360/Tour360Shell'), {
     ssr: false,
@@ -13,9 +13,11 @@ const Tour360Shell = dynamic(() => import('./tour360/Tour360Shell'), {
 export default function FloatingActionWidgets() {
     const { settings, loading } = useSettings();
     const [isOpen360, setIsOpen360] = useState(false);
+    const [isBeta, setIsBeta] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            setIsBeta(isBetaDomain());
             const params = new URLSearchParams(window.location.search);
             if (params.get('tour360') === 'true' || window.location.hash === '#tour360') {
                 setIsOpen360(true);
@@ -23,14 +25,14 @@ export default function FloatingActionWidgets() {
         }
     }, []);
 
-    // Do not show anything if loading
-    if (loading) {
+    // Do not show anything if loading (unless on beta where we want internal users to always see widgets)
+    if (loading && !isBeta) {
         return null;
     }
 
     const PHONE_NUMBER = settings?.contact_phone || '0983882210';
 
-    const show360Widget = computeTourEligibility(settings);
+    const show360Widget = isBeta || computeTourEligibility(settings);
 
     return (
         <>

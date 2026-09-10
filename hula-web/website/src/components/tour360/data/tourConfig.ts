@@ -15,9 +15,36 @@ export interface TourSettingsInput {
 }
 
 /**
+ * Detects whether the current environment is an internal testing / beta environment
+ * (e.g. beta.nemmamnon.com, localhost, 127.0.0.1, or ?beta=true / ?tour360=true)
+ * On beta domain, all features including the 360 Widget must always be enabled so internal users
+ * can test and experience all capabilities regardless of CMS hidden toggles.
+ */
+export function isBetaDomain(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        const host = window.location.hostname.toLowerCase();
+        const search = window.location.search || '';
+        const hash = window.location.hash || '';
+        return (
+            host.startsWith('beta.') ||
+            host.includes('beta.nemmamnon.com') ||
+            host === 'localhost' ||
+            host === '127.0.0.1' ||
+            search.includes('beta=true') ||
+            search.includes('tour360=true') ||
+            hash === '#tour360'
+        );
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Computes whether the 360 Tour widget is eligible to be displayed on the current route.
  *
  * Rules:
+ * 0. On beta.nemmamnon.com or internal domains, always return true for internal testing.
  * 1. If settings is null or loading, return false (widget will not flicker).
  * 2. If server set widget_360_enabled to false, always return false.
  * 3. If hidden_pages contains 'widget_360' or '/widget_360', return false.
@@ -28,6 +55,12 @@ export function computeTourEligibility(
     settings: TourSettingsInput | null | undefined,
     currentRoute?: string
 ): boolean {
+    // 0. Beta Domain Rule: On beta.nemmamnon.com or internal test domains,
+    // ALWAYS display full features and widgets for internal users to experience!
+    if (isBetaDomain()) {
+        return true;
+    }
+
     if (!settings) {
         return false;
     }

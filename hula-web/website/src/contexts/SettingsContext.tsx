@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { computeTourEligibility } from '@/components/tour360/data/tourConfig';
+import { computeTourEligibility, isBetaDomain } from '@/components/tour360/data/tourConfig';
 
 interface Settings {
     site_name: string;
@@ -159,7 +159,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         section_testimonials_text: data.section_testimonials_text || '',
                         section_blog_text: data.section_blog_text || '',
                         hidden_pages: data.hidden_pages || '',
-                        widget_360_enabled: computeTourEligibility(data),
+                        widget_360_enabled: isBetaDomain() ? true : computeTourEligibility(data),
                         widget_360_tooltip: data.widget_360_tooltip || 'Khám phá Lớp học 360°',
                         widget_360_badge: data.widget_360_badge || '360°',
                         widget_360_panorama_url: data.widget_360_panorama_url || '',
