@@ -191,6 +191,23 @@ export default function DashboardPage() {
         return { browser, os, isBot };
     };
 
+    const leadsColumns = [
+        { title: 'Mã', dataIndex: 'code', key: 'code', width: 120 },
+        { title: 'Tên', dataIndex: 'name', key: 'name' },
+        { title: 'SĐT', dataIndex: 'phone', key: 'phone', width: 120 },
+        {
+            title: 'Trạng thái',
+            dataIndex: 'lead_status',
+            key: 'lead_status',
+            width: 130,
+            render: (status: string) => (
+                <Tag color={statusColors[status] || 'default'}>
+                    {statusLabels[status] || status}
+                </Tag>
+            ),
+        },
+    ];
+
     const ipColumns = [
         {
             title: 'Quốc gia',
