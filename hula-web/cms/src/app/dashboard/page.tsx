@@ -2,8 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Row, Col, Statistic, Table, Tag, Space, Button } from 'antd';
-import { FileTextOutlined, ShopOutlined, TeamOutlined, EyeOutlined, RiseOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Statistic, Table, Tag, Space, Button, Tooltip, Radio, Switch, Input, Badge } from 'antd';
+import {
+    FileTextOutlined,
+    ShopOutlined,
+    TeamOutlined,
+    EyeOutlined,
+    RiseOutlined,
+    ArrowRightOutlined,
+    GlobalOutlined,
+    RobotOutlined,
+    LaptopOutlined,
+    ReloadOutlined,
+    SearchOutlined
+} from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
 import { blogsApi, productsApi, leadsApi, analyticsApi } from '@/lib/api';
@@ -57,6 +69,9 @@ export default function DashboardPage() {
     const [visitorsTotal, setVisitorsTotal] = useState(0);
     const [visitorsPage, setVisitorsPage] = useState(1);
     const [visitorsPageSize, setVisitorsPageSize] = useState(10);
+    const [visitorViewMode, setVisitorViewMode] = useState<'ip' | 'session'>('ip');
+    const [hideBots, setHideBots] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const loadDashboard = async () => {
         setLoading(true);
@@ -92,8 +107,8 @@ export default function DashboardPage() {
                 products: Array.isArray(products) ? products.length : 0,
                 leads: leads.length,
                 views: Array.isArray(blogs) ? blogs.reduce((sum: number, b: any) => sum + (b.view_count || 0), 0) : 0,
-                visitorsToday: Number(aStats.todayVisitors || 0),
-                onlineVisitors: Number(aStats.onlineVisitors || 0),
+                visitorsToday: Number(aStats.todayRealVisitors ?? aStats.todayVisitors ?? 0),
+                onlineVisitors: Number(aStats.onlineRealVisitors ?? aStats.onlineVisitors ?? 0),
             });
 
             // Get recent leads (last 5)
@@ -112,10 +127,22 @@ export default function DashboardPage() {
         loadDashboard();
     }, []);
 
-    const loadVisitors = async (page: number, pageSize: number) => {
+    const loadVisitors = async (
+        page = visitorsPage,
+        pageSize = visitorsPageSize,
+        viewMode = visitorViewMode,
+        filterBots = hideBots,
+        search = searchQuery
+    ) => {
         setVisitorsLoading(true);
         try {
-            const res = await analyticsApi.getVisitors({ page, pageSize });
+            const res = await analyticsApi.getVisitors({
+                page,
+                pageSize,
+                groupBy: viewMode,
+                hideBots: filterBots,
+                search: search || undefined,
+            });
             if (res.data && res.data.success) {
                 setVisitors(res.data.data);
                 setVisitorsTotal(res.data.total);
@@ -128,32 +155,191 @@ export default function DashboardPage() {
     };
 
     useEffect(() => {
-        loadVisitors(visitorsPage, visitorsPageSize);
-    }, [visitorsPage, visitorsPageSize]);
+        loadVisitors(visitorsPage, visitorsPageSize, visitorViewMode, hideBots, searchQuery);
+    }, [visitorsPage, visitorsPageSize, visitorViewMode, hideBots]);
 
-    const leadsColumns = [
-        { title: 'Mã', dataIndex: 'code', key: 'code', width: 120 },
-        { title: 'Tên', dataIndex: 'name', key: 'name' },
-        { title: 'SĐT', dataIndex: 'phone', key: 'phone', width: 120 },
+    const handleSearch = () => {
+        setVisitorsPage(1);
+        loadVisitors(1, visitorsPageSize, visitorViewMode, hideBots, searchQuery);
+    };
+
+    const parseUserAgent = (ua: string) => {
+        if (!ua) return { browser: 'Không rõ', os: 'Không rõ', isBot: false };
+        const lower = ua.toLowerCase();
+
+        const isBot = /bot|crawl|spider|slurp|lightpanda|headless|python|curl|wget|bytespider|semrush|ahrefs/i.test(lower);
+
+        let browser = 'Khác';
+        if (lower.includes('lightpanda')) browser = 'Lightpanda Bot';
+        else if (lower.includes('edg/')) browser = 'Edge';
+        else if (lower.includes('chrome/')) browser = 'Chrome';
+        else if (lower.includes('firefox/')) browser = 'Firefox';
+        else if (lower.includes('safari/') && !lower.includes('chrome/')) browser = 'Safari';
+        else if (lower.includes('opera/') || lower.includes('opr/')) browser = 'Opera';
+        else if (lower.includes('googlebot')) browser = 'Googlebot';
+        else if (lower.includes('bingbot')) browser = 'Bingbot';
+        else if (lower.includes('curl')) browser = 'cURL';
+
+        let os = 'OS';
+        if (lower.includes('windows nt 10.0')) os = 'Windows 10/11';
+        else if (lower.includes('windows nt')) os = 'Windows';
+        else if (lower.includes('iphone') || lower.includes('ipad') || lower.includes('ipod')) os = 'iOS';
+        else if (lower.includes('mac os x')) os = 'macOS';
+        else if (lower.includes('android')) os = 'Android';
+        else if (lower.includes('linux')) os = 'Linux';
+
+        return { browser, os, isBot };
+    };
+
+    const ipColumns = [
         {
-            title: 'Trạng thái',
-            dataIndex: 'lead_status',
-            key: 'lead_status',
-            width: 130,
-            render: (status: string) => (
-                <Tag color={statusColors[status] || 'default'}>
-                    {statusLabels[status] || status}
+            title: 'Quốc gia',
+            dataIndex: 'country',
+            key: 'country',
+            width: 140,
+            render: (text: string, record: any) => (
+                <span>
+                    {text ? (
+                        <Tag color="blue" icon={<GlobalOutlined />}>
+                            {text}{record.city ? ` (${record.city})` : ''}
+                        </Tag>
+                    ) : (
+                        <Tag>Chưa rõ</Tag>
+                    )}
+                </span>
+            ),
+        },
+        {
+            title: 'IP Address',
+            dataIndex: 'ip_address',
+            key: 'ip_address',
+            width: 160,
+            render: (ip: string, record: any) => (
+                <Tag color={record.is_bot ? 'default' : 'geekblue'} style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                    {ip || 'Không rõ'}
                 </Tag>
             ),
         },
+        {
+            title: 'Số phiên',
+            dataIndex: 'session_count',
+            key: 'session_count',
+            width: 110,
+            align: 'center' as const,
+            render: (count: number) => (
+                <Badge
+                    count={count || 1}
+                    overflowCount={99999}
+                    style={{ backgroundColor: count > 5 ? '#52c41a' : '#1890ff' }}
+                />
+            ),
+        },
+        {
+            title: 'Phân loại',
+            dataIndex: 'is_bot',
+            key: 'is_bot',
+            width: 130,
+            render: (isBot: boolean) => isBot ? (
+                <Tag color="orange" icon={<RobotOutlined />}>Bot/Crawler</Tag>
+            ) : (
+                <Tag color="green" icon={<LaptopOutlined />}>Khách hàng</Tag>
+            ),
+        },
+        {
+            title: 'Trình duyệt / Thiết bị gần nhất',
+            dataIndex: 'user_agent',
+            key: 'user_agent',
+            render: (ua: string) => {
+                const parsed = parseUserAgent(ua);
+                return (
+                    <Tooltip title={ua}>
+                        <Space size={4}>
+                            <Tag color={parsed.isBot ? 'orange' : 'cyan'}>{parsed.browser}</Tag>
+                            {!parsed.isBot && <Tag>{parsed.os}</Tag>}
+                        </Space>
+                    </Tooltip>
+                );
+            },
+        },
+        {
+            title: 'Truy cập cuối',
+            dataIndex: 'last_active',
+            key: 'last_active',
+            width: 180,
+            render: (date: string) => new Date(date).toLocaleString('vi-VN'),
+        },
     ];
 
-    const visitorColumns = [
-        { title: 'Quốc gia', dataIndex: 'country', key: 'country', width: 120, render: (text: string) => text ? <Tag color="blue">{text}</Tag> : <Tag>Chưa rõ</Tag> },
-        { title: 'IP Address', dataIndex: 'ip_address', key: 'ip_address', width: 140 },
-        { title: 'Truy cập cuối', dataIndex: 'last_active', key: 'last_active', width: 180, render: (date: string) => new Date(date).toLocaleString('vi-VN') },
-        { title: 'Trình duyệt/Thiết bị', dataIndex: 'user_agent', key: 'user_agent', ellipsis: true },
-        { title: 'Ngày tạo', dataIndex: 'created_at', key: 'created_at', width: 150, render: (date: string) => new Date(date).toLocaleDateString('vi-VN') },
+    const sessionColumns = [
+        {
+            title: 'Quốc gia',
+            dataIndex: 'country',
+            key: 'country',
+            width: 140,
+            render: (text: string, record: any) => (
+                <span>
+                    {text ? (
+                        <Tag color="blue" icon={<GlobalOutlined />}>
+                            {text}{record.city ? ` (${record.city})` : ''}
+                        </Tag>
+                    ) : (
+                        <Tag>Chưa rõ</Tag>
+                    )}
+                </span>
+            ),
+        },
+        {
+            title: 'IP Address',
+            dataIndex: 'ip_address',
+            key: 'ip_address',
+            width: 160,
+            render: (ip: string, record: any) => (
+                <Tag color={record.is_bot ? 'default' : 'geekblue'} style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                    {ip || 'Không rõ'}
+                </Tag>
+            ),
+        },
+        {
+            title: 'Phân loại',
+            dataIndex: 'is_bot',
+            key: 'is_bot',
+            width: 130,
+            render: (isBot: boolean) => isBot ? (
+                <Tag color="orange" icon={<RobotOutlined />}>Bot/Crawler</Tag>
+            ) : (
+                <Tag color="green" icon={<LaptopOutlined />}>Khách hàng</Tag>
+            ),
+        },
+        {
+            title: 'Trình duyệt / Thiết bị',
+            dataIndex: 'user_agent',
+            key: 'user_agent',
+            render: (ua: string) => {
+                const parsed = parseUserAgent(ua);
+                return (
+                    <Tooltip title={ua}>
+                        <Space size={4}>
+                            <Tag color={parsed.isBot ? 'orange' : 'cyan'}>{parsed.browser}</Tag>
+                            {!parsed.isBot && <Tag>{parsed.os}</Tag>}
+                        </Space>
+                    </Tooltip>
+                );
+            },
+        },
+        {
+            title: 'Truy cập cuối',
+            dataIndex: 'last_active',
+            key: 'last_active',
+            width: 180,
+            render: (date: string) => new Date(date).toLocaleString('vi-VN'),
+        },
+        {
+            title: 'Ngày tạo',
+            dataIndex: 'created_at',
+            key: 'created_at',
+            width: 150,
+            render: (date: string) => new Date(date).toLocaleDateString('vi-VN'),
+        },
     ];
 
     const statCards = [
@@ -288,9 +474,58 @@ export default function DashboardPage() {
             </Row>
             <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 <Col span={24}>
-                    <Card title="Thống Kê IP Truy Cập">
+                    <Card
+                        title={
+                            <Space size={16} wrap>
+                                <span style={{ fontWeight: 600, fontSize: 16 }}>Thống Kê IP & Lượt Truy Cập</span>
+                                <Radio.Group
+                                    value={visitorViewMode}
+                                    onChange={(e) => {
+                                        setVisitorViewMode(e.target.value);
+                                        setVisitorsPage(1);
+                                    }}
+                                    buttonStyle="solid"
+                                    size="small"
+                                >
+                                    <Radio.Button value="ip">Thống kê theo IP</Radio.Button>
+                                    <Radio.Button value="session">Lịch sử theo phiên</Radio.Button>
+                                </Radio.Group>
+                            </Space>
+                        }
+                        extra={
+                            <Space size={12} wrap>
+                                <Space size={6}>
+                                    <span style={{ fontSize: 13, color: '#64748b' }}>Ẩn Bot:</span>
+                                    <Switch
+                                        checked={hideBots}
+                                        onChange={(checked) => {
+                                            setHideBots(checked);
+                                            setVisitorsPage(1);
+                                        }}
+                                        size="small"
+                                    />
+                                </Space>
+                                <Input.Search
+                                    placeholder="Tìm IP hoặc trình duyệt..."
+                                    allowClear
+                                    size="small"
+                                    style={{ width: 200 }}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onSearch={handleSearch}
+                                />
+                                <Button
+                                    icon={<ReloadOutlined />}
+                                    size="small"
+                                    onClick={() => loadVisitors(visitorsPage, visitorsPageSize, visitorViewMode, hideBots, searchQuery)}
+                                >
+                                    Làm mới
+                                </Button>
+                            </Space>
+                        }
+                    >
                         <Table
-                            columns={visitorColumns}
+                            columns={visitorViewMode === 'ip' ? ipColumns : sessionColumns}
                             dataSource={visitors}
                             rowKey="id"
                             loading={visitorsLoading}
@@ -299,13 +534,14 @@ export default function DashboardPage() {
                                 pageSize: visitorsPageSize,
                                 total: visitorsTotal,
                                 showSizeChanger: true,
+                                showTotal: (total) => `Tổng ${total.toLocaleString()} ${visitorViewMode === 'ip' ? 'địa chỉ IP' : 'phiên'}`,
                                 onChange: (page, pageSize) => {
                                     setVisitorsPage(page);
                                     setVisitorsPageSize(pageSize);
                                 }
                             }}
                             size="middle"
-                            scroll={{ x: 800 }}
+                            scroll={{ x: 900 }}
                         />
                     </Card>
                 </Col>

@@ -18,6 +18,9 @@ async function bootstrap() {
       logger: ['error', 'warn', 'log', 'debug', 'verbose'], // Bật full logs
     });
 
+    // Enable trust proxy for correct client IP detection behind reverse proxies (Nginx / Cloudflare)
+    app.set('trust proxy', true);
+
     // Create uploads folder if not exists
     const fs = await import('fs');
     const uploadDir = join(process.cwd(), 'uploads');
