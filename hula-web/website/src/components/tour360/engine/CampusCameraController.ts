@@ -64,6 +64,30 @@ export const KINDY_R4_BOOKMARKS: Record<string, CameraBookmark> = {
     },
 };
 
+export const CARA_R1_BOOKMARKS: Record<string, CameraBookmark> = {
+    'C01': {
+        id: 'C01',
+        label: 'C01: Top-down Spec (120x63)',
+        position: [-6.0, 1.85, 4.01],
+        target: [-6.0, 0.05, 4.0],
+        fov: 48,
+    },
+    'C02': {
+        id: 'C02',
+        label: 'C02: 45° Perspective & Drape',
+        position: [-6.0, 0.82, 2.9],
+        target: [-6.0, 0.12, 4.0],
+        fov: 45,
+    },
+    'C03': {
+        id: 'C03',
+        label: 'C03: Close-up Pillow & Piping',
+        position: [-5.62, 0.38, 3.48],
+        target: [-6.0, 0.12, 3.82],
+        fov: 38,
+    },
+};
+
 export interface CameraTransition {
     startPos: THREE.Vector3;
     endPos: THREE.Vector3;
@@ -247,7 +271,7 @@ export class CampusCameraController {
      * Smoothly navigates to one of the 6 Kindy QA Camera Bookmarks (V01 to V06)
      */
     public goToBookmark(bookmarkId: string, duration: number = 700) {
-        const bm = KINDY_R4_BOOKMARKS[bookmarkId];
+        const bm = KINDY_R4_BOOKMARKS[bookmarkId] || CARA_R1_BOOKMARKS[bookmarkId];
         if (!bm) return;
 
         this.isApproached = true;

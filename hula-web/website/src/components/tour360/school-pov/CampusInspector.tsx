@@ -21,7 +21,8 @@ import {
     ColorScope,
     CampusInstance,
 } from '../engine/CampusWorldState';
-import { KINDY_R4_BOOKMARKS } from '../engine/CampusCameraController';
+import { KINDY_R4_BOOKMARKS, CARA_R1_BOOKMARKS } from '../engine/CampusCameraController';
+import { CampusRealPhotosModal } from './CampusRealPhotosModal';
 
 interface CampusInspectorProps {
     isOpen: boolean;
@@ -43,6 +44,8 @@ export function CampusInspector({
     const [isSpecsOpen, setIsSpecsOpen] = useState(false);
     const [isCompareOpen, setIsCompareOpen] = useState(false);
     const [isChoicesSummaryOpen, setIsChoicesSummaryOpen] = useState(false);
+    const [isRealPhotosOpen, setIsRealPhotosOpen] = useState(false);
+    const [realPhotosTab, setRealPhotosTab] = useState<'catalogue' | 'projects'>('catalogue');
 
     if (!isOpen) return null;
 
@@ -215,6 +218,69 @@ export function CampusInspector({
                     </div>
                 )}
 
+                {/* Instruction 09: Real Product Photos Card for Cotton Cara */}
+                {isCara && (
+                    <div className="space-y-2.5 p-3.5 rounded-2xl bg-gradient-to-b from-[#F0F7F5] to-[#E5F1EE] border border-[#B7D9CC] shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-[#183B3A] flex items-center gap-1.5">
+                                <span>📸</span>
+                                <span>Ảnh Sản Phẩm Thật</span>
+                            </span>
+                            <span className="text-[10px] font-bold text-[#087F8C] uppercase tracking-wider bg-white px-2 py-0.5 rounded-full border border-[#B7D9CC]">
+                                Catalogue HULA
+                            </span>
+                        </div>
+
+                        {/* Real Photo Thumbnail Container */}
+                        <div
+                            onClick={() => {
+                                setRealPhotosTab('catalogue');
+                                setIsRealPhotosOpen(true);
+                            }}
+                            className="relative rounded-xl overflow-hidden border border-[#B7D9CC] bg-white cursor-pointer group shadow-xs hover:shadow-md transition-all aspect-[4/3] flex items-center justify-center"
+                            title="Bấm để phóng to và xem chi tiết ảnh thật"
+                        >
+                            <img
+                                src={`/images/tour360/real-photos/catalogue/cara_${activeColorInfo.colorId || 'blue'}.jpg`}
+                                alt={`Ảnh thật nệm Cotton Cara màu ${activeColorInfo.label}`}
+                                className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/images/tour360/real-photos/catalogue/cara_blue.jpg';
+                                }}
+                            />
+                            {/* Overlay Badge */}
+                            <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-[#183B3A]/85 backdrop-blur-sm text-white text-[10px] font-bold flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: CARA_COLORS.find(c => c.id === activeColorInfo.colorId)?.previewHex || '#56C5ED' }} />
+                                <span>Màu: {activeColorInfo.label}</span>
+                            </div>
+                            {/* Zoom Action Button */}
+                            <div className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-white/90 backdrop-blur-sm text-[#087F8C] text-[10px] font-bold shadow-xs flex items-center gap-1 group-hover:bg-[#087F8C] group-hover:text-white transition-colors">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                </svg>
+                                <span>Phóng to</span>
+                            </div>
+                        </div>
+
+                        {/* Note / Disclaimer */}
+                        <p className="text-[10px] text-[#566967] leading-relaxed">
+                            💡 Chữ <span className="font-semibold text-[#183B3A]">"YOUR LOGO HERE"</span> trong ảnh là minh họa khả năng thêu/in logo tùy biến của xưởng HULA theo yêu cầu từng trường, không phải logo mặc định.
+                        </p>
+
+                        {/* Action Button to Open Project Gallery */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setRealPhotosTab('projects');
+                                setIsRealPhotosOpen(true);
+                            }}
+                            className="w-full py-2 px-3 rounded-xl bg-white hover:bg-[#F6F8F5] border border-[#B7D9CC] text-[#087F8C] text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
+                        >
+                            <span>🏫 Xem 26 ảnh thực tế tại trường (Sright & KIS)</span>
+                        </button>
+                    </div>
+                )}
+
                 {/* Scope Selection (for Bedding Sets) */}
                 {(isCara || isSatin) && (
                     <div className="space-y-2">
@@ -291,6 +357,40 @@ export function CampusInspector({
                                 );
                             })}
                         </div>
+                    </div>
+                )}
+
+                {/* Cara QA Camera Bookmarks (Instruction 09: 3 QA angles in R1) */}
+                {currentRoom === 'R1' && (
+                    <div className="space-y-2.5 p-3.5 rounded-2xl bg-[#EAF4F2] border border-[#B7D9CC]">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-[#183B3A]">
+                                Góc máy đối chiếu Cara (QA)
+                            </span>
+                            <span className="text-[10px] font-bold text-[#087F8C] uppercase tracking-wider bg-white px-2 py-0.5 rounded-full border border-[#B7D9CC]">
+                                3 Góc Chuẩn
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            {Object.values(CARA_R1_BOOKMARKS).map(bm => (
+                                <button
+                                    key={bm.id}
+                                    type="button"
+                                    onClick={() => campusWorldState.setBookmark(bm.id)}
+                                    className="py-2 px-1.5 rounded-xl text-[11px] font-bold transition-all text-center border min-h-[44px] flex flex-col items-center justify-center bg-white text-[#183B3A] border-[#DDE5E1] hover:bg-[#087F8C] hover:text-white active:scale-95 shadow-xs"
+                                    title={bm.label}
+                                >
+                                    <span>{bm.id}</span>
+                                    <span className="text-[9px] font-normal opacity-80 truncate max-w-full">
+                                        {bm.id === 'C01' ? 'Từ trên' :
+                                         bm.id === 'C02' ? 'Nghiêng 45°' : 'Cận gối'}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-[10px] text-[#566967] leading-tight">
+                            Đối chiếu nhanh tỷ lệ 120x63, gối phồng và nếp gập chăn (C01-C03).
+                        </p>
                     </div>
                 )}
 
@@ -581,6 +681,15 @@ export function CampusInspector({
                     })()}
                 </div>
             </div>
+
+            {/* Real Product Photos Lightbox Modal (Instruction 09) */}
+            <CampusRealPhotosModal
+                isOpen={isRealPhotosOpen}
+                onClose={() => setIsRealPhotosOpen(false)}
+                activeColorId={activeColorInfo.colorId || 'blue'}
+                onSelectColor={(cId) => handleSelectColor(cId)}
+                initialTab={realPhotosTab}
+            />
         </aside>
     );
 }

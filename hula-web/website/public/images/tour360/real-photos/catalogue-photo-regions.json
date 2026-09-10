@@ -1,0 +1,73 @@
+{
+  "source": "photos/catalogue/NEM_MN_-_03.jpg",
+  "sourceImagePixels": [
+    2000,
+    2000
+  ],
+  "productReference": "REF-MAT-CARA-STD",
+  "coordinateFormat": "left,top,right,bottom in source pixels",
+  "purpose": "catalogue photo display crop, NOT texture atlas or alpha mask",
+  "sourceHasCustomizationPlaceholder": true,
+  "regions": [
+    {
+      "colorId": "blue",
+      "label": "Xanh dương",
+      "box": [
+        110,
+        341,
+        531,
+        988
+      ]
+    },
+    {
+      "colorId": "green",
+      "label": "Xanh lá",
+      "box": [
+        781,
+        341,
+        1192,
+        988
+      ]
+    },
+    {
+      "colorId": "mint",
+      "label": "Xanh ngọc",
+      "box": [
+        1450,
+        341,
+        1862,
+        988
+      ]
+    },
+    {
+      "colorId": "orange",
+      "label": "Cam",
+      "box": [
+        110,
+        1125,
+        531,
+        1762
+      ]
+    },
+    {
+      "colorId": "yellow",
+      "label": "Vàng",
+      "box": [
+        781,
+        1125,
+        1192,
+        1762
+      ]
+    },
+    {
+      "colorId": "pink",
+      "label": "Hồng",
+      "box": [
+        1450,
+        1125,
+        1862,
+        1762
+      ]
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "sourceCatalogue": "/images/tour360/real-photos/catalogue/NEM_MN_-_03.jpg",
+  "specSheet": "/images/tour360/real-photos/catalogue/NEM_MN_-_01.jpg",
+  "cottonCara6Colors": {
+    "blue": {
+      "colorId": "blue",
+      "label": "Xanh dương",
+      "filename": "cara_blue.jpg",
+      "url": "/images/tour360/real-photos/catalogue/cara_blue.jpg",
+      "width": 421,
+      "height": 647,
+      "box": [
+        110,
+        341,
+        531,
+        988
+      ]
+    },
+    "green": {
+      "colorId": "green",
+      "label": "Xanh lá",
+      "filename": "cara_green.jpg",
+      "url": "/images/tour360/real-photos/catalogue/cara_green.jpg",
+      "width": 411,
+      "height": 647,
+      "box": [
+        781,
+        341,
+        1192,
+        988
+      ]
+    },
+    "mint": {
+      "colorId": "mint",
+      "label": "Xanh ngọc",
+      "filename": "cara_mint.jpg",
+      "url": "/images/tour360/real-photos/catalogue/cara_mint.jpg",
+      "width": 412,
+      "height": 647,
+      "box": [
+        1450,
+        341,
+        1862,
+        988
+      ]
+    },
+    "orange": {
+      "colorId": "orange",
+      "label": "Cam",
+      "filename": "cara_orange.jpg",
+      "url": "/images/tour360/real-photos/catalogue/cara_orange.jpg",
+      "width": 421,
+      "height": 637,
+      "box": [
+        110,
+        1125,
+        531,
+        1762
+      ]
+    },
+    "yellow": {
+      "colorId": "yellow",
+      "label": "Vàng",
+      "filename": "cara_yellow.jpg",
+      "url": "/images/tour360/real-photos/catalogue/cara_yellow.jpg",
+      "width": 411,
+      "height": 637,
+      "box": [
+        781,
+        1125,
+        1192,
+        1762
+      ]
+    },
+    "pink": {
+      "colorId": "pink",
+      "label": "Hồng",
+      "filename": "cara_pink.jpg",
+      "url": "/images/tour360/real-photos/catalogue/cara_pink.jpg",
+      "width": 412,
+      "height": 637,
+      "box": [
+        1450,
+        1125,
+        1862,
+        1762
+      ]
+    }
+  },
+  "srightProjectPhotosCount": 15,
+  "kisProjectPhotosCount": 11,
+  "disclaimer": "Chữ YOUR LOGO HERE trong ảnh là minh họa khả năng thêu/in logo tùy biến của xưởng HULA theo yêu cầu từng trường, không phải logo mặc định của sản phẩm."
+}
