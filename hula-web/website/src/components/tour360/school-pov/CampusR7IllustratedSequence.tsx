@@ -98,8 +98,9 @@ export function CampusR7IllustratedSequence({
     const roleKey = activeRole; // 'co-an' | 'me-linh' | 'be-may'
     const slotKey = `r7/${roleKey}/${stepInfo.code}`;
 
-    // Determine target media URL (custom override, or optimized WebP)
-    const targetUrl = customMediaMap?.[slotKey] || `/images/tour360/r7/${roleKey}/${stepInfo.code}.webp`;
+    // Determine target media URL (custom override, or optimized WebP with cache buster)
+    const rawTargetUrl = customMediaMap?.[slotKey] || `/images/tour360/r7/${roleKey}/${stepInfo.code}.webp`;
+    const targetUrl = rawTargetUrl.includes('?') ? rawTargetUrl : `${rawTargetUrl}?v=inst16`;
 
     // Preload & decode image with fallback chain: WebP -> PNG -> SVG
     useEffect(() => {
@@ -136,7 +137,7 @@ export function CampusR7IllustratedSequence({
 
         // Attempt WebP first, then high-res PNG, then SVG vector
         tryLoad(targetUrl, () => {
-            const pngFallback = `/images/tour360/r7/${roleKey}/${stepInfo.code}.png`;
+            const pngFallback = `/images/tour360/r7/${roleKey}/${stepInfo.code}.png?v=inst16`;
             tryLoad(pngFallback, () => {
                 const svgFallback = `/images/tour360/r7/${roleKey}/${stepInfo.code}.svg`;
                 tryLoad(svgFallback);
