@@ -38,6 +38,8 @@ import {
     ShopOutlined,
     HomeOutlined,
     ReloadOutlined,
+    SettingOutlined,
+    MobileOutlined,
 } from '@ant-design/icons';
 import AdminLayout from '@/components/AdminLayout';
 import ImageUploader from '@/components/ImageUploader';
@@ -62,6 +64,11 @@ export default function SchoolExperiencePage() {
     const [revisionsModalVisible, setRevisionsModalVisible] = useState<boolean>(false);
     const [revisions, setRevisions] = useState<any[]>([]);
     const [loadingRevisions, setLoadingRevisions] = useState<boolean>(false);
+
+    // R7 Bounds & Mobile Crop Editor
+    const [editingR7Slot, setEditingR7Slot] = useState<{ role: string; step: string; cell: any } | null>(null);
+    const [r7FormDraft, setR7FormDraft] = useState<any>({});
+    const [previewPreset, setPreviewPreset] = useState<'desktop' | 'mobile_compact' | 'mobile_standard'>('mobile_compact');
 
     // Load draft config on mount
     const fetchDraft = async () => {
@@ -219,11 +226,32 @@ export default function SchoolExperiencePage() {
                     roleId: role,
                     stepCode: step,
                     assetUrl: url,
+                    mediaDesktopUrl: url,
+                    mediaMobileUrl: url,
                     mediaType: 'image',
                     status: url ? 'available' : 'missing',
                 },
             },
         }));
+    };
+
+    const handleSaveR7SlotDetails = (role: string, step: string, updatedFields: any) => {
+        const key = `r7/${role}/${step}`;
+        setConfig((prev: any) => ({
+            ...prev,
+            r7MediaMatrix: {
+                ...(prev.r7MediaMatrix || {}),
+                [key]: {
+                    ...(prev.r7MediaMatrix?.[key] || {}),
+                    ...updatedFields,
+                    roleId: role,
+                    stepCode: step,
+                    assetUrl: updatedFields.assetUrl || updatedFields.mediaDesktopUrl || prev.r7MediaMatrix?.[key]?.assetUrl || '',
+                    status: (updatedFields.assetUrl || updatedFields.mediaDesktopUrl || prev.r7MediaMatrix?.[key]?.assetUrl) ? 'available' : 'missing',
+                },
+            },
+        }));
+        message.success('Đã lưu cấu hình vùng an toàn slot R7');
     };
 
     const roles = [
@@ -582,6 +610,27 @@ export default function SchoolExperiencePage() {
                                                                     onChange={(e) => handleUpdateR7Cell(role.id, record.stepCode, e.target.value)}
                                                                     className="text-xs font-mono"
                                                                 />
+
+                                                                <Button
+                                                                    size="small"
+                                                                    type="dashed"
+                                                                    icon={<SettingOutlined />}
+                                                                    onClick={() => {
+                                                                        setEditingR7Slot({ role: role.id, step: record.stepCode, cell });
+                                                                        setR7FormDraft({
+                                                                            assetUrl: cell.assetUrl || '',
+                                                                            mediaDesktopUrl: cell.mediaDesktopUrl || cell.assetUrl || '',
+                                                                            mediaMobileUrl: cell.mediaMobileUrl || cell.assetUrl || '',
+                                                                            focalPoint: cell.focalPoint || [50, 50],
+                                                                            actionBounds: cell.actionBounds || { x: 30, y: 40, width: 40, height: 40 },
+                                                                            faceBounds: cell.faceBounds || { x: 35, y: 15, width: 30, height: 25 },
+                                                                            description: cell.description || '',
+                                                                        });
+                                                                    }}
+                                                                    className="w-full text-[11px] mt-1"
+                                                                >
+                                                                    Vùng an toàn & Mobile
+                                                                </Button>
                                                             </div>
                                                         );
                                                     },
@@ -605,8 +654,8 @@ export default function SchoolExperiencePage() {
                                 children: (
                                     <div className="space-y-6 max-w-2xl">
                                         <Alert
-                                            message="Cấu hình Tuyến khám phá nhanh & Mặt bằng SVG"
-                                            description="Mặt bằng kiến trúc SVG được vẽ tự động theo kiến trúc trường. Bạn có thể sắp xếp thứ tự chặng của Tuyến khám phá nhanh."
+                                            message="Cấu hình Tuyến khám phá nhanh & Bản đồ trường"
+                                            description="Bản đồ trường được hiển thị trực quan theo kiến trúc khuôn viên. Bạn có thể sắp xếp thứ tự chặng của Tuyến khám phá nhanh."
                                             type="info"
                                             showIcon
                                             className="rounded-xl"
@@ -756,6 +805,310 @@ export default function SchoolExperiencePage() {
                     ]}
                     pagination={{ pageSize: 8 }}
                 />
+            </Modal>
+
+            {/* R7 Bounds & Mobile Preview Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-2">
+                        <MobileOutlined className="text-[#087F8C]" />
+                        <span>Cấu Hình Vùng An Toàn & Xem Trước Di Động ({editingR7Slot?.role} - {editingR7Slot?.step})</span>
+                    </div>
+                }
+                open={editingR7Slot !== null}
+                onCancel={() => setEditingR7Slot(null)}
+                onOk={() => {
+                    if (editingR7Slot) {
+                        handleSaveR7SlotDetails(editingR7Slot.role, editingR7Slot.step, r7FormDraft);
+                        setEditingR7Slot(null);
+                    }
+                }}
+                okText="Lưu vùng an toàn"
+                cancelText="Hủy"
+                width={840}
+                destroyOnClose
+            >
+                {editingR7Slot && (
+                    <div className="space-y-4 py-2">
+                        <Row gutter={20}>
+                            {/* Left Form Controls */}
+                            <Col span={12} className="space-y-3">
+                                <div>
+                                    <Text strong className="text-xs">URL Ảnh Desktop (16:9):</Text>
+                                    <Input
+                                        size="small"
+                                        value={r7FormDraft.mediaDesktopUrl || ''}
+                                        onChange={(e) => setR7FormDraft({ ...r7FormDraft, mediaDesktopUrl: e.target.value, assetUrl: e.target.value })}
+                                        className="text-xs font-mono mt-1"
+                                    />
+                                </div>
+                                <div>
+                                    <Text strong className="text-xs">URL Ảnh Mobile (Tùy chọn):</Text>
+                                    <Input
+                                        size="small"
+                                        placeholder="Để trống nếu dùng chung ảnh Desktop"
+                                        value={r7FormDraft.mediaMobileUrl || ''}
+                                        onChange={(e) => setR7FormDraft({ ...r7FormDraft, mediaMobileUrl: e.target.value })}
+                                        className="text-xs font-mono mt-1"
+                                    />
+                                </div>
+
+                                <div className="p-3 bg-gray-50 rounded-xl space-y-2 border border-gray-200 text-xs">
+                                    <Text strong>Tâm điểm quan trọng (Focal Point %):</Text>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <span className="text-[11px] text-gray-500">X (%):</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.focalPoint?.[0] ?? 50}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    focalPoint: [Number(e.target.value), r7FormDraft.focalPoint?.[1] ?? 50],
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[11px] text-gray-500">Y (%):</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.focalPoint?.[1] ?? 50}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    focalPoint: [r7FormDraft.focalPoint?.[0] ?? 50, Number(e.target.value)],
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-3 bg-blue-50/60 rounded-xl space-y-2 border border-blue-200 text-xs">
+                                    <Text strong className="text-blue-900">Vùng mặt nhân vật (Face Bounds %):</Text>
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">X:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.faceBounds?.x ?? 35}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    faceBounds: { ...(r7FormDraft.faceBounds || {}), x: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">Y:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.faceBounds?.y ?? 15}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    faceBounds: { ...(r7FormDraft.faceBounds || {}), y: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">W:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.faceBounds?.width ?? 30}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    faceBounds: { ...(r7FormDraft.faceBounds || {}), width: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">H:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.faceBounds?.height ?? 25}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    faceBounds: { ...(r7FormDraft.faceBounds || {}), height: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-3 bg-emerald-50/60 rounded-xl space-y-2 border border-emerald-200 text-xs">
+                                    <Text strong className="text-emerald-900">Vùng hành động túi/tay (Action Bounds %):</Text>
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">X:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.actionBounds?.x ?? 30}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    actionBounds: { ...(r7FormDraft.actionBounds || {}), x: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">Y:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.actionBounds?.y ?? 40}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    actionBounds: { ...(r7FormDraft.actionBounds || {}), y: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">W:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.actionBounds?.width ?? 40}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    actionBounds: { ...(r7FormDraft.actionBounds || {}), width: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-gray-500">H:</span>
+                                            <Input
+                                                size="small"
+                                                type="number"
+                                                value={r7FormDraft.actionBounds?.height ?? 40}
+                                                onChange={(e) => setR7FormDraft({
+                                                    ...r7FormDraft,
+                                                    actionBounds: { ...(r7FormDraft.actionBounds || {}), height: Number(e.target.value) },
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </Col>
+
+                            {/* Right Interactive Preview */}
+                            <Col span={12} className="space-y-3 flex flex-col items-center">
+                                <div className="w-full flex items-center justify-between">
+                                    <Text strong className="text-xs">Mô phỏng khung hình:</Text>
+                                    <Radio.Group
+                                        size="small"
+                                        value={previewPreset}
+                                        onChange={(e) => setPreviewPreset(e.target.value)}
+                                        buttonStyle="solid"
+                                    >
+                                        <Radio.Button value="desktop">16:9 Desktop</Radio.Button>
+                                        <Radio.Button value="mobile_compact">400×528</Radio.Button>
+                                        <Radio.Button value="mobile_standard">390×844</Radio.Button>
+                                    </Radio.Group>
+                                </div>
+
+                                {/* Preview Viewport Box */}
+                                <div
+                                    className={`relative rounded-2xl overflow-hidden border-2 border-[#087F8C] bg-slate-900 transition-all flex items-center justify-center ${
+                                        previewPreset === 'desktop'
+                                            ? 'w-full aspect-[16/9]'
+                                            : previewPreset === 'mobile_compact'
+                                            ? 'w-[240px] h-[316px]'
+                                            : 'w-[200px] h-[432px]'
+                                    }`}
+                                >
+                                    <img
+                                        src={
+                                            (previewPreset !== 'desktop' && r7FormDraft.mediaMobileUrl)
+                                                ? r7FormDraft.mediaMobileUrl
+                                                : (r7FormDraft.mediaDesktopUrl || r7FormDraft.assetUrl)
+                                        }
+                                        alt="Preview"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = '/images/tour360/r7/me-linh/h0-greet.webp';
+                                        }}
+                                    />
+
+                                    {/* Focal Point Indicator */}
+                                    <div
+                                        className="absolute w-3 h-3 rounded-full bg-red-500 border-2 border-white -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-md"
+                                        style={{
+                                            left: `${r7FormDraft.focalPoint?.[0] ?? 50}%`,
+                                            top: `${r7FormDraft.focalPoint?.[1] ?? 50}%`,
+                                        }}
+                                        title="Focal Point"
+                                    />
+
+                                    {/* Face Bounds Rectangle */}
+                                    {r7FormDraft.faceBounds && (
+                                        <div
+                                            className="absolute border-2 border-blue-400 bg-blue-500/20 pointer-events-none"
+                                            style={{
+                                                left: `${r7FormDraft.faceBounds.x}%`,
+                                                top: `${r7FormDraft.faceBounds.y}%`,
+                                                width: `${r7FormDraft.faceBounds.width}%`,
+                                                height: `${r7FormDraft.faceBounds.height}%`,
+                                            }}
+                                        >
+                                            <span className="absolute -top-4 left-0 text-[9px] font-bold bg-blue-500 text-white px-1 rounded">
+                                                Mặt
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Action Bounds Rectangle */}
+                                    {r7FormDraft.actionBounds && (
+                                        <div
+                                            className="absolute border-2 border-emerald-400 bg-emerald-500/20 pointer-events-none"
+                                            style={{
+                                                left: `${r7FormDraft.actionBounds.x}%`,
+                                                top: `${r7FormDraft.actionBounds.y}%`,
+                                                width: `${r7FormDraft.actionBounds.width}%`,
+                                                height: `${r7FormDraft.actionBounds.height}%`,
+                                            }}
+                                        >
+                                            <span className="absolute -top-4 left-0 text-[9px] font-bold bg-emerald-500 text-white px-1 rounded">
+                                                Túi/Hành động
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Crop Safety Warning Check */}
+                                {(() => {
+                                    const faceX = r7FormDraft.faceBounds?.x ?? 35;
+                                    const faceW = r7FormDraft.faceBounds?.width ?? 30;
+                                    const actX = r7FormDraft.actionBounds?.x ?? 30;
+                                    const actW = r7FormDraft.actionBounds?.width ?? 40;
+                                    const isRisk = faceX < 15 || (faceX + faceW) > 85 || actX < 15 || (actX + actW) > 85;
+
+                                    if (isRisk && previewPreset !== 'desktop') {
+                                        return (
+                                            <Alert
+                                                type="warning"
+                                                showIcon
+                                                message="Cảnh báo cắt xén trên di động"
+                                                description="Vùng mặt hoặc túi nệm nằm sát mép biên, có thể bị cắt khi hiển thị trên màn hình hẹp (400×528). Hãy căn giữa focal point hoặc cung cấp ảnh mobile riêng."
+                                                className="text-xs"
+                                            />
+                                        );
+                                    }
+                                    return (
+                                        <Alert
+                                            type="success"
+                                            showIcon
+                                            message="Vùng an toàn đảm bảo"
+                                            description="Khuôn mặt và túi nệm nằm trọn trong khung hình trải nghiệm di động."
+                                            className="text-xs"
+                                        />
+                                    );
+                                })()}
+                            </Col>
+                        </Row>
+                    </div>
+                )}
             </Modal>
         </AdminLayout>
     );

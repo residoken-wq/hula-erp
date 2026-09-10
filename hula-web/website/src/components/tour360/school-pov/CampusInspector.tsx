@@ -88,49 +88,53 @@ export function CampusInspector({
 
     return (
         <aside
-            className={`fixed lg:absolute top-14 sm:top-16 bottom-0 right-0 z-20 w-full sm:w-[360px] max-w-full bg-white/95 backdrop-blur-xl border-l border-[#DDE5E1] shadow-xl flex flex-col transition-transform duration-300 ease-out select-none ${
-                isOpen ? 'translate-x-0' : 'translate-x-full'
+            className={`fixed sm:absolute bottom-0 sm:bottom-0 left-0 sm:left-auto right-0 sm:right-0 top-auto sm:top-16 z-40 sm:z-20 w-full sm:w-[360px] max-w-full max-h-[85dvh] sm:max-h-full h-auto sm:h-[calc(100%-4rem)] bg-white/95 backdrop-blur-xl border-t sm:border-t-0 sm:border-l border-[#DDE5E1] rounded-t-3xl sm:rounded-none shadow-2xl flex flex-col transition-transform duration-300 ease-out select-none ${
+                isOpen ? 'translate-y-0 sm:translate-y-0 sm:translate-x-0' : 'translate-y-full sm:translate-y-0 sm:translate-x-full'
             }`}
             role="region"
             aria-label="Bảng điều khiển và thông số sản phẩm"
         >
-            {/* 1. Header Bar */}
-            <div className="p-4 sm:p-5 border-b border-[#DDE5E1] flex items-center justify-between bg-white/80">
-                <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-bold text-[#087F8C] uppercase tracking-wider">
-                        {isCara ? 'BỘ NỆM MẦM NON TIÊU CHUẨN' :
-                         isSatin ? 'DÒNG NỆM SATIN HÀN QUỐC' :
-                         isFoamFold4 ? 'NỆM FOAM TIỆN LỢI' :
-                         isFoamBasic ? 'NỆM FOAM CƠ BẢN' :
-                         isSleepBag ? 'TÚI NGỦ MẦM NON' :
-                         'TÚI BẢO QUẢN TIÊU CHUẨN'}
-                    </span>
-                    <h2 className="text-base sm:text-lg font-bold text-[#183B3A] truncate">
-                        {selectedInstance ? selectedInstance.label : 'Chi tiết sản phẩm'}
-                    </h2>
-                    <span className="text-[11px] text-[#566967]">
-                        {isCara ? 'Vải Cotton Cara chần gòn thoáng khí' :
-                         isSatin ? 'Vải Satin kháng khuẩn mềm mát' :
-                         isFoamFold4 ? 'Ruột Foam nguyên khối chống thấm' :
-                         isFoamBasic ? 'Nệm Foam êm phẳng cho trẻ' :
-                         isSleepBag ? 'Túi ngủ tích hợp nệm, gối và chăn' :
-                         'Túi vải bảo quản kháng ẩm có khóa kéo'}
-                    </span>
+            {/* 1. Fixed Header Bar */}
+            <div className="p-4 sm:p-5 border-b border-[#DDE5E1] bg-white/90 shrink-0 sticky top-0 z-10">
+                {/* Mobile drag bar affordance */}
+                <div className="w-12 h-1.5 rounded-full bg-[#DDE5E1] mx-auto mb-3 sm:hidden" />
+                <div className="flex items-center justify-between">
+                    <div className="flex flex-col min-w-0 pr-2">
+                        <span className="text-[11px] font-bold text-[#087F8C] uppercase tracking-wider">
+                            {isCara ? 'BỘ NỆM MẦM NON TIÊU CHUẨN' :
+                             isSatin ? 'DÒNG NỆM SATIN HÀN QUỐC' :
+                             isFoamFold4 ? 'NỆM FOAM TIỆN LỢI' :
+                             isFoamBasic ? 'NỆM FOAM CƠ BẢN' :
+                             isSleepBag ? 'TÚI NGỦ MẦM NON' :
+                             'TÚI BẢO QUẢN TIÊU CHUẨN'}
+                        </span>
+                        <h2 className="text-base sm:text-lg font-bold text-[#183B3A] truncate">
+                            {selectedInstance ? selectedInstance.label : 'Chi tiết sản phẩm'}
+                        </h2>
+                        <span className="text-[11px] text-[#566967]">
+                            {isCara ? 'Vải Cotton Cara chần gòn thoáng khí' :
+                             isSatin ? 'Vải Satin kháng khuẩn mềm mát' :
+                             isFoamFold4 ? 'Ruột Foam nguyên khối chống thấm' :
+                             isFoamBasic ? 'Nệm Foam êm phẳng cho trẻ' :
+                             isSleepBag ? 'Túi ngủ tích hợp nệm, gối và chăn' :
+                             'Túi vải bảo quản kháng ẩm có khóa kéo'}
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-[#F6F8F5] text-[#566967] hover:text-[#183B3A] transition-all shrink-0"
+                        aria-label="Đóng bảng điều khiển"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-[#F6F8F5] text-[#566967] hover:text-[#183B3A] transition-all"
-                    aria-label="Đóng bảng điều khiển"
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
             </div>
 
-            {/* 2. Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+            {/* 2. Single Scrollable Content */}
+            <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 {/* Instance Switcher Badges in Room */}
                 {roomInstances.length > 1 && (
                     <div className="space-y-2">
@@ -326,7 +330,7 @@ export function CampusInspector({
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="flex flex-wrap gap-2 grid-cols-3">
                             {colorsList.map(c => {
                                 const isColorActive = !activeColorInfo.isMixed && activeColorInfo.colorId === c.id;
                                 return (
@@ -334,7 +338,7 @@ export function CampusInspector({
                                         key={c.id}
                                         type="button"
                                         onClick={() => handleSelectColor(c.id)}
-                                        className={`relative p-2 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[54px] ${
+                                        className={`flex-1 min-w-[92px] relative p-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[54px] ${
                                             isColorActive
                                                 ? 'bg-white border-[#087F8C] shadow-md ring-2 ring-[#087F8C]/20'
                                                 : 'bg-[#F6F8F5] border-[#DDE5E1] hover:bg-white hover:border-[#B2CBC5]'
@@ -350,7 +354,7 @@ export function CampusInspector({
                                                 </svg>
                                             )}
                                         </div>
-                                        <span className="text-[11px] font-semibold text-[#183B3A] text-center leading-tight whitespace-normal break-words px-1">
+                                        <span className="text-[11px] sm:text-xs font-semibold text-[#183B3A] text-center leading-snug whitespace-normal break-words px-1">
                                             {c.label}
                                         </span>
                                     </button>

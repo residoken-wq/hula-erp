@@ -32,71 +32,127 @@ export function CampusTopHeader({
     const currentRoom = ROOMS[currentRoomId] || ROOMS['R1'];
 
     return (
-        <header className="relative z-30 h-14 sm:h-16 bg-white/95 backdrop-blur-md border-b border-[#DDE5E1] px-3 sm:px-6 flex items-center justify-between shadow-xs select-none">
-            {/* Left: School Name & Room Name */}
-            <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#087F8C] flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-sm shrink-0">
-                    360°
-                </div>
-                <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[11px] sm:text-xs font-semibold tracking-wide uppercase text-[#087F8C] truncate">
-                            Trường Mầm Non HULA
-                        </span>
-                        <span className="hidden md:inline-block w-1 h-1 rounded-full bg-[#9FB3A8]" />
-                        <span className="hidden md:inline-block text-[11px] sm:text-xs text-[#566967] font-medium">
-                            Góc Nhìn Thực Tế (POV)
-                        </span>
+        <header className="relative z-30 bg-white/95 backdrop-blur-md border-b border-[#DDE5E1] px-3 sm:px-6 shadow-xs select-none">
+            {/* Desktop single row (sm:flex sm:h-16 sm:items-center sm:justify-between) */}
+            <div className="hidden sm:flex h-16 items-center justify-between">
+                {/* Left: School Name & Room Name */}
+                <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#087F8C] flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0">
+                        360°
                     </div>
-                    <h1 className="text-sm sm:text-base font-bold text-[#183B3A] truncate">
-                        {currentRoom.title}
-                    </h1>
+                    <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold tracking-wide uppercase text-[#087F8C] truncate">
+                                Trường Mầm Non HULA
+                            </span>
+                            <span className="w-1 h-1 rounded-full bg-[#9FB3A8]" />
+                            <span className="text-xs text-[#566967] font-medium">
+                                Góc Nhìn Thực Tế (POV)
+                            </span>
+                        </div>
+                        <h1 className="text-base font-bold text-[#183B3A] truncate">
+                            {currentRoom.title}
+                        </h1>
+                    </div>
+                </div>
+
+                {/* Right: Role Pill, Map Button & Close Button */}
+                <div className="flex items-center gap-3 shrink-0">
+                    {/* Role Switcher Pill */}
+                    <button
+                        type="button"
+                        onClick={onToggleRoleSelector}
+                        className="flex items-center gap-2 px-3.5 py-2 min-h-[44px] rounded-xl bg-[#F6F8F5] hover:bg-[#EAEFEA] border border-[#DDE5E1] text-[#183B3A] transition-all text-sm font-medium active:scale-95"
+                        aria-label="Chọn góc nhìn nhân vật"
+                    >
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#087F8C] shrink-0" />
+                        <span className="font-semibold">{roleConfig.name}</span>
+                        <span className="text-xs text-[#566967]">
+                            ({roleConfig.title})
+                        </span>
+                        <svg className="w-3.5 h-3.5 text-[#566967]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {/* Map Button */}
+                    <button
+                        type="button"
+                        onClick={onToggleMap}
+                        className="flex items-center gap-2 px-3.5 py-2 min-h-[44px] rounded-xl bg-white hover:bg-[#F6F8F5] border border-[#DDE5E1] text-[#183B3A] transition-all text-sm font-medium shadow-xs active:scale-95"
+                        aria-label="Mở sơ đồ trường học"
+                    >
+                        <svg className="w-4 h-4 text-[#087F8C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <span className="font-semibold">Bản đồ</span>
+                    </button>
+
+                    {/* Close Button */}
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#F6F8F5] border border-[#DDE5E1] flex items-center justify-center text-[#566967] hover:text-[#183B3A] transition-all active:scale-95 shadow-xs"
+                        aria-label="Thoát khỏi trường học 3D"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
-            {/* Right: Role Pill, Map Button & Close Button */}
-            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                {/* Role Switcher Pill */}
-                <button
-                    type="button"
-                    onClick={onToggleRoleSelector}
-                    className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 min-h-[44px] rounded-xl bg-[#F6F8F5] hover:bg-[#EAEFEA] border border-[#DDE5E1] text-[#183B3A] transition-all text-xs sm:text-sm font-medium active:scale-95"
-                    aria-label="Chọn góc nhìn nhân vật"
-                >
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#087F8C] shrink-0" />
-                    <span className="font-semibold">{roleConfig.name}</span>
-                    <span className="text-[11px] sm:text-xs text-[#566967] hidden md:inline">
-                        ({roleConfig.title})
-                    </span>
-                    <svg className="w-3.5 h-3.5 text-[#566967]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
+            {/* Mobile 2-row layout (< 640px) */}
+            <div className="flex sm:hidden flex-col py-2 gap-2">
+                {/* Row 1: Room Title + Close Button */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#087F8C] flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
+                            360°
+                        </div>
+                        <h1 className="text-sm font-bold text-[#183B3A] truncate">
+                            {currentRoom.title}
+                        </h1>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#F6F8F5] border border-[#DDE5E1] flex items-center justify-center text-[#566967] hover:text-[#183B3A] transition-all active:scale-95 shadow-xs shrink-0"
+                        aria-label="Thoát khỏi trường học 3D"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
-                {/* Map Button */}
-                <button
-                    type="button"
-                    onClick={onToggleMap}
-                    className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 min-h-[44px] rounded-xl bg-white hover:bg-[#F6F8F5] border border-[#DDE5E1] text-[#183B3A] transition-all text-xs sm:text-sm font-medium shadow-xs active:scale-95"
-                    aria-label="Mở sơ đồ trường học"
-                >
-                    <svg className="w-4 h-4 text-[#087F8C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    <span className="hidden sm:inline font-semibold">Bản Đồ Trường</span>
-                </button>
+                {/* Row 2: Role Switcher ("Mẹ Linh ⌄") + Map ("Bản đồ") */}
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        onClick={onToggleRoleSelector}
+                        className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] rounded-xl bg-[#F6F8F5] hover:bg-[#EAEFEA] border border-[#DDE5E1] text-[#183B3A] transition-all text-xs font-semibold active:scale-95"
+                        aria-label="Chọn góc nhìn nhân vật"
+                    >
+                        <span className="w-2 h-2 rounded-full bg-[#087F8C] shrink-0" />
+                        <span className="truncate">{roleConfig.name}</span>
+                        <svg className="w-3.5 h-3.5 text-[#566967] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
 
-                {/* Close Button */}
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#F6F8F5] border border-[#DDE5E1] flex items-center justify-center text-[#566967] hover:text-[#183B3A] transition-all active:scale-95 shadow-xs"
-                    aria-label="Thoát khỏi trường học 3D"
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                    <button
+                        type="button"
+                        onClick={onToggleMap}
+                        className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] rounded-xl bg-white hover:bg-[#F6F8F5] border border-[#DDE5E1] text-[#183B3A] transition-all text-xs font-semibold shadow-xs active:scale-95"
+                        aria-label="Mở sơ đồ trường học"
+                    >
+                        <svg className="w-4 h-4 text-[#087F8C] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <span>Bản đồ</span>
+                    </button>
+                </div>
             </div>
         </header>
     );

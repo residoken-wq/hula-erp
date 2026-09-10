@@ -212,16 +212,16 @@ export function CampusR7IllustratedSequence({
                     </div>
                 )}
 
-                {/* 2. UI-Rendered Name Label Badge Overlay in H1, H2, H3 */}
+                {/* 2. UI-Rendered Name Label Badge Overlay on bag-may-01 in H1, H2, H3 */}
                 {(handoverState === 'bag_selected' || handoverState === 'label_verified' || handoverState === 'ready_to_transfer') && !loadError && (
                     <div
                         className={`absolute z-20 transition-all duration-300 pointer-events-none ${
                             handoverState === 'label_verified'
-                                ? 'top-[44%] left-1/2 -translate-x-1/2 scale-110 sm:scale-125'
-                                : 'top-[52%] left-1/2 -translate-x-1/2 scale-90 sm:scale-100'
+                                ? 'top-[62%] left-1/2 -translate-x-1/2 scale-105 sm:scale-115'
+                                : 'top-[65%] left-1/2 -translate-x-1/2 scale-95 sm:scale-100'
                         }`}
                     >
-                        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border-2 border-[#087F8C] shadow-xl text-[#087F8C]">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border-2 border-[#087F8C] shadow-xl text-[#087F8C]">
                             <span className="text-xs">🏷️</span>
                             <div className="flex flex-col text-left">
                                 <span className="text-[10px] font-extrabold tracking-wider uppercase text-[#066772]">
@@ -239,61 +239,6 @@ export function CampusR7IllustratedSequence({
                         </div>
                     </div>
                 )}
-
-                {/* 3. Interactive Hotspot on Bag / Key Action Element */}
-                {!loadError && !isLoading && (
-                    <div className="absolute top-[48%] left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-                        <button
-                            type="button"
-                            onClick={() => setActiveHotspot(prev => prev ? null : 'bag-info')}
-                            className="group relative flex items-center justify-center w-10 h-10 rounded-full bg-[#087F8C]/80 hover:bg-[#087F8C] text-white shadow-lg backdrop-blur-sm transition-all hover:scale-110 active:scale-95"
-                            aria-label="Thông tin túi nệm của bé Mây"
-                        >
-                            <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping absolute" />
-                            <span className="w-2.5 h-2.5 rounded-full bg-white relative" />
-                        </button>
-
-                        {/* Hotspot Popover Tooltip */}
-                        {activeHotspot === 'bag-info' && (
-                            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl p-3 shadow-2xl border border-[#B7D9CC] text-left text-[#183B3A] animate-fadeIn z-30">
-                                <div className="flex items-center justify-between pb-1.5 border-b border-[#EAEFEA]">
-                                    <span className="text-[11px] font-bold text-[#087F8C] uppercase">
-                                        Túi quai xách HULA
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveHotspot(null)}
-                                        className="text-xs text-[#566967] hover:text-black"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                                <p className="text-xs font-semibold mt-1.5">
-                                    Mã: {MAY_HANDOVER_LABEL.bagRef} ({MAY_HANDOVER_LABEL.bagName})
-                                </p>
-                                <p className="text-[11px] text-[#566967] mt-0.5">
-                                    Bên trong: {MAY_HANDOVER_LABEL.beddingName} gấp gọn gàng.
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* 4. Top Status Banner: Mode Declaration & Step Pill */}
-            <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-                <div className="flex items-center gap-2 pointer-events-auto">
-                    <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-lg">
-                        <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                        <span>Minh họa tương tác (Illustrated Sequence)</span>
-                    </div>
-                </div>
-
-                <div className="hidden sm:flex items-center gap-2 pointer-events-auto">
-                    <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/90 text-xs font-semibold shadow-lg">
-                        <span>{stepInfo.hint}</span>
-                    </div>
-                </div>
             </div>
         </div>
     );

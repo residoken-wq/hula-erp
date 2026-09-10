@@ -300,6 +300,33 @@ export class HandoverStateMachine {
     }
 
     /**
+     * Navigates back to the previous step safely
+     */
+    public previousStep() {
+        if (this.actionLock || this.isTransferring) return;
+        const sequence: HandoverState[] = ['waiting', 'bag_selected', 'label_verified', 'ready_to_transfer', 'completed'];
+        const currentEffective: HandoverState = (this.state === 'received' || this.state === 'transferring') ? 'ready_to_transfer' : this.state;
+        const currentIdx = sequence.indexOf(currentEffective);
+        if (currentIdx > 0) {
+            const target = sequence[currentIdx - 1];
+            this.state = target;
+            if (target === 'waiting') this.holder = 'shelf';
+            else if (target === 'bag_selected' || target === 'label_verified') this.holder = 'table';
+            else if (target === 'ready_to_transfer') this.holder = 'teacher';
+            this.isLabelModalOpen = false;
+            this.notify();
+        }
+    }
+
+    /**
+     * Opens the label and checklist inspection modal
+     */
+    public openDetailsModal() {
+        this.isLabelModalOpen = true;
+        this.notify();
+    }
+
+    /**
      * Calculates the current 3D position of bag-may-01
      */
     public getBagPosition(): [number, number, number] {

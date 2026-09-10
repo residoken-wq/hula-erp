@@ -69,106 +69,167 @@ export function CampusHandoverPanel({ activeRole, onExploreMore }: CampusHandove
 
     const currentStepIndex = state === 'received' ? 4 : stepsList.findIndex(s => s.state === state);
 
+    const stepNumber = Math.min(6, currentStepIndex + 1);
+
     return (
         <>
-            {/* Handover Overlay Bar at bottom of screen */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-xl bg-white/95 backdrop-blur-xl rounded-3xl p-4 sm:p-5 border border-[#B7D9CC] shadow-2xl space-y-3.5 animate-fadeIn">
-                {/* 1. Header: Step Code & Step Progress Indicators */}
-                <div className="flex items-center justify-between border-b border-[#EAEFEA] pb-2.5">
+            <div className="w-full h-full p-4 sm:p-5 flex flex-col justify-between space-y-4 bg-white select-none">
+            {/* 1. Top Step Header: "Bước X/6 · [Tên bước]" & Progress */}
+            <div className="space-y-2 pb-3 border-b border-[#EAEFEA]">
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-[#087F8C] text-white">
+                        <span className="px-2 py-0.5 rounded-md text-xs font-black bg-[#087F8C] text-white">
                             {stepMeta.stepCode}
                         </span>
-                        <span className="text-xs sm:text-sm font-bold text-[#183B3A]">
-                            {stepMeta.stepTitle}
-                        </span>
+                        <h3 className="text-sm sm:text-base font-bold text-[#183B3A]">
+                            Bước {stepNumber}/6 · {stepMeta.stepTitle}
+                        </h3>
                     </div>
 
-                    {/* Progress dots */}
-                    <div className="flex items-center gap-1.5">
-                        {stepsList.map((step, idx) => {
-                            const isDone = idx < currentStepIndex;
-                            const isCurrent = idx === currentStepIndex;
-                            return (
-                                <div
-                                    key={step.code}
-                                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                                        isCurrent
-                                            ? 'bg-[#087F8C] scale-125 ring-2 ring-[#087F8C]/30'
-                                            : isDone
-                                            ? 'bg-[#183B3A]'
-                                            : 'bg-[#DDE5E1]'
-                                    }`}
-                                    title={step.code}
-                                />
-                            );
-                        })}
-                    </div>
+                    <span className="text-xs font-bold text-[#087F8C] bg-[#E0F0EA] px-2 py-0.5 rounded-full">
+                        {stepNumber}/6
+                    </span>
                 </div>
 
-                {/* 2. Character Dialogue */}
-                <div className="flex items-start gap-3 bg-[#F6F8F5] p-3 rounded-2xl border border-[#EAEFEA]">
-                    <div className="w-8 h-8 rounded-xl bg-white text-[#087F8C] flex items-center justify-center font-bold text-sm shrink-0 border border-[#DDE5E1]">
+                {/* 6-step progress track */}
+                <div className="grid grid-cols-6 gap-1 w-full h-1.5 rounded-full bg-[#EAEFEA] overflow-hidden">
+                    {stepsList.map((step, idx) => {
+                        const isDone = idx < currentStepIndex;
+                        const isCurrent = idx === currentStepIndex;
+                        return (
+                            <div
+                                key={step.code}
+                                className={`h-full transition-all ${
+                                    isCurrent ? 'bg-[#087F8C]' : isDone ? 'bg-[#183B3A]' : 'bg-[#DDE5E1]'
+                                }`}
+                                title={`Bước ${idx + 1}: ${step.code}`}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* 2. Character Perspective Dialogue */}
+            <div className="flex-1 space-y-3">
+                <div className="flex items-start gap-3 bg-[#F6F8F5] p-3.5 rounded-2xl border border-[#EAEFEA]">
+                    <div className="w-9 h-9 rounded-xl bg-white text-[#087F8C] flex items-center justify-center font-bold text-base shrink-0 border border-[#DDE5E1] shadow-xs">
                         {activeRole === 'be-may' ? '👶' : activeRole === 'co-an' ? '👩‍🏫' : '👩'}
                     </div>
                     <div className="flex-1 min-w-0">
                         <span className="text-[11px] font-bold text-[#087F8C] uppercase tracking-wider block">
                             Góc nhìn {roleInfo.name} ({roleInfo.title})
                         </span>
-                        <p className="text-xs sm:text-sm text-[#183B3A] italic font-medium leading-relaxed mt-0.5">
+                        <p className="text-xs sm:text-[13px] text-[#183B3A] italic font-medium leading-relaxed mt-1">
                             {currentDialogue}
                         </p>
                     </div>
                 </div>
 
-                {/* 3. Action Buttons */}
-                <div className="flex items-center gap-2 pt-1">
-                    {state === 'completed' ? (
-                        <>
-                            <button
-                                type="button"
-                                onClick={handleReplay}
-                                className="flex-1 py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-white text-[#183B3A] border-2 border-[#183B3A] hover:bg-[#F6F8F5] transition-all flex items-center justify-center gap-2 shadow-xs active:scale-95"
-                            >
-                                <span>↺</span>
-                                <span>Khám phá lại cuộc gặp (Replay)</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => campusWorldState.setRoom('R1')}
-                                className="py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-[#183B3A] text-white hover:bg-[#234F4E] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
-                            >
-                                <span>Về Lớp Lá</span>
-                            </button>
-                        </>
-                    ) : (
+                {/* Bag & Label Quick Status Card in H1/H2 */}
+                {(state === 'bag_selected' || state === 'label_verified' || state === 'ready_to_transfer') && (
+                    <div className="p-3 rounded-2xl bg-[#FFFDF7] border border-[#EAEFEA] flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                            <span>🏷️</span>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-[#183B3A]">
+                                    {MAY_HANDOVER_LABEL.childName} — {MAY_HANDOVER_LABEL.className}
+                                </span>
+                                <span className="text-[11px] text-[#566967]">
+                                    {MAY_HANDOVER_LABEL.beddingName}
+                                </span>
+                            </div>
+                        </div>
                         <button
                             type="button"
-                            disabled={isTransferring}
-                            onClick={handleAction}
-                            className={`w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md active:scale-95 ${
-                                isTransferring
-                                    ? 'bg-[#7FA39C] text-white cursor-wait'
-                                    : 'bg-[#087F8C] text-white hover:bg-[#076C77]'
-                            }`}
+                            onClick={() => handoverStateMachine.openDetailsModal()}
+                            className="px-2.5 py-1 text-xs font-bold text-[#087F8C] hover:bg-[#E0F0EA] rounded-lg transition-all"
                         >
-                            {isTransferring ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    <span>Đang chuyển giao quyền sở hữu túi...</span>
-                                </>
-                            ) : (
-                                <span>{currentActionLabel}</span>
-                            )}
+                            Xem nhãn →
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
-            {/* Label & Items Verification Modal (H2) */}
+            {/* 3. Action Controls & Step Navigation */}
+            <div className="space-y-2 pt-2 border-t border-[#EAEFEA]">
+                {/* Primary Action Button (min-h-[48px]) */}
+                {state === 'completed' ? (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                            type="button"
+                            onClick={handleReplay}
+                            className="flex-1 min-h-[48px] py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-white text-[#183B3A] border-2 border-[#183B3A] hover:bg-[#F6F8F5] transition-all flex items-center justify-center gap-2 shadow-xs active:scale-95"
+                        >
+                            <span>↺</span>
+                            <span>Khám phá lại (Replay)</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => campusWorldState.setRoom('R1')}
+                            className="flex-1 min-h-[48px] py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-[#183B3A] text-white hover:bg-[#234F4E] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
+                        >
+                            <span>Về Lớp Lá (R1)</span>
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        disabled={isTransferring}
+                        onClick={handleAction}
+                        className={`w-full min-h-[48px] py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md active:scale-95 ${
+                            isTransferring
+                                ? 'bg-[#7FA39C] text-white cursor-wait'
+                                : 'bg-[#087F8C] text-white hover:bg-[#076C77]'
+                        }`}
+                    >
+                        {isTransferring ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                <span>Đang chuyển giao quyền sở hữu túi...</span>
+                            </>
+                        ) : (
+                            <span>{currentActionLabel}</span>
+                        )}
+                    </button>
+                )}
+
+                {/* Secondary Navigation Row: "‹ Trước" / "Chi tiết" / "Tiếp ›" */}
+                <div className="flex items-center justify-between text-xs font-semibold pt-1 text-[#566967]">
+                    <button
+                        type="button"
+                        disabled={currentStepIndex === 0 || isTransferring}
+                        onClick={() => handoverStateMachine.previousStep()}
+                        className="px-2.5 py-1.5 rounded-xl hover:bg-[#F6F8F5] disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center gap-1"
+                        aria-label="Quay lại bước trước"
+                    >
+                        <span>‹ Trước</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handoverStateMachine.openDetailsModal()}
+                        className="px-2.5 py-1.5 rounded-xl hover:bg-[#F6F8F5] text-[#087F8C] transition-all flex items-center gap-1"
+                    >
+                        <span>Chi tiết nhãn đồ</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        disabled={state === 'completed' || isTransferring}
+                        onClick={handleAction}
+                        className="px-2.5 py-1.5 rounded-xl hover:bg-[#F6F8F5] disabled:opacity-40 disabled:pointer-events-none text-[#183B3A] transition-all flex items-center gap-1"
+                        aria-label="Tiếp tục bước kế tiếp"
+                    >
+                        <span>Tiếp ›</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {/* Label & Items Verification Modal (H2) */}
             {isLabelModalOpen && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn"

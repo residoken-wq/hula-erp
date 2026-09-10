@@ -54,7 +54,7 @@ const ROOM_DEFS: Record<RoomId, RoomDefinition> = {
         strokeColor: '#0E292A',
         rect: { x: 303, y: 156, width: 236, height: 108 },
         doorRect: { x: 372, y: 242, width: 98, height: 24 },
-        furniture: [{ type: 'desk', x: 355, y: 185, w: 130, h: 42 }],
+        furniture: [{ type: 'desk', x: 435, y: 172, w: 90, h: 36 }],
     },
     R5: {
         id: 'R5',
@@ -292,7 +292,7 @@ export function CampusSchoolMapModal({
                                     viewMode === 'map' ? 'bg-white text-[#173F40] shadow-xs' : 'text-[#566967]'
                                 }`}
                             >
-                                Mặt bằng SVG
+                                Bản đồ
                             </button>
                             <button
                                 type="button"
@@ -657,8 +657,8 @@ export function CampusSchoolMapModal({
                                         alt={selectedDef.label}
                                         className="w-full h-full object-cover"
                                     />
-                                    <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold">
-                                        {selectedDef.productCode}
+                                    <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold">
+                                        {selectedDef.subLabel}
                                     </div>
                                 </div>
 
