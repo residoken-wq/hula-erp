@@ -16,7 +16,8 @@ import {
     MoonOutlined,
     FormatPainterOutlined,
     PictureOutlined,
-    ProjectOutlined
+    ProjectOutlined,
+    CompassOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -38,6 +39,11 @@ const menuItems = [
         path: '/about-hula',
         name: 'Về Hula',
         icon: <HomeOutlined />,
+    },
+    {
+        path: '/school-experience',
+        name: 'Trải nghiệm trường học',
+        icon: <CompassOutlined />,
     },
     {
         path: '/media',

@@ -136,5 +136,17 @@ export const watermarkApi = {
     regenerateAll: () => api.post('/upload/watermark/regenerate'),
 };
 
+// ============================================
+// SCHOOL EXPERIENCE APIs (Instruction 10)
+// ============================================
+export const schoolExperienceApi = {
+    getPublic: () => api.get('/school-experience/public'),
+    getDraft: () => api.get('/school-experience/draft'),
+    saveDraft: (data: any) => api.put('/school-experience/draft', data),
+    publish: (changelog?: string) => api.post('/school-experience/publish', { changelog }),
+    getRevisions: () => api.get('/school-experience/revisions'),
+    rollback: (id: number) => api.post(`/school-experience/rollback/${id}`),
+};
+
 export default api;
 

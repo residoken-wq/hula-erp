@@ -16,7 +16,7 @@ import * as THREE from 'three';
 let cachedCaraNormalMap: THREE.CanvasTexture | null = null;
 let cachedCaraRoughnessMap: THREE.CanvasTexture | null = null;
 
-function getCaraTextures(): { normalMap: THREE.CanvasTexture; roughnessMap: THREE.CanvasTexture } {
+function getCaraTextures(): { normalMap: THREE.Texture; roughnessMap: THREE.Texture } {
     if (cachedCaraNormalMap && cachedCaraRoughnessMap) {
         return { normalMap: cachedCaraNormalMap, roughnessMap: cachedCaraRoughnessMap };
     }

@@ -25,6 +25,7 @@ import { CampusInspector } from './CampusInspector';
 import { CampusSchoolMapModal } from './CampusSchoolMapModal';
 import { CampusRoleModal } from './CampusRoleModal';
 import { CampusHandoverPanel } from './CampusHandoverPanel';
+import { CampusR7IllustratedSequence } from './CampusR7IllustratedSequence';
 import { handoverStateMachine } from '../engine/HandoverStateMachine';
 
 interface CampusSchoolPOVProps {
@@ -45,6 +46,7 @@ export function CampusSchoolPOV({ onClose }: CampusSchoolPOVProps) {
     const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(campusWorldState.isRoleSelectorOpen);
     const [visitedRooms, setVisitedRooms] = useState<Set<RoomId>>(new Set(campusWorldState.visitedRooms));
     const [activeColorInfo, setActiveColorInfo] = useState(campusWorldState.getActiveColorInfo());
+    const [r7RenderMode, setR7RenderMode] = useState(campusWorldState.r7RenderMode);
 
     // Sync from CampusWorldState
     useEffect(() => {
@@ -58,6 +60,7 @@ export function CampusSchoolPOV({ onClose }: CampusSchoolPOVProps) {
             setIsRoleSelectorOpen(campusWorldState.isRoleSelectorOpen);
             setVisitedRooms(new Set(campusWorldState.visitedRooms));
             setActiveColorInfo(campusWorldState.getActiveColorInfo());
+            setR7RenderMode(campusWorldState.r7RenderMode);
         });
         return unsubscribe;
     }, []);
@@ -136,10 +139,23 @@ export function CampusSchoolPOV({ onClose }: CampusSchoolPOVProps) {
                 {/* Three.js Canvas Container */}
                 <div
                     ref={canvasContainerRef}
-                    className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing touch-none"
+                    className={`absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing touch-none ${
+                        currentRoomId === 'R7' && r7RenderMode === 'illustrated_sequence' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
                     role="region"
                     aria-label="Khung cảnh 3D trường học mầm non"
                 />
+
+                {/* If in Room R7 with illustrated_sequence mode, show high-fidelity interactive 16:9 sequence */}
+                {currentRoomId === 'R7' && r7RenderMode === 'illustrated_sequence' && (
+                    <div className="absolute inset-0 z-10">
+                        <CampusR7IllustratedSequence
+                            activeRole={activeRole}
+                            onBackToCorridor={() => campusWorldState.setRoom('H0')}
+                            customMediaMap={campusWorldState.customMediaMap}
+                        />
+                    </div>
+                )}
 
                 {/* If in Room R7, render Weekend Handover Panel, otherwise render standard Inspector & Speech */}
                 {currentRoomId === 'R7' ? (

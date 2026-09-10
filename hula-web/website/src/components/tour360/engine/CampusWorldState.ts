@@ -504,6 +504,8 @@ export class CampusWorldStateStore {
     };
 
     public activeBookmarkId: string | null = null;
+    public r7RenderMode: 'illustrated_sequence' | 'scene3d' = 'illustrated_sequence';
+    public customMediaMap: Record<string, string> = {};
     private listeners: Set<() => void> = new Set();
 
     public subscribe(listener: () => void) {
@@ -520,6 +522,17 @@ export class CampusWorldStateStore {
     public setRole(roleId: RoleId) {
         if (this.activeRole === roleId) return;
         this.activeRole = roleId;
+        this.notify();
+    }
+
+    public setR7RenderMode(mode: 'illustrated_sequence' | 'scene3d') {
+        if (this.r7RenderMode === mode) return;
+        this.r7RenderMode = mode;
+        this.notify();
+    }
+
+    public setCustomMediaMap(map: Record<string, string>) {
+        this.customMediaMap = { ...this.customMediaMap, ...map };
         this.notify();
     }
 
@@ -732,6 +745,45 @@ export class CampusWorldStateStore {
             sleep: { present: !!sleepItem, color: sleepColor },
             bags: bagItems,
         };
+    }
+
+    /**
+     * Fetches published School Experience configuration from backend API (Instruction 10)
+     * Keeps session stable without corrupting active tour state.
+     */
+    public async loadPublishedConfig(apiBase?: string) {
+        if (typeof window === 'undefined') return;
+        const base = apiBase || (process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com');
+        const endpoint = `${base.replace(/\/api$/, '')}/api/public/school-experience`;
+
+        try {
+            const res = await fetch(endpoint);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.r7RenderMode) {
+                    this.r7RenderMode = data.r7RenderMode;
+                }
+                if (data.r7MediaMatrix) {
+                    const mediaMap: Record<string, string> = {};
+                    Object.entries(data.r7MediaMatrix).forEach(([key, val]: [string, any]) => {
+                        if (val?.assetUrl) mediaMap[key] = val.assetUrl;
+                    });
+                    this.customMediaMap = mediaMap;
+                }
+                if (data.rooms) {
+                    Object.entries(data.rooms).forEach(([roomId, rData]: [string, any]) => {
+                        if (ROOMS[roomId as RoomId] && rData.title) {
+                            ROOMS[roomId as RoomId].title = rData.title;
+                            if (rData.name) ROOMS[roomId as RoomId].name = rData.name;
+                        }
+                    });
+                }
+                this.notify();
+            }
+        } catch (err) {
+            // Silently fall back to standard seeded data
+            console.info('[CampusWorldState] Dùng dữ liệu khởi tạo mặc định cho School Experience.');
+        }
     }
 }
 
