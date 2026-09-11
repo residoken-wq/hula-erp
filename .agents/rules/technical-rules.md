@@ -88,16 +88,64 @@ moment(date).format('...');
 
 ---
 
-## 🔴 CRITICAL: NestJS Module & Entity Registration
+## 🔴 CRITICAL: NestJS Module & Entity Registration (BẮT BUỘC CHO MỌI MODULE / MENU MỚI)
 
-> **Nguyên nhân:** Lỗi `EntityMetadataNotFoundError: No metadata for "..." was found.` (Commits `55eb470`, `9c96fff`, `e4e5487`, `ab796f2`) do quên đăng ký entity gây crash.
+> **Nguyên nhân:** Lỗi `EntityMetadataNotFoundError: No metadata for "..." was found.` (500 Internal Server Error) xảy ra khi quên đăng ký entity vào `app.module.ts`, và lỗi `relation "..." does not exist` do production tắt `synchronize`.
 
-### Khi tạo Entity mới - PHẢI làm đủ 4 bước:
+### Checklist Bắt Buộc Khi Tạo Module / Menu / Entity Mới:
 
-1. Tạo entity file trong `src/[module]/`
-2. **Khai báo trong `app.module.ts`** → Thêm vào mảng `entities: [...]` của `TypeOrmModule.forRootAsync`. **Đây là nguyên nhân chính gây lỗi EntityMetadataNotFoundError.**
-3. **Khai báo trong feature module** (VD: `public.module.ts`) → Thêm vào `TypeOrmModule.forFeature([...])`.
-4. Thêm try-catch để xử lý graceful khi table chưa tồn tại (nếu query lúc startup).
+1. **Tạo Entity file** trong `src/[module]/entities/` hoặc `src/[module]/`.
+2. **Khai báo trong `src/app.module.ts` (BẮT BUỘC 100%)**:
+   - `import { NewEntity } from './[module]/entities/new-entity.entity';`
+   - Thêm `NewEntity` vào mảng `entities: [...]` của `TypeOrmModule.forRootAsync`.
+   - ⚠️ **NẾU QUÊN BƯỚC NÀY, PRODUCTION VÀ DEV SẼ BỊ LỖI 500 `EntityMetadataNotFoundError: No metadata for "..." was found`.**
+3. **Khai báo trong Feature Module**:
+   - Thêm vào `TypeOrmModule.forFeature([NewEntity])` trong `[module].module.ts`.
+   - Nếu là Module mới hoàn toàn (ví dụ: `XxxModule`), PHẢI import `XxxModule` vào `imports: [...]` của `src/app.module.ts`.
+4. **Auto-Migration / Tự Động Khởi Tạo Bảng & Cột Trong `onModuleInit()`**:
+   - ⚠️ **LƯU Ý CỰC KỲ QUAN TRỌNG:** Môi trường Production (`NODE_ENV === 'production'`) có `synchronize: false`. TypeORM sẽ **KHÔNG TỰ TẠO BẢNG MỚI HAY THÊM CỘT MỚI** trên PostgreSQL server!
+   - Service của module PHẢI implement `OnModuleInit` và chạy query raw SQL:
+     ```typescript
+     @Injectable()
+     export class MyService implements OnModuleInit {
+         constructor(@InjectRepository(MyEntity) private myRepo: Repository<MyEntity>) {}
+
+         async onModuleInit() {
+             try {
+                 await this.myRepo.manager.query(`
+                     CREATE TABLE IF NOT EXISTS my_table (
+                         id SERIAL PRIMARY KEY,
+                         name VARCHAR(255) NOT NULL,
+                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                     );
+                 `);
+                 // Nếu thêm cột mới vào bảng đã có:
+                 await this.myRepo.manager.query(`
+                     ALTER TABLE existing_table ADD COLUMN IF NOT EXISTS new_col VARCHAR(150);
+                 `);
+             } catch (e) {
+                 console.error('[MyService] Migration error:', e);
+             }
+         }
+     }
+     ```
+5. **Thêm Graceful Fallback (`try / catch`) trong API Service**:
+   - Trong các hàm query (đặc biệt `findAll`, `getMany`), luôn bọc `try / catch` trả về `[]` hoặc giá trị mặc định nếu table chưa sẵn sàng, tránh trả về 500 gây crash frontend:
+     ```typescript
+     async findAll() {
+         try {
+             return await this.myRepo.find({ order: { id: 'DESC' } });
+         } catch (e) {
+             console.error('[MyService] findAll error:', e);
+             return [];
+         }
+     }
+     ```
+6. **Thứ tự Route trong Controller**:
+   - Luôn định nghĩa routes cụ thể (ví dụ: `@Get('packing-specs')`, `@Get('export')`) TRƯỚC routes động (`@Get(':id')`) để tránh NestJS coi chuỗi là ID.
+7. **Frontend Route & Menu**:
+   - Khai báo Route trong `frontend/src/App.tsx`.
+   - Thêm mục Menu trong sidebar tương ứng.
 
 ```typescript
 // Bước 2: Đăng ký root trong app.module.ts
@@ -113,7 +161,7 @@ TypeOrmModule.forRootAsync({
     })
 })
 
-// Bước 3: Đăng ký feature module (ví dụ: public.module.ts)
+// Bước 3: Đăng ký feature module (ví dụ: products.module.ts)
 TypeOrmModule.forFeature([
     NewEntity,
 ])
