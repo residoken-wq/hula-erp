@@ -456,7 +456,7 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-500">Phí vận chuyển</span>
-                                    <span className="text-green-600 font-medium">Miễn phí</span>
+                                    <span className="text-green-600 font-medium">Miễn phí nội thành TP.HCM</span>
                                 </div>
                                 <div className="flex justify-between text-lg font-bold pt-3 border-t border-gray-100">
                                     <span className="text-gray-900">Tổng cộng</span>
