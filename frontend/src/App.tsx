@@ -1,3 +1,4 @@
+// Hula ERP Frontend Application
 import React, { useState, useEffect, useMemo } from 'react';
 import { Layout, Menu, theme, Button, Avatar, Dropdown, Modal, Form, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
