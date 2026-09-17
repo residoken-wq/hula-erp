@@ -6,9 +6,10 @@ interface Props {
     steps: WizardCustomizationStep[];
     selections: Record<string, string>;
     onShowModal: () => void;
+    onShow360?: () => void;
 }
 
-export default function DynamicPriceBar({ subcategory, steps, selections, onShowModal }: Props) {
+export default function DynamicPriceBar({ subcategory, steps, selections, onShowModal, onShow360 }: Props) {
 
     // Calculate total modifier from selections
     let totalModifier = 0;
@@ -53,13 +54,25 @@ export default function DynamicPriceBar({ subcategory, steps, selections, onShow
                         </div>
                     </div>
 
-                    <div className="mt-4 md:mt-0 flex flex-col items-center">
-                        <button
-                            onClick={onShowModal}
-                            className="w-full md:w-auto px-8 py-3 bg-primary-500 text-white rounded-full font-bold shadow-md hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
-                        >
-                            NHẬN BÁO GIÁ SỈ CHI TIẾT
-                        </button>
+                    <div className="mt-4 md:mt-0 flex flex-col items-center sm:items-end">
+                        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+                            {onShow360 && (
+                                <button
+                                    type="button"
+                                    onClick={onShow360}
+                                    className="w-full sm:w-auto px-5 py-3 rounded-full font-extrabold text-sm border-2 border-cyan-500 text-cyan-800 bg-cyan-50 hover:bg-cyan-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+                                >
+                                    <span>✨</span>
+                                    <span>Xem 3D 360°</span>
+                                </button>
+                            )}
+                            <button
+                                onClick={onShowModal}
+                                className="w-full sm:w-auto px-8 py-3 bg-primary-500 text-white rounded-full font-bold shadow-md hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
+                            >
+                                NHẬN BÁO GIÁ SỈ CHI TIẾT
+                            </button>
+                        </div>
                         <span className="text-xs text-gray-500 mt-2 block">
                             Click để nhập số lượng & nhận báo giá chính xác
                         </span>

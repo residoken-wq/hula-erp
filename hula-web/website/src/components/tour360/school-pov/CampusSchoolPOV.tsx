@@ -30,11 +30,24 @@ import { handoverStateMachine } from '../engine/HandoverStateMachine';
 
 interface CampusSchoolPOVProps {
     onClose: () => void;
+    customDesign?: {
+        colorHex?: string;
+        colorName?: string;
+        logoUrl?: string | null;
+        subcategoryName?: string;
+    };
 }
 
-export function CampusSchoolPOV({ onClose }: CampusSchoolPOVProps) {
+export function CampusSchoolPOV({ onClose, customDesign }: CampusSchoolPOVProps) {
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     const engineRef = useRef<CampusEngine | null>(null);
+
+    // Apply B2B custom design if passed
+    useEffect(() => {
+        if (customDesign) {
+            campusWorldState.applyB2BCustomization(customDesign);
+        }
+    }, [customDesign]);
 
     // Local reactive state mirrored from campusWorldState
     const [activeRole, setActiveRole] = useState<RoleId>(campusWorldState.activeRole);

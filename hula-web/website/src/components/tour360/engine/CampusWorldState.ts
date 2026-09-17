@@ -506,7 +506,30 @@ export class CampusWorldStateStore {
     public activeBookmarkId: string | null = null;
     public r7RenderMode: 'illustrated_sequence' | 'scene3d' = 'illustrated_sequence';
     public customMediaMap: Record<string, string> = {};
+    public b2bCustomDesign: {
+        colorHex?: string;
+        colorName?: string;
+        logoUrl?: string | null;
+        subcategoryName?: string;
+    } | null = null;
     private listeners: Set<() => void> = new Set();
+
+    public applyB2BCustomization(config: {
+        colorHex?: string;
+        colorName?: string;
+        logoUrl?: string | null;
+        subcategoryName?: string;
+    }) {
+        this.b2bCustomDesign = config;
+        // Broadcast custom color to matching instances across rooms
+        if (config.colorHex) {
+            Object.keys(this.instances).forEach(id => {
+                const inst = this.instances[id];
+                (inst as any).customColorHex = config.colorHex;
+            });
+        }
+        this.notify();
+    }
 
     public subscribe(listener: () => void) {
         this.listeners.add(listener);

@@ -76,7 +76,7 @@ const SECTIONS: SectionDef[] = [
     { key: 'partners', label: 'Đối tác', icon: '🤝', defaultBg: '#FFFFFF', defaultText: '#1F2937', settingBgKey: 'section_partners_bg', settingTextKey: 'section_partners_text' },
     { key: 'testimonials', label: 'Feedback Khách hàng', icon: '💬', defaultBg: '#B9E5FB', defaultText: '#1F2937', settingBgKey: 'section_testimonials_bg', settingTextKey: 'section_testimonials_text' },
     { key: 'blog', label: 'Blog Tư vấn', icon: '📰', defaultBg: '#FFFFFF', defaultText: '#1F2937', settingBgKey: 'section_blog_bg', settingTextKey: 'section_blog_text' },
-    { key: 'widget_360', label: 'Nút Widget 360° (Lớp Học)', icon: '🌐', defaultBg: '#23A7D3', defaultText: '#FFFFFF', settingBgKey: '', settingTextKey: '' },
+    { key: 'widget_360', label: 'Trải Nghiệm 360° B2B & Lớp Học', icon: '🌐', defaultBg: '#23A7D3', defaultText: '#FFFFFF', settingBgKey: '', settingTextKey: '' },
 ];
 
 // ============================================
@@ -1096,48 +1096,48 @@ export default function AppearancePage() {
                 return (
                     <Form form={homeForm} layout="vertical">
                         <Alert
-                            message="Cấu hình Nút Widget 360° trên Trang Chủ"
-                            description="Nút icon 360° hiển thị ở cụm nút nổi (Floating Action Widgets) góc phải màn hình, cho phép khách hàng khám phá trải nghiệm không gian lớp học mầm non và sản phẩm nệm HULA theo 3 góc nhìn: Giáo viên, Phụ huynh và Học sinh."
+                            message="Cấu hình Trải Nghiệm 360° Sản Phẩm & Lớp Học (Trang Đặt Hàng B2B)"
+                            description="Tính năng 360° cho phép khách hàng tại trang Đặt hàng B2B (/dat-hang-si) sau khi customize sản phẩm có thể: (1) Xoay 360° sản phẩm nệm/túi ngủ với đầy đủ màu sắc, thêu logo trường, bung linh kiện và (2) Đặt sản phẩm vào bối cảnh lớp học mầm non 360° theo 3 góc nhìn Cô An, Mẹ Linh, Bé Mây."
                             type="info"
                             showIcon
                             style={{ marginBottom: 16 }}
                         />
                         <Form.Item
                             name="widget_360_enabled"
-                            label="Ẩn / Hiện Nút Widget 360°"
+                            label="Bật / Tắt Tính năng Trải Nghiệm 360° B2B"
                             valuePropName="checked"
-                            extra="Bật để hiển thị icon 360° trên thanh nút nổi trang chủ. Tắt để ẩn hoàn toàn nút này trên website."
+                            extra="Bật để hiển thị nút mời gọi trải nghiệm 3D 360° trong trang Đặt hàng B2B sau khi khách chọn và tùy biến sản phẩm."
                         >
-                            <Switch checkedChildren="Hiện" unCheckedChildren="Ẩn" />
+                            <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
                         </Form.Item>
                         <Form.Item
                             name="widget_360_tooltip"
-                            label="Tiêu đề Tooltip khi rê chuột"
-                            extra="Nhãn hiển thị bên cạnh nút khi khách hàng di chuột vào icon"
+                            label="Tiêu đề Nút / CTA Trải Nghiệm 360°"
+                            extra="Nhãn hiển thị trên thanh nút hoặc banner kêu gọi trải nghiệm 3D trong trang Đặt hàng B2B"
                         >
-                            <Input placeholder="Khám phá Lớp học 360°" />
+                            <Input placeholder="✨ Trải Nghiệm 360° & Phòng Học 3D" />
                         </Form.Item>
                         <Form.Item
                             name="widget_360_badge"
-                            label="Huy hiệu hiển thị trên icon"
-                            extra="Nhãn chữ nhỏ gắn trên icon (ví dụ: 360°, Mới, Hot)"
+                            label="Huy hiệu hiển thị trên nút"
+                            extra="Nhãn chữ nhỏ nổi bật (ví dụ: 3D Interactive, 360°, Mới)"
                         >
-                            <Input placeholder="360°" />
+                            <Input placeholder="3D Interactive" />
                         </Form.Item>
                         <Form.Item
                             name="widget_360_renderer_mode"
-                            label="Chế độ Trình diễn (Renderer Mode)"
-                            extra="Chọn phương thức dựng hình phù hợp với loại hình ảnh được cung cấp"
+                            label="Chế độ Trình diễn Mặc định"
+                            extra="Chế độ hiển thị khởi động khi mở modal 360°"
                         >
                             <Radio.Group>
-                                <Radio.Button value="guided2d">🖼️ Ảnh Góc Rộng (Guided 2D)</Radio.Button>
-                                <Radio.Button value="panorama360">🌐 Panorama 360° Spherical</Radio.Button>
+                                <Radio.Button value="studio">🛋️ Studio Sản Phẩm 360° (Kịch bản 1)</Radio.Button>
+                                <Radio.Button value="guided2d">🏫 Lớp Học 360° POV (Kịch bản 2)</Radio.Button>
                             </Radio.Group>
                         </Form.Item>
                         <Form.Item
                             name="widget_360_panorama_url"
-                            label="Ảnh Panorama 360° lớp học (Tùy chọn)"
-                            extra="Đường dẫn ảnh lớp học (để trống để dùng không gian mặc định trong hệ thống)"
+                            label="Ảnh Panorama 360° lớp học tùy chỉnh (Tùy chọn)"
+                            extra="Đường dẫn ảnh lớp học (để trống để dùng không gian 3D mặc định HULA)"
                         >
                             <Input placeholder="https://... ảnh 360 độ hoặc ảnh góc rộng" />
                         </Form.Item>

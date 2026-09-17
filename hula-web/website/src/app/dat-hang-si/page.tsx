@@ -9,6 +9,7 @@ import ProductVisualizer from './ProductVisualizer';
 import DynamicPriceBar from './DynamicPriceBar';
 import B2BLeadModal from './B2BLeadModal';
 import SelectionSummary from './SelectionSummary';
+import B2B360ExperienceModal from './B2B360ExperienceModal';
 
 export default function B2BConfiguratorPage() {
     const [config, setConfig] = useState<WizardConfigData | null>(null);
@@ -23,6 +24,10 @@ export default function B2BConfiguratorPage() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [imageSelections, setImageSelections] = useState<Record<string, number>>({}); // optionId -> image index
+
+    // 360 Experience Modal State
+    const [is360ModalOpen, setIs360ModalOpen] = useState(false);
+    const [initial360Tab, setInitial360Tab] = useState<'studio' | 'classroom'>('studio');
 
     useEffect(() => {
         const loadData = async () => {
@@ -151,6 +156,11 @@ export default function B2BConfiguratorPage() {
         })
         .filter(Boolean) as any[];
 
+    // Extract active custom color
+    const selectedColorOption = selectedOptionsList.find(o => o?.color_code && o.color_code.trim() !== '' && o.color_code !== '#000000');
+    const selectedColorHex = selectedColorOption?.color_code || '#8CE3CB';
+    const selectedColorName = selectedColorOption?.name || 'Mặc định';
+
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
             {/* Banner thay vì dùng PageHeroBanner, mình sẽ có thể custom hoặc dùng luôn Component hiện tại */}
@@ -186,6 +196,55 @@ export default function B2BConfiguratorPage() {
                                 selections={stepSelections}
                                 skippedSteps={skippedSteps}
                             />
+
+                            {/* 360 & 3D Classroom Experience CTA Banner */}
+                            <div className="mt-4 bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 rounded-2xl p-5 text-white shadow-xl border border-cyan-500/30 relative overflow-hidden group">
+                                <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none group-hover:bg-cyan-500/25 transition-all duration-500" />
+                                
+                                <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <span className="text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                                                Mô Phỏng 3D Chuẩn Xưởng HULA
+                                            </span>
+                                            <span className="text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 px-2 py-0.5 rounded-full font-bold">
+                                                3D 360°
+                                            </span>
+                                        </div>
+                                        <h3 className="text-base font-extrabold text-white tracking-tight">
+                                            Trải Nghiệm 360° Với Bản Phối Này
+                                        </h3>
+                                        <p className="text-xs text-slate-300 mt-1 max-w-sm leading-relaxed">
+                                            Xoay 360° kiểm tra nệm, chăn, gối và túi xách (bung linh kiện, lót che chỉ thêu) hoặc đặt vào bối cảnh lớp học mầm non thực tế.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setInitial360Tab('studio');
+                                                setIs360ModalOpen(true);
+                                            }}
+                                            className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-500 hover:to-cyan-600 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5"
+                                        >
+                                            <span>🛋️</span>
+                                            <span>Studio 360°</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setInitial360Tab('classroom');
+                                                setIs360ModalOpen(true);
+                                            }}
+                                            className="flex-1 sm:flex-none px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5"
+                                        >
+                                            <span>🏫</span>
+                                            <span>Lớp Học 360°</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Cột phải: Accordion Configurator & Dynamic Pricing */}
@@ -211,6 +270,10 @@ export default function B2BConfiguratorPage() {
                                 steps={currentL2.customization_steps || []}
                                 selections={stepSelections}
                                 onShowModal={() => setIsModalOpen(true)}
+                                onShow360={() => {
+                                    setInitial360Tab('studio');
+                                    setIs360ModalOpen(true);
+                                }}
                             />
                         </div>
                     </div>
@@ -307,6 +370,23 @@ export default function B2BConfiguratorPage() {
                     subcategory={currentL2}
                     steps={currentL2.customization_steps || []}
                     selections={stepSelections}
+                />
+            )}
+
+            {/* B2B Interactive 360 Experience Modal */}
+            {currentL2 && (
+                <B2B360ExperienceModal
+                    isOpen={is360ModalOpen}
+                    onClose={() => setIs360ModalOpen(false)}
+                    subcategory={currentL2}
+                    selectedOptions={selectedOptionsList}
+                    selectedColorHex={selectedColorHex}
+                    selectedColorName={selectedColorName}
+                    onProceedToLead={() => {
+                        setIs360ModalOpen(false);
+                        setIsModalOpen(true);
+                    }}
+                    initialTab={initial360Tab}
                 />
             )}
         </div>
