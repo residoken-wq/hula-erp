@@ -37,6 +37,17 @@ export interface WizardPriceTier {
     base_price: number;
 }
 
+export interface Wizard360Frame {
+    id: string;
+    angle: number; // e.g. 0, 45, 90, 135, 180, 225, 270, 315
+    label?: string; // e.g. "Chính diện 0°"
+    image_url: string; // Base photo frame URL
+    mask_url?: string; // Optional mask image URL for selective color tinting
+    tint_blend_mode?: 'multiply' | 'color' | 'overlay' | 'soft-light';
+    tint_opacity?: number; // 0.1 - 1.0 (default 0.7)
+    sort_order: number;
+}
+
 export interface WizardCategoryL2 {
     id: string;
     name: string;
@@ -44,6 +55,7 @@ export interface WizardCategoryL2 {
     sort_order: number;
     base_image?: string;
     base_images?: WizardBaseImage[];
+    frames_360?: Wizard360Frame[];
     customization_steps: WizardCustomizationStep[];
     price_tiers: WizardPriceTier[];
 }

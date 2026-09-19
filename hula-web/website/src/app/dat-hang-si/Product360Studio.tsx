@@ -1,9 +1,20 @@
 'use client';
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { WizardCategoryL2, WizardOption } from './types';
+import { resolveGoogleDriveUrl } from './utils';
+
+const getApiBaseUrl = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+    return base.endsWith('/api') ? base.replace(/\/api$/, '') : base;
+};
+
+const resolveImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (typeof url === 'string' && url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/b2b/${url.replace('/uploads/', '')}`;
+    return resolveGoogleDriveUrl(url);
+};
 
 interface Product360StudioProps {
     subcategory: WizardCategoryL2;
@@ -102,6 +113,52 @@ export default function Product360Studio({
     const activeColor = selectedColorHex || '#8CE3CB';
     const isSatin = subcategory.name.toLowerCase().includes('satin');
     const isFoam = subcategory.name.toLowerCase().includes('foam');
+
+    // 360 Frames Turntable State
+    const frames = subcategory.frames_360 || [];
+    const has360Frames = frames.length > 0;
+    const [viewEngine, setViewEngine] = useState<'3d' | 'frames_360'>(has360Frames ? 'frames_360' : '3d');
+    const [currentFrameIndex, setCurrentFrameIndex] = useState<number>(0);
+    const [isFramesAutoRotating, setIsFramesAutoRotating] = useState<boolean>(false);
+    const [framesZoom, setFramesZoom] = useState<number>(1);
+    const isDraggingFrameRef = useRef<boolean>(false);
+    const dragStartXRef = useRef<number>(0);
+    const dragStartIndexRef = useRef<number>(0);
+
+    // Auto rotate turntable player
+    useEffect(() => {
+        if (!isFramesAutoRotating || frames.length === 0 || viewEngine !== 'frames_360') return;
+        const timer = setInterval(() => {
+            setCurrentFrameIndex(prev => (prev + 1) % frames.length);
+        }, 250);
+        return () => clearInterval(timer);
+    }, [isFramesAutoRotating, frames.length, viewEngine]);
+
+    const handleTurntablePointerDown = (e: React.PointerEvent) => {
+        if (frames.length === 0) return;
+        isDraggingFrameRef.current = true;
+        dragStartXRef.current = e.clientX;
+        dragStartIndexRef.current = currentFrameIndex;
+        try {
+            (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        } catch {}
+    };
+
+    const handleTurntablePointerMove = (e: React.PointerEvent) => {
+        if (!isDraggingFrameRef.current || frames.length === 0) return;
+        const deltaX = e.clientX - dragStartXRef.current;
+        const step = 16; // 16px drag advances 1 frame
+        const frameOffset = Math.floor(deltaX / step);
+        const newIndex = (((dragStartIndexRef.current - frameOffset) % frames.length) + frames.length) % frames.length;
+        setCurrentFrameIndex(newIndex);
+    };
+
+    const handleTurntablePointerUp = (e: React.PointerEvent) => {
+        isDraggingFrameRef.current = false;
+        try {
+            (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+        } catch {}
+    };
 
     // ----------------------------------------------------
     // 1. Procedural Texture Generator for Cotton Cara Waffle
@@ -665,13 +722,107 @@ export default function Product360Studio({
 
     const activeHotspotData = HULA_HOTSPOTS.find(h => h.id === activeHotspotId);
 
+    const activeFrame = frames.length > 0 ? frames[currentFrameIndex] : null;
+
     return (
         <div className="relative w-full h-full flex flex-col select-none overflow-hidden bg-slate-900">
-            {/* Main 3D Canvas Viewport */}
-            <div ref={containerRef} className="relative flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none" />
+            {/* 1. Main 3D Canvas Viewport (Active when viewEngine === '3d') */}
+            <div
+                ref={containerRef}
+                className={`relative flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none ${viewEngine === '3d' ? 'block' : 'hidden'}`}
+            />
+
+            {/* 2. Main 360 Turntable Viewport (Active when viewEngine === 'frames_360') */}
+            {viewEngine === 'frames_360' && (
+                <div
+                    className="relative flex-1 w-full h-full flex flex-col items-center justify-center cursor-grab active:cursor-grabbing touch-none overflow-hidden"
+                    style={{ background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)' }}
+                    onPointerDown={handleTurntablePointerDown}
+                    onPointerMove={handleTurntablePointerMove}
+                    onPointerUp={handleTurntablePointerUp}
+                    onPointerLeave={handleTurntablePointerUp}
+                >
+                    {frames.length === 0 ? (
+                        <div className="text-slate-400 text-center p-6">
+                            <div className="text-3xl mb-2">🌐</div>
+                            <div className="font-bold text-sm">Chưa có dữ liệu khung hình 360° cho sản phẩm này</div>
+                            <div className="text-xs text-slate-500 mt-1">Vui lòng cấu hình các góc 360° trong CMS</div>
+                        </div>
+                    ) : (
+                        <div className="relative w-full max-w-2xl aspect-square flex items-center justify-center p-4">
+                            {/* Angle indicator badge */}
+                            <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-cyan-500/30 text-white text-xs font-bold flex items-center gap-2 z-10 pointer-events-none shadow-lg">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                <span>Góc {activeFrame?.angle ?? 0}°: {activeFrame?.label || 'Khung 360°'}</span>
+                                <span className="text-[10px] text-slate-400">({currentFrameIndex + 1}/{frames.length})</span>
+                            </div>
+
+                            {/* BASE PHOTO FRAME */}
+                            {activeFrame?.image_url && (
+                                <img
+                                    src={resolveImageUrl(activeFrame.image_url)}
+                                    alt={activeFrame.label || `Góc ${activeFrame.angle}°`}
+                                    className="w-full h-full object-contain pointer-events-none transition-transform duration-150"
+                                    style={{ transform: `scale(${framesZoom})` }}
+                                    draggable={false}
+                                />
+                            )}
+
+                            {/* DYNAMIC HEX COLOR TINT OVERLAY */}
+                            {activeColor && activeFrame?.image_url && (
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        inset: 16,
+                                        backgroundColor: activeColor,
+                                        WebkitMaskImage: `url(${resolveImageUrl(activeFrame.mask_url || activeFrame.image_url)})`,
+                                        maskImage: `url(${resolveImageUrl(activeFrame.mask_url || activeFrame.image_url)})`,
+                                        WebkitMaskSize: 'contain',
+                                        maskSize: 'contain',
+                                        WebkitMaskRepeat: 'no-repeat',
+                                        maskRepeat: 'no-repeat',
+                                        WebkitMaskPosition: 'center',
+                                        maskPosition: 'center',
+                                        mixBlendMode: (activeFrame.tint_blend_mode as any) || 'multiply',
+                                        opacity: activeFrame.tint_opacity ?? 0.72,
+                                        pointerEvents: 'none',
+                                        transform: `scale(${framesZoom})`,
+                                        transition: 'background-color 0.25s ease, opacity 0.2s ease',
+                                    }}
+                                />
+                            )}
+
+                            {/* EMBROIDERED BRAND LOGO OVERLAY (on front/side views) */}
+                            {logoUrl && (activeFrame?.angle === 0 || activeFrame?.angle === 45 || activeFrame?.angle === 315) && (
+                                <div
+                                    className="absolute pointer-events-none z-10"
+                                    style={{
+                                        top: '40%',
+                                        left: activeFrame?.angle === 45 ? '58%' : activeFrame?.angle === 315 ? '42%' : '50%',
+                                        transform: `translate(-50%, -50%) scale(${framesZoom})`,
+                                        maxWidth: 65,
+                                        maxHeight: 65,
+                                    }}
+                                >
+                                    <img
+                                        src={resolveImageUrl(logoUrl)}
+                                        alt="Logo thương hiệu"
+                                        className="w-full h-full object-contain drop-shadow-md opacity-90"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Drag hint overlay */}
+                            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none text-slate-400 text-xs font-semibold bg-slate-950/60 backdrop-blur-md px-3 py-1 rounded-full border border-slate-700/50">
+                                👈 Vuốt hoặc kéo chuột sang ngang để xoay 360° 👉
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* TOP BAR: Product Badge & Mode Toggles */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-20">
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-20 flex-wrap gap-2">
                 {/* Left: Product & Specs Pill */}
                 <div className="bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-3">
                     <div
@@ -691,53 +842,97 @@ export default function Product360Studio({
                     </div>
                 </div>
 
-                {/* Right: Lighting & Auto-Rotate Controls */}
-                <div className="flex items-center gap-2 pointer-events-auto">
-                    {/* Lighting Preset */}
-                    <div className="bg-white/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-200 flex items-center gap-1 text-xs">
+                {/* Center: Dual-Engine Switcher (Mô hình 3D PBR vs Chuỗi Frame 360° Studio) */}
+                {has360Frames && (
+                    <div className="bg-slate-950/80 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-slate-700 pointer-events-auto flex items-center gap-1">
                         <button
-                            onClick={() => handleSetLighting('studio')}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition-all ${lightingPreset === 'studio' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
-                            title="Ánh sáng Studio trung thực"
+                            onClick={() => setViewEngine('frames_360')}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${viewEngine === 'frames_360' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md' : 'text-slate-300 hover:text-white'}`}
                         >
-                            Studio
+                            <span className="w-2 h-2 rounded-full bg-cyan-300 animate-pulse" />
+                            <span>Ảnh Thật 360° ({frames.length} góc)</span>
                         </button>
                         <button
-                            onClick={() => handleSetLighting('daylight')}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition-all ${lightingPreset === 'daylight' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
-                            title="Ánh sáng lớp học ban ngày"
+                            onClick={() => setViewEngine('3d')}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${viewEngine === '3d' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md' : 'text-slate-300 hover:text-white'}`}
                         >
-                            Ban Ngày
-                        </button>
-                        <button
-                            onClick={() => handleSetLighting('cozy')}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition-all ${lightingPreset === 'cozy' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
-                            title="Ánh sáng ấm giờ ngủ trưa"
-                        >
-                            Giờ Ngủ
+                            <span>🎮 Mô Hình 3D PBR</span>
                         </button>
                     </div>
+                )}
 
-                    {/* Auto Rotate Toggle */}
-                    <button
-                        onClick={() => {
-                            if (controlsRef.current) {
-                                controlsRef.current.autoRotate = !autoRotate;
-                                setAutoRotate(!autoRotate);
-                            }
-                        }}
-                        className={`p-2 rounded-xl shadow-lg border transition-all ${autoRotate ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-white/90 text-slate-700 border-slate-200 hover:bg-white'}`}
-                        title="Tự động xoay 360°"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    </button>
+                {/* Right: Controls dependent on mode */}
+                <div className="flex items-center gap-2 pointer-events-auto">
+                    {viewEngine === '3d' ? (
+                        <>
+                            {/* Lighting Preset */}
+                            <div className="bg-white/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-200 flex items-center gap-1 text-xs">
+                                <button
+                                    onClick={() => handleSetLighting('studio')}
+                                    className={`px-2.5 py-1 rounded-lg font-bold transition-all ${lightingPreset === 'studio' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                                    title="Ánh sáng Studio trung thực"
+                                >
+                                    Studio
+                                </button>
+                                <button
+                                    onClick={() => handleSetLighting('daylight')}
+                                    className={`px-2.5 py-1 rounded-lg font-bold transition-all ${lightingPreset === 'daylight' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                                    title="Ánh sáng lớp học ban ngày"
+                                >
+                                    Ban Ngày
+                                </button>
+                                <button
+                                    onClick={() => handleSetLighting('cozy')}
+                                    className={`px-2.5 py-1 rounded-lg font-bold transition-all ${lightingPreset === 'cozy' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                                    title="Ánh sáng ấm giờ ngủ trưa"
+                                >
+                                    Giờ Ngủ
+                                </button>
+                            </div>
+
+                            {/* 3D Auto Rotate Toggle */}
+                            <button
+                                onClick={() => {
+                                    if (controlsRef.current) {
+                                        controlsRef.current.autoRotate = !autoRotate;
+                                        setAutoRotate(!autoRotate);
+                                    }
+                                }}
+                                className={`p-2 rounded-xl shadow-lg border transition-all ${autoRotate ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-white/90 text-slate-700 border-slate-200 hover:bg-white'}`}
+                                title="Tự động xoay 360°"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            {/* 360 Turntable Controls: Auto-spin + Zoom */}
+                            <div className="bg-white/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-200 flex items-center gap-1">
+                                <button
+                                    onClick={() => setIsFramesAutoRotating(!isFramesAutoRotating)}
+                                    className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${isFramesAutoRotating ? 'bg-cyan-600 text-white' : 'text-slate-700 hover:bg-slate-100'}`}
+                                    title="Tự động quay 360°"
+                                >
+                                    <span>{isFramesAutoRotating ? '⏸ Dừng' : '▶ Tự xoay'}</span>
+                                </button>
+
+                                <button
+                                    onClick={() => setFramesZoom(framesZoom === 1 ? 1.4 : framesZoom === 1.4 ? 2 : 1)}
+                                    className="px-2.5 py-1 rounded-lg text-slate-700 font-bold text-xs hover:bg-slate-100"
+                                    title="Phóng to / Thu nhỏ"
+                                >
+                                    🔍 {framesZoom}x
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
-            {/* FLOATING 3D HOTSPOT PINS */}
-            {hotspotScreenCoords.map(h => {
+            {/* FLOATING 3D HOTSPOT PINS (Only in 3D mode) */}
+            {viewEngine === '3d' && hotspotScreenCoords.map(h => {
                 const info = HULA_HOTSPOTS.find(item => item.id === h.id);
                 if (!info || !h.visible) return null;
 
@@ -752,13 +947,10 @@ export default function Product360Studio({
                         }}
                         className={`absolute top-0 left-0 w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-125 z-30 group cursor-pointer ${isCurrent ? 'scale-125' : ''}`}
                     >
-                        {/* Radar wave ping */}
                         <div className="absolute inset-0 rounded-full bg-cyan-400 opacity-60 animate-ping" />
-                        {/* Core pin */}
                         <div className="w-6 h-6 rounded-full bg-cyan-600 border-2 border-white shadow-xl flex items-center justify-center text-[10px] font-black text-white">
                             {h.id}
                         </div>
-                        {/* Label Tooltip hover */}
                         <span className="absolute left-full ml-2 px-2 py-1 rounded bg-slate-900/90 text-white text-[11px] font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md">
                             {info.title}
                         </span>
@@ -767,7 +959,7 @@ export default function Product360Studio({
             })}
 
             {/* ACTIVE HOTSPOT POPOVER DRAWER (Sale Kit Details) */}
-            {activeHotspotData && (
+            {viewEngine === '3d' && activeHotspotData && (
                 <div className="absolute top-20 right-4 max-w-sm w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-cyan-200 p-5 z-40 animate-fade-in">
                     <div className="flex items-start justify-between gap-3 mb-2">
                         <div>
@@ -799,89 +991,130 @@ export default function Product360Studio({
                 </div>
             )}
 
-            {/* BOTTOM DOCKED TOOLBAR: Exploded View & Angles & Bag Select */}
+            {/* BOTTOM DOCKED TOOLBAR: Engine specific */}
             <div className="absolute bottom-4 left-4 right-4 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none z-20">
-                {/* Left: Exploded View Button & Bag Type Selector */}
-                <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex flex-wrap items-center gap-2">
-                    {/* Exploded View Toggle */}
-                    <button
-                        onClick={() => setViewMode(viewMode === 'exploded' ? 'assembled' : 'exploded')}
-                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm ${viewMode === 'exploded' ? 'bg-cyan-600 text-white shadow-cyan-600/30' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                    >
-                        <span>{viewMode === 'exploded' ? '📦 Gom Linh Kiện' : '✨ Bung Linh Kiện (Exploded View)'}</span>
-                    </button>
+                {viewEngine === '3d' ? (
+                    <>
+                        {/* Left: Exploded View Button & Angles */}
+                        <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex flex-wrap items-center gap-2">
+                            <button
+                                onClick={() => setViewMode(viewMode === 'exploded' ? 'assembled' : 'exploded')}
+                                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm ${viewMode === 'exploded' ? 'bg-cyan-600 text-white shadow-cyan-600/30' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                            >
+                                <span>{viewMode === 'exploded' ? '📦 Gom Linh Kiện' : '✨ Bung Linh Kiện (Exploded View)'}</span>
+                            </button>
 
-                    {/* Quick Camera Angle Buttons */}
-                    <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
-                    <div className="flex items-center gap-1 text-xs">
-                        <button
-                            onClick={() => setCameraPreset('perspective')}
-                            className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
-                        >
-                            Toàn cảnh
-                        </button>
-                        <button
-                            onClick={() => setCameraPreset('top')}
-                            className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
-                        >
-                            Mặt trên
-                        </button>
-                        <button
-                            onClick={() => setCameraPreset('closeup')}
-                            className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
-                        >
-                            Cận cảnh vải
-                        </button>
-                        <button
-                            onClick={() => setCameraPreset('bag')}
-                            className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
-                        >
-                            Túi đựng
-                        </button>
-                    </div>
-                </div>
+                            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+                            <div className="flex items-center gap-1 text-xs">
+                                <button
+                                    onClick={() => setCameraPreset('perspective')}
+                                    className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
+                                >
+                                    Toàn cảnh
+                                </button>
+                                <button
+                                    onClick={() => setCameraPreset('top')}
+                                    className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
+                                >
+                                    Mặt trên
+                                </button>
+                                <button
+                                    onClick={() => setCameraPreset('closeup')}
+                                    className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
+                                >
+                                    Cận cảnh vải
+                                </button>
+                                <button
+                                    onClick={() => setCameraPreset('bag')}
+                                    className="px-2.5 py-1.5 rounded-lg text-slate-600 font-bold hover:bg-slate-100"
+                                >
+                                    Túi đựng
+                                </button>
+                            </div>
+                        </div>
 
-                {/* Right: Storage Bag Switcher & CTA */}
-                <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-slate-500 ml-2 hidden sm:inline">Mẫu túi:</span>
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={() => setSelectedBagStyle('box')}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${selectedBagStyle === 'box' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-                            title="Túi hộp quai đeo (Best Choice)"
-                        >
-                            Túi Hộp
-                        </button>
-                        <button
-                            onClick={() => setSelectedBagStyle('handle')}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${selectedBagStyle === 'handle' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-                            title="Túi quai xách"
-                        >
-                            Quai Xách
-                        </button>
-                        <button
-                            onClick={() => setSelectedBagStyle('drawstring')}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${selectedBagStyle === 'drawstring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-                            title="Balo rút"
-                        >
-                            Balo Rút
-                        </button>
-                    </div>
+                        {/* Right: Storage Bag Switcher & CTA */}
+                        <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-500 ml-2 hidden sm:inline">Mẫu túi:</span>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setSelectedBagStyle('box')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${selectedBagStyle === 'box' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                                    title="Túi hộp quai đeo (Best Choice)"
+                                >
+                                    Túi Hộp
+                                </button>
+                                <button
+                                    onClick={() => setSelectedBagStyle('handle')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${selectedBagStyle === 'handle' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                                    title="Túi quai xách"
+                                >
+                                    Quai Xách
+                                </button>
+                                <button
+                                    onClick={() => setSelectedBagStyle('drawstring')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${selectedBagStyle === 'drawstring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                                    title="Balo rút"
+                                >
+                                    Balo Rút
+                                </button>
+                            </div>
 
-                    {onProceedToLead && (
-                        <button
-                            onClick={onProceedToLead}
-                            className="ml-2 px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all active:scale-95"
-                        >
-                            NHẬN BÁO GIÁ SỈ
-                        </button>
-                    )}
-                </div>
+                            {onProceedToLead && (
+                                <button
+                                    onClick={onProceedToLead}
+                                    className="ml-2 px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all active:scale-95"
+                                >
+                                    NHẬN BÁO GIÁ SỈ
+                                </button>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        {/* 360 Turntable Quick Angles Bar */}
+                        <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-500 ml-2">Góc nhìn nhanh:</span>
+                            <div className="flex items-center gap-1 text-xs">
+                                {frames.map((f, idx) => (
+                                    <button
+                                        key={f.id || idx}
+                                        onClick={() => setCurrentFrameIndex(idx)}
+                                        className={`px-2.5 py-1.5 rounded-lg font-bold transition-all ${currentFrameIndex === idx ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                                        title={f.label || `Góc ${f.angle}°`}
+                                    >
+                                        {f.angle}°
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Right: Color Hex indicator & CTA */}
+                        <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-2">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                <div className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0" style={{ backgroundColor: activeColor }} />
+                                <span className="font-bold text-slate-700">{selectedColorName}</span>
+                                <code className="text-[10px] text-cyan-700 font-mono font-semibold">{activeColor}</code>
+                            </div>
+
+                            {onProceedToLead && (
+                                <button
+                                    onClick={onProceedToLead}
+                                    className="ml-2 px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all active:scale-95"
+                                >
+                                    NHẬN BÁO GIÁ SỈ
+                                </button>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Instruction Tip */}
-            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 pointer-events-none opacity-60 text-slate-500 text-[11px] font-bold">
-                Kéo chuột để xoay 360° · Cuộn chuột để phóng to · Bấm các điểm ✦ để xem tính năng
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 pointer-events-none opacity-60 text-slate-400 text-[11px] font-bold">
+                {viewEngine === '3d'
+                    ? 'Kéo chuột để xoay 360° · Cuộn chuột để phóng to · Bấm các điểm ✦ để xem tính năng'
+                    : 'Kéo chuột / Vuốt màn hình sang ngang để xoay 360° các góc chụp thực tế'}
             </div>
         </div>
     );
