@@ -1,5 +1,73 @@
 # AUDIT P0 — rbac_v2
 
+---
+
+## VÒNG 2 — 2026-09-24 — **AUDIT_PASS (có điều kiện trước deploy)**
+
+- Đối tượng: `rbac/p0` @ `9b25da2`. So với vòng 1 có thêm 6 commit sửa lỗi.
+- Bằng chứng: `evidence/P0/claude-runtime-audit.txt`.
+  - Claude build và **boot toàn bộ backend** trên PostgreSQL thật (bản tạm, UTF8), login thật, gọi HTTP thật.
+  - Chạy `RbacAccessLogService` thật trên Postgres.
+
+### Trạng thái các lỗi vòng 1
+
+| ID | Kết quả | Ghi chú kiểm chứng |
+|---|---|---|
+| A1 | ✅ Đã sửa | ACCEPTANCE ghi đúng thực tế: không chạy được thì BLOCKED. Log trong `evidence/P0/` là log chạy thật. Lưu ý: `*.log` bị `.gitignore` chặn nên không vào commit (A10) |
+| A2 | ✅ Đã sửa | Runtime: gửi mảng rỗng thì nhận 400, quyền nhóm giữ nguyên. Frontend khoá nút khi đang tải, build lại ma trận khi catalog về, giữ nguyên quyền nằm ngoài catalog |
+| A3 | ✅ Đã sửa | Trên Postgres thật: `GROUP BY` đúng, `count`/`last_seen` đúng, `ips` cắt còn 5. `UNCLASSIFIED` 3 user khác nhau chỉ ghi 1 dòng |
+| A4 | ⚠️ Code đã làm đúng instruction, **nhưng instruction của Claude sai** | Xem E1 |
+| A5 | ✅ Đã sửa | Nhóm hiển thị theo giá trị `group` từ API |
+| A6 | ✅ Đã sửa | Đã bỏ BOM |
+| A7 | Chuyển sang P1 | Không đổi |
+| A8 | ✅ Đã sửa | |
+
+### Kết quả runtime
+
+Trên app thật. P0-01 đổi route test sang `/api/planning` vì `/api/planning/pfo` không tồn tại. Đây là lỗi soạn test của Claude.
+
+P0-01 ✅ · P0-02 ✅ · P0-03 ✅ · P0-04 ✅ · P0-05 ✅ · P0-06 ✅ · P0-07 ✅ · P0-08 ✅ · P0-09 ✅ · P0-16 (API) ✅ · P0-18 (backend) ✅ · invalidate cache khi đổi quyền ✅ · app boot, DI OK ✅ · P0-19 ❌ (E1)
+
+### Errata — lỗi của Claude
+
+- **E1:** A4 yêu cầu "dùng `req.ip` vì app đã trust proxy". Yêu cầu này sai.
+  - `main.ts` đặt `app.set('trust proxy', true)`. Khi đó Express lấy `req.ip` từ IP **đầu tiên** trong `X-Forwarded-For`, là giá trị client tự gửi được. Runtime xác nhận: gửi `9.9.9.x` thì log ghi đúng `9.9.9.x`.
+  - Sửa tận gốc cần đặt `trust proxy` bằng số hop proxy thật, đây là cấu hình bảo mật đang **ngoài phạm vi**.
+  - Kết luận: IP trong `rbac_access_logs` chỉ để tham khảo, không dùng để quy trách nhiệm. Chuyển vào danh sách erp4u (Master Plan mục 8).
+  - P0-19 chuyển thành **WAIVED**, không tính lỗi cho Antigravity.
+
+### Lỗi mới (MINOR, không chặn P0)
+
+| ID | Mức | Mô tả | Làm ở |
+|---|---|---|---|
+| A9 | MINOR | Hệ quả của E1: người gọi ẩn danh đổi `X-Forwarded-For` liên tục thì vượt qua được dedupe, có thể làm phình bảng `rbac_access_logs`. Chỉ ảnh hưởng dung lượng log, không ảnh hưởng quyền | P1: giới hạn tối đa 20 IP khác nhau cho mỗi `method\|route\|DENY_NO_AUTH`/giờ; vượt ngưỡng thì dedupe theo route |
+| A10 | MINOR | `.gitignore` có `*.log` nên evidence dạng `.log` không vào commit | Từ P1, evidence lưu đuôi `.txt` |
+
+### Còn BLOCKED (cần trình duyệt, không tự động được)
+
+P0-10, P0-12, P0-13, P0-14, P0-15 là kiểm thử UI. Claude đã review code: 88/88 lời gọi được chuyển đúng, logic khoá nút và làm mới quyền đúng. Chủ dự án **smoke test ngay sau deploy** theo mục "Điều kiện" bên dưới.
+
+### Điều kiện trước khi Chủ dự án merge và deploy
+
+1. **Repo `hula-erp` đang PUBLIC.** Nhánh `rbac/p0` chứa `docs/rbac_v2/` (có `02_Current-State-Audit.md` mô tả lỗ hổng kèm file:line). Merge vào `main` rồi push là công khai toàn bộ. Chọn một:
+   - **(a)** chuyển repo sang private trước khi push. **Đề xuất**, vì cách này cũng che luôn secret JWT đang hardcode;
+   - **(b)** merge nhưng xoá `docs/rbac_v2/02_Current-State-Audit.md`, `AUDIT_*.md`, `route-matrix.csv` khỏi `main`, bản gốc giữ ở local.
+2. **Có đường lùi cho image:** image chỉ có tag `latest`. Trước khi `docker compose pull` trên VPS, tag lại image đang chạy:
+   `docker tag ghcr.io/residoken-wq/hula-erp-app:latest hula-erp-app:pre-rbac-p0`, tương tự cho `hula-erp-frontend`.
+3. **Push `main` sẽ kích hoạt:** build lại image app + frontend, và sync code sang `erp4u-demo` (có code RBAC, không có `docs/`).
+4. **Smoke test sau deploy (15 phút):**
+   - Đăng nhập admin → Hệ thống → Nhật ký RBAC có dữ liệu.
+   - Mở lần lượt Kế hoạch, NCC, Vật tư, Danh mục, Công đoạn, Tuyến SX, Dashboard SX, Marketing, Social, TikTok, Sản phẩm: không lỗi.
+   - Mở một link portal báo giá và một link portal PO.
+   - Sửa quyền một nhóm test, user nhóm đó F5 thì menu đổi.
+   - Kế toán thử thanh toán công nợ gộp PO với số tiền nhỏ (I-08).
+   - Có sự cố thì đổi RBAC_MODE sang OFF. Nếu lỗi nằm ở giao diện thì chạy lại image `pre-rbac-p0`.
+5. Báo kế toán về I-08 trước khi deploy.
+
+---
+
+## VÒNG 1
+
 - Người audit: Claude
 - Ngày: 2026-09-24
 - Đối tượng: nhánh `rbac/p0`, commit `34f75fc` (3 commit so với `rbac/plan`, 46 file)

@@ -130,4 +130,4 @@ Vòng mỗi phase: Antigravity code → điền `ACCEPTANCE.csv` + `REPORT_Pn.md
 
 ## 8. Ghi chú cho bản erp4u (không làm ở đây)
 
-Để sẵn cho bản thương mại: JWT secret lấy từ env và fail khi thiếu, bỏ chấp nhận mật khẩu plaintext, rate limit OTP/login, chữ ký webhook GHTK/Lalamove/TikTok, bỏ publish port 5432/3000, image ghcr private. Xem `02_Current-State-Audit.md` mục C.
+Để sẵn cho bản thương mại: JWT secret lấy từ env và fail khi thiếu, bỏ chấp nhận mật khẩu plaintext, rate limit OTP/login, chữ ký webhook GHTK/Lalamove/TikTok, bỏ publish port 5432/3000, image ghcr private, `trust proxy` đặt đúng số hop proxy (hiện `true` nên IP client giả được, xem AUDIT_P0 E1). Xem `02_Current-State-Audit.md` mục C.

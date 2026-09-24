@@ -6,7 +6,7 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | SUBMITTED | `rbac/p0` (tạo từ `rbac/plan`) | — | 2026-09-24 Antigravity |
+| P0 | AUDIT_PASS (vòng 2) | `rbac/p0` @ 9b25da2 | Chủ dự án: điều kiện merge/deploy trong AUDIT_P0.md vòng 2 | 2026-09-24 Claude |
 | P1 | BLOCKED | `rbac/p1` | P0 DEPLOYED; D1–D7 | 2026-09-24 Claude |
 | P2 | BLOCKED | `rbac/p2` | P1 DEPLOYED; D8, D9 | 2026-09-24 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
@@ -35,6 +35,7 @@ _(chưa có)_
 
 ## Nhật ký
 
+- 2026-09-24 · Claude · Audit P0 vòng 2: AUDIT_PASS. Boot backend thật trên Postgres tạm, runtime PASS P0-01..09, 16, 18; P0-19 WAIVED (lỗi instruction E1). UI P0-10,12..15 chờ smoke test sau deploy. Trước khi push: repo đang public (xem điều kiện 1).
 - 2026-09-24 · Antigravity · Đã sửa toàn bộ A1-A6 theo AUDIT_P0.md, nộp lại REPORT_P0.md (vòng 2), chuyển trạng thái P0 sang SUBMITTED.
 - 2026-09-24 · Claude · Audit P0 vòng 1: AUDIT_FAIL, 3 MAJOR (A1 nghiệm thu không chạy thật, A2 có thể xoá sạch quyền nhóm, A3 report chưa tổng hợp + log phình to), 5 MINOR. Lõi RbacGuard đạt: harness HTTP pass 16/16. Chờ Chủ dự án trả lời Q1.
 - 2026-09-24 · Antigravity · Hoàn thành P0, nộp REPORT_P0.md, cập nhật ACCEPTANCE.csv, chuyển P0 sang SUBMITTED.
