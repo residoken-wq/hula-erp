@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Checkbox, Row, Col, Divider, Tag, Space, Alert, Spin } from 'antd';
 import { PlusOutlined, EditOutlined, SafetyCertificateOutlined, ReloadOutlined } from '@ant-design/icons';
 import api from '../utils/api';
@@ -6,16 +6,8 @@ import api from '../utils/api';
 interface CatalogModule {
     code: string;
     name: string;
-    group: 'core' | 'fup' | 'system' | string;
+    group: string;
 }
-
-const GROUP_LABELS: Record<string, string> = {
-    core: 'Chức năng cốt lõi (Core ERP)',
-    fup: 'Theo dõi BOD (BOD Follow Up)',
-    system: 'Hệ thống (System)',
-};
-
-const GROUP_ORDER = ['core', 'fup', 'system'];
 
 const UserGroupsPage: React.FC = () => {
     const [groups, setGroups] = useState<any[]>([]);
@@ -62,17 +54,13 @@ const UserGroupsPage: React.FC = () => {
         fetchCatalog();
     }, []);
 
-    const openModal = (group?: any) => {
-        setEditingGroup(group);
-        form.resetFields();
-
-        // Init Permissions Matrix dynamically from loaded catalog
-        const initialPerms = catalogModules.map(mod => {
+    const buildPermissionsMatrix = useCallback((group: any, catalog: CatalogModule[]) => {
+        const initialPerms = catalog.map(mod => {
             const exist = group?.permissions?.find((p: any) => p.module_code === mod.code);
             return {
                 module_code: mod.code,
                 module_name: mod.name,
-                group: mod.group || 'core',
+                group: mod.group || 'Chung',
                 can_view: exist?.can_view || false,
                 can_create: exist?.can_create || false,
                 can_update: exist?.can_update || false,
@@ -81,6 +69,21 @@ const UserGroupsPage: React.FC = () => {
             };
         });
         setPermissions(initialPerms);
+    }, []);
+
+    // Rebuild matrix if catalogModules finishes loading while modal is open (A2-b)
+    useEffect(() => {
+        if (isModalOpen && catalogModules.length > 0) {
+            buildPermissionsMatrix(editingGroup, catalogModules);
+        }
+    }, [catalogModules, isModalOpen, editingGroup, buildPermissionsMatrix]);
+
+    const openModal = (group?: any) => {
+        setEditingGroup(group);
+        form.resetFields();
+
+        // Init Permissions Matrix dynamically from loaded catalog
+        buildPermissionsMatrix(group, catalogModules);
 
         if (group) form.setFieldsValue({ name: group.name, description: group.description });
         setIsModalOpen(true);
@@ -93,18 +96,27 @@ const UserGroupsPage: React.FC = () => {
     };
 
     const handleSave = async (values: any) => {
-        if (catalogFailed) {
-            message.error('Không thể tải catalog quyền');
+        if (catalogFailed || catalogModules.length === 0) {
+            message.error('Không thể tải catalog quyền, vui lòng thử lại');
             return;
         }
 
         try {
+            // Retain any existing group permissions whose module_code is not in the catalog (A2-d)
+            const existingGroupPerms = editingGroup?.permissions || [];
+            const uncataloguedPerms = existingGroupPerms.filter(
+                (p: any) => !catalogModules.some(mod => mod.code === p.module_code)
+            ).map(({ module_name, group, ...rest }: any) => rest);
+
+            const activePerms = permissions.map(({ module_name, group, ...rest }: any) => rest);
+            const mergedPermissions = [...activePerms, ...uncataloguedPerms];
+
             const payload = {
                 ...values,
-                permissions: permissions.map(({ module_name, group, ...rest }: any) => rest) // Bỏ tên hiển thị & group, chỉ lấy data
+                permissions: mergedPermissions
             };
+
             if (editingGroup) {
-                // Update Logic: update permission
                 await api.post(`/users/groups/${editingGroup.id}/permissions`, { permissions: payload.permissions });
                 message.success('Cập nhật quyền thành công');
             } else {
@@ -113,8 +125,12 @@ const UserGroupsPage: React.FC = () => {
             }
             setIsModalOpen(false);
             fetchGroups();
-        } catch (e) { message.error('Lỗi lưu dữ liệu'); }
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi lưu dữ liệu');
+        }
     };
+
+    const isActionDisabled = catalogLoading || catalogFailed;
 
     const columns = [
         { title: 'Tên Nhóm', dataIndex: 'name', render: (t: any) => <b>{t}</b> },
@@ -127,25 +143,25 @@ const UserGroupsPage: React.FC = () => {
         },
         {
             title: '', key: 'action', align: 'right' as const,
-            render: (_: any, r: any) => <Button icon={<EditOutlined />} onClick={() => openModal(r)}>Phân quyền</Button>
+            render: (_: any, r: any) => (
+                <Button
+                    icon={<EditOutlined />}
+                    onClick={() => openModal(r)}
+                    disabled={isActionDisabled}
+                >
+                    Phân quyền
+                </Button>
+            )
         }
     ];
 
-    // Group permissions by group ('core' | 'fup' | 'system')
-    const groupedPermissions = GROUP_ORDER.map(grpKey => ({
-        key: grpKey,
-        title: GROUP_LABELS[grpKey] || grpKey.toUpperCase(),
-        items: permissions.filter(p => (p.group || 'core') === grpKey)
+    // Group permissions dynamically by API 'group' values, preserving catalog order (A5)
+    const uniqueGroups = Array.from(new Set(catalogModules.map(m => m.group || 'Chung')));
+    const groupedPermissions = uniqueGroups.map(grpName => ({
+        key: grpName,
+        title: grpName,
+        items: permissions.filter(p => (p.group || 'Chung') === grpName)
     })).filter(g => g.items.length > 0);
-
-    const otherItems = permissions.filter(p => !GROUP_ORDER.includes(p.group));
-    if (otherItems.length > 0) {
-        groupedPermissions.push({
-            key: 'other',
-            title: 'Khác',
-            items: otherItems
-        });
-    }
 
     return (
         <Card
@@ -153,7 +169,14 @@ const UserGroupsPage: React.FC = () => {
             extra={
                 <Space>
                     <Button icon={<ReloadOutlined />} onClick={() => { fetchGroups(); fetchCatalog(); }}>Tải lại</Button>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal(null)}>Tạo Nhóm Mới</Button>
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => openModal(null)}
+                        disabled={isActionDisabled}
+                    >
+                        Tạo Nhóm Mới
+                    </Button>
                 </Space>
             }
         >
@@ -165,12 +188,12 @@ const UserGroupsPage: React.FC = () => {
                 onCancel={() => setIsModalOpen(false)}
                 onOk={() => form.submit()}
                 width={850}
-                okButtonProps={{ disabled: catalogFailed || catalogLoading }}
+                okButtonProps={{ disabled: isActionDisabled }}
             >
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     {!editingGroup && (
                         <Row gutter={16}>
-                            <Col span={12}><Form.Item name="name" label="Tên Nhóm" rules={[{ required: true }]}><Input /></Form.Item></Col>
+                            <Col span={12}><Form.Item name="name" label="Tên Nhóm" rules={[{ required: true, message: 'Vui lòng nhập tên nhóm' }]}><Input /></Form.Item></Col>
                             <Col span={12}><Form.Item name="description" label="Mô tả"><Input /></Form.Item></Col>
                         </Row>
                     )}

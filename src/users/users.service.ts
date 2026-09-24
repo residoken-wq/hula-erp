@@ -92,6 +92,10 @@ export class UsersService {
 
     // Xóa quyền cũ và thêm quyền mới
     if (data.permissions) {
+      if (Array.isArray(data.permissions) && data.permissions.length === 0 && !data.confirmEmpty) {
+        throw new BadRequestException('Danh sách quyền trống');
+      }
+
       await this.permRepo.delete({ group_id: groupId });
 
       const permObjects = data.permissions.map((p: any) => ({
