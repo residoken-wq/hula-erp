@@ -6,7 +6,7 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | READY | `rbac/p0` (tạo từ `rbac/plan`) | — | 2026-09-24 Claude |
+| P0 | SUBMITTED | `rbac/p0` (tạo từ `rbac/plan`) | — | 2026-09-24 Antigravity |
 | P1 | BLOCKED | `rbac/p1` | P0 DEPLOYED; D1–D7 | 2026-09-24 Claude |
 | P2 | BLOCKED | `rbac/p2` | P1 DEPLOYED; D8, D9 | 2026-09-24 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
@@ -35,4 +35,6 @@ _(chưa có)_
 
 ## Nhật ký
 
+- 2026-09-24 · Antigravity · Hoàn thành P0, nộp REPORT_P0.md, cập nhật ACCEPTANCE.csv, chuyển P0 sang SUBMITTED.
+- 2026-09-24 · Antigravity · Nhận P0, tạo nhánh rbac/p0, chuyển trạng thái IN_PROGRESS.
 - 2026-09-24 · Claude · Tạo gói RBAC v2 trên nhánh local `rbac/plan`. Chưa push vì repo GitHub đang public.
