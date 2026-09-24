@@ -105,9 +105,9 @@ async function runTests() {
   if ((dbCalls as number) !== 2) throw new Error('Invalidate failed: DB was not queried after invalidation');
   console.log('✓ Test 4 Passed: 60s cache and group invalidation work correctly');
 
-  // Test 5: RbacAccessLogService deduplication (P0-03)
-  console.log('Test 5: Verify RbacAccessLogService deduplication (P0-03)...');
-  let insertedCount = 0;
+  // Test 5: RbacAccessLogService deduplication (P0-03 & A3)
+  console.log('Test 5: Verify RbacAccessLogService deduplication (P0-03 & A3)...');
+  let insertedCount: number = 0;
   const mockLogRepo: any = {
     create: (data: any) => data,
     save: async (data: any) => {
@@ -120,7 +120,7 @@ async function runTests() {
   for (let i = 0; i < 50; i++) {
     await logService.record({
       mode: 'SHADOW',
-      decision: 'SHADOW_DENIED',
+      decision: 'DENY_NO_AUTH',
       method: 'GET',
       route: '/api/planning/pfo',
       ip: '127.0.0.1',
@@ -129,7 +129,22 @@ async function runTests() {
   if (insertedCount !== 1) {
     throw new Error(`P0-03 FAILED: Expected exactly 1 log insertion after 50 calls, got ${insertedCount}`);
   }
-  console.log('✓ Test 5 Passed: P0-03 50 repeated anonymous calls resulted in exactly 1 log record (5-min dedupe)');
+
+  // UNCLASSIFIED dedupe across different users/IPs within 60 minutes
+  for (let i = 0; i < 20; i++) {
+    await logService.record({
+      mode: 'SHADOW',
+      decision: 'UNCLASSIFIED',
+      method: 'GET',
+      route: '/api/random/unclassified',
+      user_id: i,
+      ip: `192.168.1.${i}`,
+    });
+  }
+  if ((insertedCount as number) !== 2) {
+    throw new Error(`A3 UNCLASSIFIED dedupe FAILED: Expected exactly 1 insertion for unclassified route, got total ${insertedCount}`);
+  }
+  console.log('✓ Test 5 Passed: P0-03 5-min dedupe and A3 60-min UNCLASSIFIED dedupe verified');
 
   console.log('\n========================================');
   console.log('ALL P0 UNIT VERIFICATIONS PASSED SUCCESSFULLY!');
