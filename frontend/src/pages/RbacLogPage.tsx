@@ -15,16 +15,15 @@ import { saveAs } from 'file-saver';
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
-interface RbacLogItem {
-    id: string;
-    timestamp: string;
-    username: string | null;
-    ip: string | null;
-    route: string;
+interface RbacReportItem {
     method: string;
-    required: string | null;
+    route: string;
     decision: string;
-    mode: string;
+    required: string | null;
+    username: string | null;
+    count: number;
+    last_seen: string;
+    ips: string[] | string | null;
 }
 
 interface UnclassifiedRouteItem {
@@ -63,23 +62,12 @@ const parseRequired = (requiredStr: string | null) => {
     return { module: requiredStr, action: '-' };
 };
 
-const getReasonText = (decision: string, requiredStr: string | null, mode: string) => {
-    switch (decision) {
-        case 'ALLOW':
-            return 'Được cấp quyền hợp lệ';
-        case 'SHADOW_DENIED': {
-            const { module, action } = parseRequired(requiredStr);
-            return `Thiếu quyền [${module}:${action}] (Bỏ qua vì ở chế độ SHADOW)`;
-        }
-        case 'DENIED': {
-            const { module, action } = parseRequired(requiredStr);
-            return `Bị chặn: thiếu quyền [${module}:${action}]`;
-        }
-        case 'UNCLASSIFIED':
-            return 'Route chưa được phân hạng (@Perm/@Public)';
-        default:
-            return decision;
+const formatIps = (ips: string[] | string | null): string => {
+    if (!ips) return '-';
+    if (Array.isArray(ips)) {
+        return ips.filter(Boolean).join(', ') || '-';
     }
+    return String(ips);
 };
 
 const RbacLogPage: React.FC = () => {
@@ -87,9 +75,9 @@ const RbacLogPage: React.FC = () => {
     const [currentMode, setCurrentMode] = useState<string>('SHADOW');
     const [modeLoading, setModeLoading] = useState(false);
 
-    // Logs (Tab 1)
-    const [logs, setLogs] = useState<RbacLogItem[]>([]);
-    const [logsLoading, setLogsLoading] = useState(false);
+    // Reports (Tab 1 - Aggregated)
+    const [reports, setReports] = useState<RbacReportItem[]>([]);
+    const [reportsLoading, setReportsLoading] = useState(false);
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
         dayjs().subtract(7, 'day').startOf('day'),
         dayjs().endOf('day')
@@ -115,9 +103,9 @@ const RbacLogPage: React.FC = () => {
         }
     }, []);
 
-    // Fetch Logs
-    const fetchLogs = useCallback(async () => {
-        setLogsLoading(true);
+    // Fetch Reports
+    const fetchReports = useCallback(async () => {
+        setReportsLoading(true);
         try {
             const from = dateRange[0].toISOString();
             const to = dateRange[1].toISOString();
@@ -129,12 +117,12 @@ const RbacLogPage: React.FC = () => {
                 }
             });
             if (Array.isArray(res.data)) {
-                setLogs(res.data);
+                setReports(res.data);
             }
         } catch (err: any) {
-            message.error(err.response?.data?.message || 'Lỗi tải danh sách nhật ký RBAC');
+            message.error(err.response?.data?.message || 'Lỗi tải báo cáo phân quyền RBAC');
         } finally {
-            setLogsLoading(false);
+            setReportsLoading(false);
         }
     }, [dateRange, decisionFilter]);
 
@@ -155,8 +143,8 @@ const RbacLogPage: React.FC = () => {
 
     useEffect(() => {
         fetchMode();
-        fetchLogs();
-    }, [fetchMode, fetchLogs]);
+        fetchReports();
+    }, [fetchMode, fetchReports]);
 
     const handleModeChange = (newMode: string) => {
         if (newMode === currentMode) return;
@@ -181,23 +169,21 @@ const RbacLogPage: React.FC = () => {
         });
     };
 
-    // Export to Excel
+    // Export to Excel (Aggregated columns matching spec A3)
     const handleExportExcel = async () => {
         try {
             const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('RBAC Access Logs');
+            const worksheet = workbook.addWorksheet('RBAC Summary Report');
 
             worksheet.columns = [
-                { header: 'Thời gian', key: 'timestamp', width: 22 },
-                { header: 'Tài khoản', key: 'username', width: 18 },
-                { header: 'IP', key: 'ip', width: 16 },
-                { header: 'Đường dẫn (Route)', key: 'route', width: 32 },
-                { header: 'Phương thức', key: 'method', width: 12 },
-                { header: 'Phân hệ', key: 'module', width: 18 },
-                { header: 'Hành động', key: 'action', width: 14 },
+                { header: 'Phương thức', key: 'method', width: 14 },
+                { header: 'Đường dẫn (Route)', key: 'route', width: 34 },
+                { header: 'Quyền yêu cầu (Required)', key: 'required', width: 24 },
+                { header: 'Người dùng', key: 'username', width: 18 },
                 { header: 'Quyết định', key: 'decision', width: 18 },
-                { header: 'Chế độ', key: 'mode', width: 12 },
-                { header: 'Chi tiết / Lý do', key: 'reason', width: 45 },
+                { header: 'Số lần (Hit Count)', key: 'count', width: 18 },
+                { header: 'Lần cuối xuất hiện', key: 'last_seen', width: 22 },
+                { header: 'Danh sách IP', key: 'ips', width: 30 },
             ];
 
             // Header styling
@@ -208,19 +194,16 @@ const RbacLogPage: React.FC = () => {
                 fgColor: { argb: 'FF1890FF' }
             };
 
-            logs.forEach(log => {
-                const { module, action } = parseRequired(log.required);
+            reports.forEach(item => {
                 worksheet.addRow({
-                    timestamp: log.timestamp ? dayjs(log.timestamp).format('YYYY-MM-DD HH:mm:ss') : '-',
-                    username: log.username || '(Anonymous)',
-                    ip: log.ip || '-',
-                    route: log.route,
-                    method: log.method,
-                    module,
-                    action,
-                    decision: log.decision,
-                    mode: log.mode,
-                    reason: getReasonText(log.decision, log.required, log.mode),
+                    method: item.method,
+                    route: item.route,
+                    required: item.required || '-',
+                    username: item.username || '(Anonymous)',
+                    decision: item.decision,
+                    count: item.count,
+                    last_seen: item.last_seen ? dayjs(item.last_seen).format('YYYY-MM-DD HH:mm:ss') : '-',
+                    ips: formatIps(item.ips),
                 });
             });
 
@@ -246,38 +229,8 @@ const RbacLogPage: React.FC = () => {
         }
     };
 
-    const logColumns = [
-        {
-            title: 'Thời gian',
-            dataIndex: 'timestamp',
-            key: 'timestamp',
-            width: 170,
-            render: (val: string) => val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'
-        },
-        {
-            title: 'Tài khoản',
-            dataIndex: 'username',
-            key: 'username',
-            width: 130,
-            render: (user: string | null) => user ? (
-                <Tag color={user === 'admin' ? 'gold' : 'blue'}><b>{user}</b></Tag>
-            ) : <span style={{ color: '#999' }}>(Ẩn danh)</span>
-        },
-        {
-            title: 'IP',
-            dataIndex: 'ip',
-            key: 'ip',
-            width: 130,
-            render: (ip: string | null) => ip || '-'
-        },
-        {
-            title: 'Đường dẫn (Route)',
-            dataIndex: 'route',
-            key: 'route',
-            render: (route: string) => (
-                <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>{route}</code>
-            )
-        },
+    // Columns: Method, Route, Quyền cần, User, Số lần, Lần cuối, IP (A3)
+    const reportColumns = [
         {
             title: 'Phương thức',
             dataIndex: 'method',
@@ -288,12 +241,22 @@ const RbacLogPage: React.FC = () => {
             )
         },
         {
-            title: 'Phân hệ & Quyền',
+            title: 'Đường dẫn (Route)',
+            dataIndex: 'route',
+            key: 'route',
+            render: (route: string) => (
+                <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>{route}</code>
+            )
+        },
+        {
+            title: 'Quyền cần',
+            dataIndex: 'required',
             key: 'required',
-            width: 170,
-            render: (_: any, r: RbacLogItem) => {
-                const { module, action } = parseRequired(r.required);
-                if (module === '-') return <span style={{ color: '#999' }}>-</span>;
+            width: 180,
+            render: (reqStr: string | null) => {
+                if (!reqStr) return <span style={{ color: '#999' }}>-</span>;
+                const { module, action } = parseRequired(reqStr);
+                if (module === '-') return <Tag>{reqStr}</Tag>;
                 return (
                     <Space size={4}>
                         <Tag color="cyan">{module}</Tag>
@@ -301,6 +264,15 @@ const RbacLogPage: React.FC = () => {
                     </Space>
                 );
             }
+        },
+        {
+            title: 'Người dùng',
+            dataIndex: 'username',
+            key: 'username',
+            width: 130,
+            render: (user: string | null) => user ? (
+                <Tag color={user === 'admin' ? 'gold' : 'blue'}><b>{user}</b></Tag>
+            ) : <span style={{ color: '#999' }}>(Ẩn danh)</span>
         },
         {
             title: 'Quyết định',
@@ -311,10 +283,12 @@ const RbacLogPage: React.FC = () => {
                 switch (dec) {
                     case 'ALLOW':
                         return <Tag color="success">ALLOW</Tag>;
+                    case 'DENY_NO_AUTH':
                     case 'SHADOW_DENIED':
-                        return <Tag color="gold">SHADOW_DENIED</Tag>;
+                        return <Tag color="gold">{dec}</Tag>;
+                    case 'DENY_NO_PERM':
                     case 'DENIED':
-                        return <Tag color="error">DENIED</Tag>;
+                        return <Tag color="error">{dec}</Tag>;
                     case 'UNCLASSIFIED':
                         return <Tag color="default">UNCLASSIFIED</Tag>;
                     default:
@@ -323,13 +297,28 @@ const RbacLogPage: React.FC = () => {
             }
         },
         {
-            title: 'Chi tiết / Lý do',
-            key: 'reason',
-            render: (_: any, r: RbacLogItem) => (
-                <Text type={r.decision === 'SHADOW_DENIED' ? 'warning' : undefined} style={{ fontSize: 12 }}>
-                    {getReasonText(r.decision, r.required, r.mode)}
-                </Text>
+            title: 'Số lần',
+            dataIndex: 'count',
+            key: 'count',
+            width: 110,
+            sorter: (a: RbacReportItem, b: RbacReportItem) => a.count - b.count,
+            render: (count: number) => (
+                <Badge count={count} overflowCount={99999} style={{ backgroundColor: '#108ee9' }} />
             )
+        },
+        {
+            title: 'Lần cuối',
+            dataIndex: 'last_seen',
+            key: 'last_seen',
+            width: 170,
+            render: (val: string) => val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'
+        },
+        {
+            title: 'IP',
+            dataIndex: 'ips',
+            key: 'ips',
+            width: 150,
+            render: (ips: string[] | string | null) => formatIps(ips)
         }
     ];
 
@@ -358,7 +347,7 @@ const RbacLogPage: React.FC = () => {
             width: 160,
             sorter: (a: UnclassifiedRouteItem, b: UnclassifiedRouteItem) => a.hit_count - b.hit_count,
             render: (count: number) => (
-                <Badge count={count} overflowCount={99999} style={{ backgroundColor: '#108ee9' }} />
+                <Badge count={count} overflowCount={99999} style={{ backgroundColor: '#52c41a' }} />
             )
         },
         {
@@ -428,7 +417,7 @@ const RbacLogPage: React.FC = () => {
                     items={[
                         {
                             key: 'report',
-                            label: '🛡️ Báo cáo Quyền',
+                            label: '🛡️ Báo cáo Quyền (Tổng hợp)',
                             children: (
                                 <div>
                                     {/* Filters */}
@@ -451,15 +440,15 @@ const RbacLogPage: React.FC = () => {
                                                     options={[
                                                         { label: 'Tất cả quyết định', value: 'ALL' },
                                                         { label: 'ALLOW (Hợp lệ)', value: 'ALLOW' },
-                                                        { label: 'SHADOW_DENIED (Vi phạm)', value: 'SHADOW_DENIED' },
-                                                        { label: 'DENIED (Bị chặn)', value: 'DENIED' },
+                                                        { label: 'DENY_NO_AUTH (Chưa đăng nhập)', value: 'DENY_NO_AUTH' },
+                                                        { label: 'DENY_NO_PERM (Thiếu quyền)', value: 'DENY_NO_PERM' },
                                                         { label: 'UNCLASSIFIED (Chưa phân hạng)', value: 'UNCLASSIFIED' },
                                                     ]}
                                                 />
                                                 <Button
                                                     icon={<ReloadOutlined />}
-                                                    onClick={fetchLogs}
-                                                    loading={logsLoading}
+                                                    onClick={fetchReports}
+                                                    loading={reportsLoading}
                                                 >
                                                     Tải lại
                                                 </Button>
@@ -470,18 +459,18 @@ const RbacLogPage: React.FC = () => {
                                                 type="primary"
                                                 icon={<DownloadOutlined />}
                                                 onClick={handleExportExcel}
-                                                disabled={logs.length === 0}
+                                                disabled={reports.length === 0}
                                             >
-                                                Xuất Excel ({logs.length} bản ghi)
+                                                Xuất Excel ({reports.length} dòng tổng hợp)
                                             </Button>
                                         </Col>
                                     </Row>
 
                                     <Table
-                                        dataSource={logs}
-                                        columns={logColumns}
-                                        rowKey="id"
-                                        loading={logsLoading}
+                                        dataSource={reports}
+                                        columns={reportColumns}
+                                        rowKey={(r) => `${r.method}_${r.route}_${r.decision}_${r.username || 'anon'}_${r.required || 'none'}`}
+                                        loading={reportsLoading}
                                         pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
                                         scroll={{ x: 1000 }}
                                     />

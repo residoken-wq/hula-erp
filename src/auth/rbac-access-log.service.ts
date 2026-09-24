@@ -51,17 +51,22 @@ export class RbacAccessLogService implements OnModuleInit {
     user_agent?: string | null;
   }): Promise<void> {
     try {
-      const key = `${entry.method}|${entry.route}|${entry.user_id ?? 'anon'}|${entry.decision}|${entry.ip ?? ''}`;
+      const isUnclassified = entry.decision === 'UNCLASSIFIED';
+      const key = isUnclassified
+        ? `UNCLASSIFIED|${entry.method}|${entry.route}`
+        : `${entry.method}|${entry.route}|${entry.user_id ?? 'anon'}|${entry.decision}|${entry.ip ?? ''}`;
+      const ttl = isUnclassified ? 60 * 60 * 1000 : 5 * 60 * 1000;
       const now = Date.now();
       const lastSeen = this.dedupeMap.get(key);
-      if (lastSeen && now - lastSeen < 5 * 60 * 1000) {
+      if (lastSeen && now - lastSeen < ttl) {
         return;
       }
       this.dedupeMap.set(key, now);
 
       if (this.dedupeMap.size > 5000) {
         for (const [k, timestamp] of this.dedupeMap.entries()) {
-          if (now - timestamp > 5 * 60 * 1000) {
+          const itemTtl = k.startsWith('UNCLASSIFIED|') ? 60 * 60 * 1000 : 5 * 60 * 1000;
+          if (now - timestamp > itemTtl) {
             this.dedupeMap.delete(k);
           }
         }
@@ -103,18 +108,17 @@ export class RbacAccessLogService implements OnModuleInit {
     }
   }
 
-  async getReport(from?: string, to?: string, decision?: string, limit = 1000) {
+  async getReport(from?: string, to?: string, decision?: string) {
     let query = this.logRepo
       .createQueryBuilder('log')
-      .select('log.id', 'id')
-      .addSelect('log.created_at', 'timestamp')
-      .addSelect('log.username', 'username')
-      .addSelect('log.ip', 'ip')
+      .select('log.method', 'method')
       .addSelect('log.route', 'route')
-      .addSelect('log.method', 'method')
-      .addSelect('log.required', 'required')
       .addSelect('log.decision', 'decision')
-      .addSelect('log.mode', 'mode');
+      .addSelect('log.required', 'required')
+      .addSelect('log.username', 'username')
+      .addSelect('COUNT(*)::int', 'count')
+      .addSelect('MAX(log.created_at)', 'last_seen')
+      .addSelect('(ARRAY_AGG(DISTINCT log.ip) FILTER (WHERE log.ip IS NOT NULL))[1:5]', 'ips');
 
     if (from) {
       query = query.andWhere('log.created_at >= :from', { from: new Date(from) });
@@ -127,7 +131,14 @@ export class RbacAccessLogService implements OnModuleInit {
       query = query.andWhere('log.decision = :decision', { decision });
     }
 
-    query = query.orderBy('log.created_at', 'DESC').limit(limit);
+    query = query
+      .groupBy('log.method')
+      .addGroupBy('log.route')
+      .addGroupBy('log.decision')
+      .addGroupBy('log.required')
+      .addGroupBy('log.username')
+      .orderBy('count', 'DESC')
+      .limit(1000);
 
     return await query.getRawMany();
   }
