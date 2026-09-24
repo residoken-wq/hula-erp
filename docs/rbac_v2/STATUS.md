@@ -1,0 +1,38 @@
+# STATUS — RBAC v2
+
+Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng mới nhất nằm trên cùng trong phần Nhật ký.
+
+## Bảng phase
+
+| Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
+|---|---|---|---|---|
+| P0 | READY | `rbac/p0` (tạo từ `rbac/plan`) | — | 2026-09-24 Claude |
+| P1 | BLOCKED | `rbac/p1` | P0 DEPLOYED; D1–D7 | 2026-09-24 Claude |
+| P2 | BLOCKED | `rbac/p2` | P1 DEPLOYED; D8, D9 | 2026-09-24 Claude |
+| P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
+| P4 | DESIGN_ONLY | — | Chủ dự án giao phần nghiệp vụ | 2026-09-24 Claude |
+| P5 | BLOCKED | `rbac/p5` | P3 DEPLOYED | 2026-09-24 Claude |
+
+## Quyết định (D) — xem 01_Master-Plan.md mục 6
+
+| ID | Trạng thái | Kết quả |
+|---|---|---|
+| D1 | OPEN | |
+| D2 | OPEN | |
+| D3 | OPEN | |
+| D4 | OPEN | |
+| D5 | OPEN | |
+| D6 | OPEN | |
+| D7 | OPEN | |
+| D8 | OPEN | |
+| D9 | OPEN | |
+| D10 | OPEN | |
+| D11 | OPEN | |
+
+## Chấp nhận ngoại lệ (Chủ dự án ký)
+
+_(chưa có)_
+
+## Nhật ký
+
+- 2026-09-24 · Claude · Tạo gói RBAC v2 trên nhánh local `rbac/plan`. Chưa push vì repo GitHub đang public.
