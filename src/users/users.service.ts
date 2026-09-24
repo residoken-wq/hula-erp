@@ -1,9 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserGroup } from './entities/user-group.entity';
 import { GroupPermission } from './entities/group-permission.entity';
+import { PermissionCacheService } from '../auth/permission-cache.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -12,6 +13,8 @@ export class UsersService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(UserGroup) private groupRepo: Repository<UserGroup>,
     @InjectRepository(GroupPermission) private permRepo: Repository<GroupPermission>,
+    @Inject(forwardRef(() => PermissionCacheService))
+    private permCacheService: PermissionCacheService,
   ) { }
 
   // --- USER MANAGEMENT ---
@@ -77,6 +80,7 @@ export class UsersService {
       const perms = this.permRepo.create(permObjects);
       await this.permRepo.save(perms);
     }
+    this.permCacheService?.invalidateGroup(saved.id);
     return saved;
   }
 
@@ -98,6 +102,7 @@ export class UsersService {
       const perms = this.permRepo.create(permObjects);
       await this.permRepo.save(perms);
     }
+    this.permCacheService?.invalidateGroup(groupId);
     return { success: true };
   }
 
