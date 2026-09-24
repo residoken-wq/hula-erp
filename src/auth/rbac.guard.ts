@@ -119,11 +119,7 @@ export class RbacGuard implements CanActivate {
 
         const route = this.getRoutePattern(req);
         const userAgent = req.headers['user-agent'] || null;
-        const ip =
-          (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-          req.ip ||
-          req.connection?.remoteAddress ||
-          null;
+        const ip = req.ip || req.connection?.remoteAddress || null;
 
         this.accessLog
           .record({
