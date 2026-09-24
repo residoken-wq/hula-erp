@@ -6,7 +6,7 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | SUBMITTED | `rbac/p0` (tạo từ `rbac/plan`) | — | 2026-09-24 Antigravity |
+| P0 | AUDIT_FAIL (vòng 1/3) | `rbac/p0` (tạo từ `rbac/plan`) | Sửa theo AUDIT_P0.md; Q1 môi trường test | 2026-09-24 Claude |
 | P1 | BLOCKED | `rbac/p1` | P0 DEPLOYED; D1–D7 | 2026-09-24 Claude |
 | P2 | BLOCKED | `rbac/p2` | P1 DEPLOYED; D8, D9 | 2026-09-24 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
@@ -34,6 +34,8 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 _(chưa có)_
 
 ## Nhật ký
+
+- 2026-09-24 · Claude · Audit P0 vòng 1: AUDIT_FAIL, 3 MAJOR (A1 nghiệm thu không chạy thật, A2 có thể xoá sạch quyền nhóm, A3 report chưa tổng hợp + log phình to), 5 MINOR. Lõi RbacGuard đạt: harness HTTP pass 16/16. Chờ Chủ dự án trả lời Q1.
 
 - 2026-09-24 · Antigravity · Hoàn thành P0, nộp REPORT_P0.md, cập nhật ACCEPTANCE.csv, chuyển P0 sang SUBMITTED.
 - 2026-09-24 · Antigravity · Nhận P0, tạo nhánh rbac/p0, chuyển trạng thái IN_PROGRESS.
