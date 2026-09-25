@@ -8,13 +8,13 @@
 
 | ID | Kết quả | Ảnh hưởng tới instruction này |
 |---|---|---|
-| D1 PURCHASE | _chưa chốt_ | Có → purchasing dùng PURCHASE, seed từ PRODUCTION. Không → thay mọi `PURCHASE` trong matrix bằng `PRODUCTION` |
-| D2 MARKETING | _chưa chốt_ | Có → seed từ SALES. Không → thay bằng `SALES` |
-| D3 SYSTEM | _chưa chốt_ | Có → seed từ USERS. Không → thay bằng `USERS` |
-| D4 Nhóm dùng CMS | _chưa chốt_ | Danh sách `group_id` được seed CMS full quyền |
-| D5 Designs | _chưa chốt_ | Mặc định `AnyPerm(['PRODUCT',a],['PRODUCTION',a])` |
-| D6 Tra cứu danh mục | _chưa chốt_ | Có → giữ các dòng AUTH cho GET products/materials/categories/processes/suppliers |
-| D7 HR tự phục vụ | _chưa chốt_ | Có → xem mục P1.4 |
+| D1 PURCHASE | ✅ **Tách PURCHASE** (2026-09-25) | purchasing dùng `PURCHASE`, seed chép từ `PRODUCTION` |
+| D2 MARKETING | ✅ **Tách MARKETING** (2026-09-25) | marketing/social/tiktok dùng `MARKETING`, seed chép từ `SALES` |
+| D3 SYSTEM | ✅ **Tách SYSTEM** (2026-09-25) | cấu hình tích hợp dùng `SYSTEM`, seed chép từ `USERS` |
+| D4 CMS | ✅ **Tạo nhóm quyền CMS riêng; Chủ dự án tự gán user** (2026-09-25) | Seed **không** cấp CMS cho nhóm có sẵn. Seed tạo mới nhóm `Biên tập Website (CMS)` có CMS đủ 4 quyền, chưa có user nào (P1.3) |
+| D5 Designs | ✅ **Tạm cả hai** (2026-09-25) | `AnyPerm(['PRODUCT',a],['PRODUCTION',a])` cho `designs/*`; menu `hasPerm('PRODUCT') \|\| hasPerm('PRODUCTION')` |
+| D6 Tra cứu danh mục | ✅ **Mọi user đã đăng nhập xem** (2026-09-25) | Giữ các dòng `AUTH` cho `GET` products/materials/categories/processes/suppliers. Ghi/sửa vẫn cần quyền module |
+| D7 HR | ✅ **Nhân viên chỉ thao tác hồ sơ của chính mình; hồ sơ người khác chỉ Admin** (2026-09-25) | Làm theo P1.4 (bản mới): thêm API `/hr/me/*`, route HR cũ cần quyền `HR`. "Chỉ Admin" thực hiện bằng cách **không cấp quyền HR cho nhóm nào**; Chủ dự án tự bỏ quyền HR ở các nhóm đang có (không seed xoá tự động) |
 
 ---
 
@@ -57,20 +57,52 @@ Quy tắc:
      copyIfMissing(group, from='PRODUCTION', to='PURCHASE')   // D1
      copyIfMissing(group, from='SALES',      to='MARKETING')  // D2
      copyIfMissing(group, from='USERS',      to='SYSTEM')     // D3
-     if group.id in D4 list → upsert CMS {view,create,update,delete = true}
-   setValue('RBAC_SEED_V1', JSON.stringify({ at, changes:[{group_id, group_name, to, from, flags}] }))
+   // D4: tạo nhóm CMS riêng nếu chưa có nhóm trùng tên
+   if !exists user_groups.name = 'Biên tập Website (CMS)':
+     insert group { name: 'Biên tập Website (CMS)', description: 'Quyền sửa nội dung website qua cms.nemmamnon.com' }
+     insert group_permissions { module_code:'CMS', can_view, can_create, can_update, can_delete = true, view_cost_price=false }
+   setValue('RBAC_SEED_V1', JSON.stringify({ at, changes:[{group_id, group_name, to, from, flags}], created_groups:[...] }))
    ```
+   - Bảng dry-run trong REPORT phải có thêm **danh sách nhóm đang có quyền HR** (tên nhóm, số user, các cờ). Chủ dự án dùng danh sách này để tự bỏ quyền HR theo D7. Seed **không** xoá quyền HR.
    - `copyIfMissing`: chỉ tạo khi nhóm **chưa có dòng** mã đích. Chép 5 cờ `can_view, can_create, can_update, can_delete, view_cost_price`. Nhóm không có dòng nguồn thì bỏ qua.
    - Chạy trong **một transaction** (`dataSource.transaction`).
    - Không động vào dòng quyền đã có.
 3. `REPORT_P1.md` phải có bảng "Seed dry-run" chạy trên bản copy DB production. Mày xin chủ dự án dump, **không** chạy thẳng lên prod: nhóm nào nhận mã nào, từ mã nào.
 
-## P1.4 HR tự phục vụ (nếu D7 = Có)
+## P1.4 HR tự phục vụ: API `/hr/me/*` (D7)
 
-Trong `hr.controller.ts`, các route có `review=Y` với ghi chú "tự phục vụ" (chấm công, nghỉ phép, phiếu lương của mình):
-- Liệt kê từng route trong REPORT với đề xuất: `@AuthOnly()` cho route thao tác trên hồ sơ **của chính mình**, `@Perm('HR', …)` cho route thao tác trên người khác.
-- **Không sửa logic**. Nếu một route dùng chung cho cả hai (nhận `employee_id` tuỳ ý) thì gắn `@Perm('HR', …)` và ghi vào REPORT mục "Cần tách route ở P3".
-- Chờ Claude audit rồi mới chốt.
+**Vấn đề hiện tại** (lỗ hổng riêng tư đang tồn tại): [ProfilePage.tsx](../../frontend/src/pages/ProfilePage.tsx), trang mọi nhân viên đều mở được, đang gọi:
+- `GET /hr/employees/by-user/:userId`: đổi `userId` là xem hồ sơ người khác.
+- `GET /hr/attendances?employee_id=`, `GET /hr/payslips?employee_id=`, `GET /hr/assets?employee_id=`: đổi số là xem chấm công/**lương**/tài sản người khác.
+- `GET /hr/leaves`: tải **toàn bộ** đơn nghỉ của công ty rồi lọc ở trình duyệt.
+- `POST /hr/check-in|check-out|leaves` với `employee_id` từ body: chấm công/xin nghỉ **hộ** người khác được.
+
+**Làm (thêm mới, không sửa route cũ):**
+
+1. Controller mới `src/hr/hr-me.controller.ts`, prefix `hr/me`, gắn `@UseGuards(JwtAuthGuard)` ở class (controller mới nên được phép, và chỉ bắt đăng nhập). Mọi method gắn `@AuthOnly()`.
+2. Helper `resolveMyEmployee(req)`: tìm `Employee` theo `user_id = req.user.id`. Không có thì trả **404** "Tài khoản chưa được liên kết hồ sơ nhân viên". **Không bao giờ** đọc `employee_id` từ query hay body.
+3. Endpoint, mỗi cái gọi **service có sẵn** với `employee_id` đã resolve. Không viết logic nghiệp vụ mới:
+
+   | Mới | Thay cho (ProfilePage đang gọi) |
+   |---|---|
+   | `GET /hr/me` | `GET /hr/employees/by-user/:userId` |
+   | `GET /hr/me/attendances` | `GET /hr/attendances?employee_id=` |
+   | `GET /hr/me/leaves` | `GET /hr/leaves` (lọc ở server theo employee của mình) |
+   | `GET /hr/me/payslips` | `GET /hr/payslips?employee_id=` |
+   | `GET /hr/me/assets` | `GET /hr/assets?employee_id=` |
+   | `POST /hr/me/check-in` | `POST /hr/check-in` |
+   | `POST /hr/me/check-out` | `POST /hr/check-out` |
+   | `POST /hr/me/leaves` | `POST /hr/leaves` (ép `employee_id` = của mình; bỏ qua `status` trong body, luôn tạo trạng thái chờ duyệt như service hiện làm) |
+
+   Nếu service hiện tại không có hàm lọc theo `employee_id` cho một mục nào đó: **dừng mục đó**, ghi vào REPORT, không tự viết query mới.
+4. `ProfilePage.tsx`: đổi sang gọi `/hr/me/*`. Giao diện và dữ liệu hiển thị giữ nguyên.
+5. Route HR cũ trong `hr.controller.ts`: gắn `@Perm('HR', action)` theo matrix. Riêng `check-in`, `check-out`, `POST leaves`: `@Perm('HR','create')`. Sau P1 không trang nào của nhân viên thường gọi các route này nữa.
+6. Thêm vào `route-matrix.csv` các dòng `/api/hr/me/*` (tier `AUTH`, change `NEW`).
+
+**Ảnh hưởng vận hành (đã báo Chủ dự án):**
+- Nhân viên thường: không đổi gì trên trang Hồ sơ.
+- Từ ENFORCE (P2), chỉ tài khoản có quyền `HR` (theo D7 là chỉ Admin) mới xem/sửa hồ sơ, chấm công, lương, nghỉ phép **của người khác**, và mới duyệt đơn nghỉ.
+- **Nếu hiện có nhân sự không phải admin đang làm lương/duyệt phép, họ sẽ mất quyền này** (I-17).
 
 ## P1.5 Frontend: menu và route theo mã mới
 

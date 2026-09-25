@@ -99,20 +99,21 @@ Khoá `RBAC_MODE` trong bảng `system_configs`: `OFF` | `SHADOW` | `ENFORCE`.
 | I-12 ⚠ | P3 | Người đang sửa user (UsersPage) | `PUT /users/:id` không cho đổi `password`/`group_id` nếu không có USERS:update; đổi mật khẩu người khác cần USERS:update | TB | Tự đổi mật khẩu của mình vẫn được |
 | I-13 | P0 | Mọi user | Quyền đổi xong có hiệu lực khi user tải lại trang (qua `/auth/me`), không cần đăng xuất/đăng nhập | THẤP (tích cực) | — |
 | I-14 ⚠ | P4 | Người đang xem giá vốn | Nếu bật lọc giá vốn ở API, ai không có `view_cost_price` sẽ không thấy giá vốn ở mọi màn hình (hiện chỉ ẩn ở UI, API vẫn trả) | CAO | Chưa làm cho đến khi chủ dự án duyệt |
-| I-15 ⚠ | P2 | Nhân viên chấm công/nghỉ phép | Nếu HR chỉ cho nhóm HR, nhân viên thường không chấm công/xin nghỉ được | CAO | D7: tách nhóm route "tự phục vụ" thành AUTH + chỉ thao tác trên hồ sơ của mình |
+| I-15 | P1 | Nhân viên dùng trang Hồ sơ (chấm công, xin nghỉ, xem lương của mình) | Trang Hồ sơ chuyển sang API `/hr/me/*`, chỉ trả dữ liệu của chính mình. Nhân viên không thấy thay đổi; hết lỗi xem được lương/nghỉ phép của người khác | THẤP (tích cực) | Theo D7 (đã chốt) |
 | I-16 | P5 | Khách xem báo giá trên portal | Comment/xoá comment chuyển sang theo `uuid` báo giá, không theo id số | THẤP | Link đã gửi khách vẫn giữ nguyên |
+| I-17 ⚠ | P2 ENFORCE | Nhân sự **không phải admin** đang làm lương, chấm công hộ, duyệt phép | Theo D7 chỉ Admin thao tác hồ sơ người khác. Nhóm nào đang có quyền HR mà Chủ dự án bỏ đi thì mất các thao tác này | CAO nếu có | REPORT P1 liệt kê nhóm đang có HR; Chủ dự án quyết bỏ hay giữ trước ENFORCE |
 
 ## 6. Quyết định cần chủ dự án chốt
 
 | ID | Câu hỏi | Đề xuất của tao | Chặn phase |
 |---|---|---|---|
-| D1 | Tách Mua hàng ra mã **PURCHASE** riêng (thay vì dùng PRODUCTION)? | Có, seed chép từ PRODUCTION | P1 |
-| D2 | Tách **MARKETING** khỏi SALES? | Có, seed chép từ SALES | P1 |
-| D3 | Tách **SYSTEM** (cấu hình tích hợp, SMTP, hoá đơn) khỏi USERS? | Có, seed chép từ USERS | P1 |
-| D4 | Nhóm nào đang dùng **CMS website**? | Cho tao danh sách nhóm để seed quyền CMS | P1 |
-| D5 | Thiết kế in/thêu (`/designs`) thuộc PRODUCT (backend) hay PRODUCTION (menu)? | Tạm cho **một trong hai** (any-of), sau chốt một | P1 |
-| D6 | Tra cứu danh mục (sản phẩm, vật tư, NCC, công đoạn, danh mục) cho **mọi user đã đăng nhập** xem? | Có. Giá vốn xử lý ở P4 | P1 |
-| D7 | Chấm công, nghỉ phép, phiếu lương **của chính mình**: mọi nhân viên tự làm được? | Có (AUTH + kiểm tra đúng chủ hồ sơ) | P1 |
+| D1 | Tách Mua hàng ra mã **PURCHASE** riêng (thay vì dùng PRODUCTION)? | Có, seed chép từ PRODUCTION — **Chốt 2026-09-25: Tách PURCHASE** | P1 |
+| D2 | Tách **MARKETING** khỏi SALES? | Có, seed chép từ SALES — **Chốt 2026-09-25: Tách MARKETING** | P1 |
+| D3 | Tách **SYSTEM** (cấu hình tích hợp, SMTP, hoá đơn) khỏi USERS? | Có, seed chép từ USERS — **Chốt 2026-09-25: Tách SYSTEM** | P1 |
+| D4 | Nhóm nào đang dùng **CMS website**? | Cho tao danh sách nhóm để seed quyền CMS — **Chốt 2026-09-25: Tạo nhóm quyền CMS riêng, Chủ dự án tự gán user** | P1 |
+| D5 | Thiết kế in/thêu (`/designs`) thuộc PRODUCT (backend) hay PRODUCTION (menu)? | Tạm cho **một trong hai** (any-of), sau chốt một — **Chốt 2026-09-25: Tạm cả hai (PRODUCT hoặc PRODUCTION)** | P1 |
+| D6 | Tra cứu danh mục (sản phẩm, vật tư, NCC, công đoạn, danh mục) cho **mọi user đã đăng nhập** xem? | Có. Giá vốn xử lý ở P4 — **Chốt 2026-09-25: Mọi user đã đăng nhập xem** | P1 |
+| D7 | Chấm công, nghỉ phép, phiếu lương **của chính mình**: mọi nhân viên tự làm được? | Có (AUTH + kiểm tra đúng chủ hồ sơ) — **Chốt 2026-09-25: Chỉ hồ sơ của mình; hồ sơ người khác chỉ Admin** | P1 |
 | D8 | SHADOW chạy bao lâu? | ≥ 10 ngày làm việc, có một kỳ cuối tháng (lương, công nợ) | P2 |
 | D9 | Có thiết bị/script/hệ thống nào gọi API ERP **không đăng nhập** không? | Liệt kê giúp tao; nếu không rõ thì để log SHADOW tìm | P2 |
 | D10 | Ngoài `admin`, ai là super admin? | Chỉ `admin` + 1 tài khoản dự phòng | P3 |
