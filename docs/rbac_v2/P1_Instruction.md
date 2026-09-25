@@ -1,8 +1,9 @@
 # P1 — Phân hạng toàn bộ endpoint + mã quyền mới + seed
 
 **Điều kiện bắt đầu:** P0 đã audit PASS, **và** chủ dự án đã chốt D1–D7. Kết quả ghi vào bảng dưới; bảng còn trống thì **không được làm**.
-**Nhánh:** `rbac/p1`
+**Nhánh:** `rbac/p1`, tạo từ `main`. P0 đã merge ở `3f491fe`.
 **Hành vi sau deploy:** vẫn SHADOW, chưa chặn ai. Menu frontend có thể đổi chỗ gate (I-02, I-03, I-04), nhưng nhờ seed nên không ai mất menu.
+**Môi trường test (bắt buộc):** `docs/rbac_v2/test-env/TEST-ENV.md`. Postgres 15 local với bản copy DB thật đã làm sạch. Mọi dòng ACCEPTANCE P1 phải chạy trên môi trường này, lưu evidence dạng `.txt`.
 
 ## Quyết định đã chốt (Claude điền sau khi chủ dự án trả lời)
 
@@ -67,7 +68,7 @@ Quy tắc:
    - `copyIfMissing`: chỉ tạo khi nhóm **chưa có dòng** mã đích. Chép 5 cờ `can_view, can_create, can_update, can_delete, view_cost_price`. Nhóm không có dòng nguồn thì bỏ qua.
    - Chạy trong **một transaction** (`dataSource.transaction`).
    - Không động vào dòng quyền đã có.
-3. `REPORT_P1.md` phải có bảng "Seed dry-run" chạy trên bản copy DB production. Mày xin chủ dự án dump, **không** chạy thẳng lên prod: nhóm nào nhận mã nào, từ mã nào.
+3. `REPORT_P1.md` phải có bảng "Seed dry-run" chạy trên môi trường test: `pgenv.sh reset`, boot backend, xem `RBAC_SEED_V1`. Bảng ghi nhóm nào nhận mã nào, chép từ mã nào. **Không** chạy thẳng lên prod. Kết quả phải khớp **Phụ lục A**, lệch thì giải thích.
 
 ## P1.4 HR tự phục vụ: API `/hr/me/*` (D7)
 
@@ -129,3 +130,36 @@ Trong `App.tsx`, **menu và `<Route>` phải dùng cùng một điều kiện**:
 - Không bật ENFORCE.
 - Không xoá `PermissionsGuard` hay `@RequirePermission` cũ.
 - Không sửa logic trong service.
+
+---
+
+## Phụ lục A — Kết quả seed dự kiến trên dữ liệu thật (dump 23/08, Claude đã truy vấn)
+
+Ma trận hiện tại của các mã liên quan (`V C U D $` = view, create, update, delete, xem giá vốn; `-` = tắt). Mọi nhóm **đã có dòng** cho các mã trong bảng, vì màn hình phân quyền lưu cả ma trận:
+
+| Nhóm (id, số user) | PRODUCTION | PURCHASE | SALES | USERS | CMS | HR | FINANCE |
+|---|---|---|---|---|---|---|---|
+| 1 Sales (2) | ----- | ----- | VCU-- | ----- | ----- | ----- | ----- |
+| 2 Admin (2) | VCUD$ | VCUD$ | VCUD$ | VCUD$ | VCUD$ | VCUD$ | VCUD$ |
+| 3 Planning Manager (1) | VCUD- | VCUD- | VCUD- | ----- | VCUD- | ----- | V---- |
+| 4 Accounting_manager (1) | ----- | ----- | V---- | ----- | ----- | ----- | V---- |
+| 5 Marketing_Design (1) | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| 6 Partime theo giờ (2) | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+
+**Seed V1 phải cho ra đúng như sau:**
+
+| Bước | Kết quả dự kiến |
+|---|---|
+| D1 PRODUCTION → PURCHASE | **0 dòng tạo mới.** Cả 6 nhóm đã có dòng PURCHASE và giá trị trùng PRODUCTION |
+| D2 SALES → MARKETING | **6 dòng tạo mới:** 1=VCU--, 2=VCUD$, 3=VCUD-, 4=V----, 5=-----, 6=----- |
+| D3 USERS → SYSTEM | **6 dòng tạo mới:** 2=VCUD$, các nhóm còn lại ----- |
+| D4 CMS | **1 nhóm mới** "Biên tập Website (CMS)", CMS=VCUD-, 0 user. Admin và Planning Manager giữ nguyên CMS đang có |
+| Danh sách nhóm có HR (D7) | Chỉ **2 Admin** (2 user) |
+
+## Phụ lục B — Ảnh hưởng vận hành rút ra từ dữ liệu thật (Claude báo Chủ dự án)
+
+- **I-18 (CAO, xảy ra khi ENFORCE):** nhóm **Accounting_manager** chỉ có FINANCE=V và PURCHASE=-----. Hiện họ vẫn ghi được thanh toán vì route thanh toán chỉ kiểm đăng nhập. Sau P1, các route này cần `FINANCE:create` và `PURCHASE:view`. Chủ dự án cần tick thêm các quyền đó trước khi bật ENFORCE, nếu không kế toán mất quy trình thanh toán công nợ NCC.
+- **Nhóm Sales** không có FINANCE. Nếu sales đang ghi nhận thanh toán đơn hàng từ màn hình đơn (`POST /finance/payment`), khi ENFORCE sẽ bị chặn. Log SHADOW sẽ cho biết.
+- **Marketing_Design** không có SALES, nên cũng không nhận MARKETING. Hiện họ vốn đã không thấy menu Marketing, nên không đổi. Muốn giao marketing cho nhóm này thì tick MARKETING.
+- **Partime theo giờ** không có quyền nào. Họ chỉ dùng Tổng quan, Công việc và trang Hồ sơ (chấm công), nên **bắt buộc** phải làm P1.4 (`/hr/me/*`) trước ENFORCE.
+- Nhóm **Admin** có 2 user. Ngoài `admin`, người thứ hai có mọi quyền nhờ ma trận quyền (không phải nhờ bypass).

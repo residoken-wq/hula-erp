@@ -6,8 +6,8 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | MERGED (main @ 3f491fe, đã push) | `rbac/p0` | Chủ dự án: deploy VPS + smoke test (AUDIT_P0.md vòng 2, điều kiện 2–5) | 2026-09-25 Claude |
-| P1 | BLOCKED | `rbac/p1` | P0 DEPLOYED (D1–D7 đã chốt) | 2026-09-25 Claude |
+| P0 | DEPLOYED | `rbac/p0` → main @ 3f491fe | — | 2026-09-25 Chủ dự án (Claude ghi) |
+| P1 | READY | `rbac/p1` (tạo từ `main`) | — | 2026-09-25 Claude |
 | P2 | BLOCKED | `rbac/p2` | P1 DEPLOYED; D8, D9 | 2026-09-24 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
 | P4 | DESIGN_ONLY | — | Chủ dự án giao phần nghiệp vụ | 2026-09-24 Claude |
@@ -35,6 +35,7 @@ _(chưa có)_
 
 ## Nhật ký
 
+- 2026-09-25 · Claude · Chủ dự án xác nhận "P0 deployed OK" (smoke test đạt) → P0 DEPLOYED. Dựng môi trường test local (PG 15.18 portable + dump 23/08 đã sanitize, docs/rbac_v2/test-env/), kiểm chứng backend chạy được. P1_Instruction thêm Phụ lục A (seed dự kiến trên dữ liệu thật) và Phụ lục B (ảnh hưởng vận hành, thêm I-18). P1 → READY.
 - 2026-09-25 · Claude · Theo lệnh Chủ dự án: xác nhận repo đã private (GitHub API 404), merge --no-ff rbac/p0 vào main (3f491fe), push origin main. CI sẽ build image app + frontend và sync sang erp4u-demo. Chờ Chủ dự án deploy VPS.
 
 - 2026-09-25 · Claude · Chủ dự án chốt D1–D7. Cập nhật P1_Instruction: bảng quyết định, seed tạo nhóm CMS (D4), P1.4 viết lại thành API /hr/me/* (D7; vá lỗi ProfilePage xem được lương/nghỉ phép/hồ sơ người khác). Master Plan: I-15 đổi, thêm I-17.

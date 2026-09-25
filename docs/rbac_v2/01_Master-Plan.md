@@ -102,6 +102,7 @@ Khoá `RBAC_MODE` trong bảng `system_configs`: `OFF` | `SHADOW` | `ENFORCE`.
 | I-15 | P1 | Nhân viên dùng trang Hồ sơ (chấm công, xin nghỉ, xem lương của mình) | Trang Hồ sơ chuyển sang API `/hr/me/*`, chỉ trả dữ liệu của chính mình. Nhân viên không thấy thay đổi; hết lỗi xem được lương/nghỉ phép của người khác | THẤP (tích cực) | Theo D7 (đã chốt) |
 | I-16 | P5 | Khách xem báo giá trên portal | Comment/xoá comment chuyển sang theo `uuid` báo giá, không theo id số | THẤP | Link đã gửi khách vẫn giữ nguyên |
 | I-17 ⚠ | P2 ENFORCE | Nhân sự **không phải admin** đang làm lương, chấm công hộ, duyệt phép | Theo D7 chỉ Admin thao tác hồ sơ người khác. Nhóm nào đang có quyền HR mà Chủ dự án bỏ đi thì mất các thao tác này | CAO nếu có | REPORT P1 liệt kê nhóm đang có HR; Chủ dự án quyết bỏ hay giữ trước ENFORCE |
+| I-18 ⚠ | P2 ENFORCE | Kế toán (nhóm Accounting_manager: FINANCE=xem, PURCHASE=không) | Hiện vẫn ghi thanh toán được vì route chỉ kiểm đăng nhập. Sau P1 cần FINANCE:create + PURCHASE:view. Không tick thêm thì mất quy trình thanh toán công nợ NCC | CAO | Chủ dự án tick quyền trước ENFORCE (P1 Phụ lục B) |
 
 ## 6. Quyết định cần chủ dự án chốt
 
