@@ -10,8 +10,8 @@ async function runTests() {
 
   // Test 1: Permission Catalog (P0-11)
   console.log('Test 1: Verify Permission Catalog...');
-  if (PERMISSION_MODULES.length !== 17) {
-    throw new Error(`Expected 17 modules, got ${PERMISSION_MODULES.length}`);
+  if (PERMISSION_MODULES.length !== 18) {
+    throw new Error(`Expected 18 modules, got ${PERMISSION_MODULES.length}`);
   }
   const hasSystem = PERMISSION_MODULES.some(m => m.code === 'SYSTEM');
   if (!hasSystem) throw new Error('SYSTEM module not found in catalog');

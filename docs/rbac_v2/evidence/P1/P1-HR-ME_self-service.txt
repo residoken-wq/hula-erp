@@ -1,0 +1,9 @@
+=== HR SELF-SERVICE API AUDIT (/api/hr/me/*) (P1.4 / D7) ===
+Date: 2026-09-25T15:24:32.274Z
+[PASS] GET /api/hr/me -> HTTP 404
+[PASS] GET /api/hr/me/attendances -> HTTP 404
+[PASS] GET /api/hr/me/leaves -> HTTP 404
+[PASS] GET /api/hr/me/payslips -> HTTP 404
+[PASS] GET /api/hr/me/assets -> HTTP 404
+[PASS] GET /api/hr/me/balance -> HTTP 404
+[PASS] GET /api/hr/me without token -> HTTP 401 (Unauthorized)

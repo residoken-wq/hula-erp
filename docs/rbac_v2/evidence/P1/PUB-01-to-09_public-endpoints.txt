@@ -1,0 +1,13 @@
+=== PUBLIC ENDPOINTS & PORTALS RUNTIME AUDIT (PUB-01..09) ===
+Date: 2026-09-25T15:24:32.253Z
+Mode: SHADOW (Verified public decorator functionality)
+
+[PASS] PUB-01 - Health check (GET /api/test) -> HTTP 200
+[PASS] PUB-02 - Public Analytics Ping (POST /api/public/analytics/ping) -> HTTP 201
+[PASS] PUB-03 - Public Upload file info (GET /api/upload/files/nonexistent.png) -> HTTP 404
+[WARN] PUB-04 - Customer Portal mock (GET /api/sales/portal/mock-test-uuid) -> HTTP 401
+[PASS] PUB-05 - Purchasing Portal mock (GET /api/purchasing/portal/mock-test-uuid) -> HTTP 500
+[PASS] PUB-06 - Supplier Portal mock (GET /api/purchasing/supplier-portal/mock-test-uuid) -> HTTP 500
+[WARN] PUB-07 - Candidate Portal mock (GET /api/hr/recruitment/assessments/999999) -> HTTP 401
+[PASS] PUB-08 - GHTK Webhook (POST /api/shipping/webhook/ghtk) -> HTTP 200
+[PASS] PUB-09 - Lalamove Webhook (POST /api/shipping/webhook/lalamove) -> HTTP 200

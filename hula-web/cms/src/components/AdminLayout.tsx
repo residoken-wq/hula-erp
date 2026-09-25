@@ -1,7 +1,7 @@
 'use client';
 
 import { ProLayout, PageContainer } from '@ant-design/pro-components';
-import { Dropdown, Avatar, Badge, Space, Typography } from 'antd';
+import { Dropdown, Avatar, Badge, Space, Typography, Alert } from 'antd';
 import {
     DashboardOutlined,
     FileTextOutlined,
@@ -142,7 +142,7 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const { user, loading, logout } = useAuth();
+    const { user, loading, logout, hasCmsPermission } = useAuth();
     const router = useRouter();
 
     // If loading or checking auth
@@ -307,6 +307,15 @@ export default function AdminLayout({
                     ghost: true,
                 }}
             >
+                {!hasCmsPermission && user && (
+                    <Alert
+                        message="Tài khoản chưa được cấp quyền CMS — sẽ bị chặn từ ngày theo lộ trình RBAC v2"
+                        type="warning"
+                        showIcon
+                        banner
+                        style={{ marginBottom: 16, borderRadius: 8 }}
+                    />
+                )}
                 {children}
             </PageContainer>
         </ProLayout>

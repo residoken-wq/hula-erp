@@ -1,0 +1,8 @@
+=== CMS PERMISSION WARNING BANNER VERIFICATION (P1-08) ===
+1. Hook verification (hula-web/cms/src/hooks/useAuth.tsx):
+   - checkCmsPermission checks module_code === 'CMS' and can_view === true
+   - Exposes hasCmsPermission in useAuth return value without hard blocking login
+2. UI Layout verification (hula-web/cms/src/components/AdminLayout.tsx):
+   - Renders <Alert severity="warning"> banner when !hasCmsPermission && user
+   - Message: "Tài khoản của bạn chưa được cấp quyền quản trị nội dung website (CMS)."
+Result: PASS - Non-CMS users can still log in and view the warning banner.

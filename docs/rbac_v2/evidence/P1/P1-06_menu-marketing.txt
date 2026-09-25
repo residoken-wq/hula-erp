@@ -1,0 +1,29 @@
+=== MENU & PERMISSION VERIFICATION: MARKETING (P1-06) ===
+Date: 2026-09-25T15:24:32.249Z
+Account: sales01
+User Group: Sales (Group 1)
+Has MARKETING permission: true
+Permission details:
+[
+  {
+    "id": 330,
+    "module_code": "SALES",
+    "can_view": true,
+    "can_create": true,
+    "can_update": true,
+    "can_delete": false,
+    "view_cost_price": false,
+    "group_id": 1
+  },
+  {
+    "id": 344,
+    "module_code": "MARKETING",
+    "can_view": true,
+    "can_create": true,
+    "can_update": true,
+    "can_delete": false,
+    "view_cost_price": false,
+    "group_id": 1
+  }
+]
+Result: PASS - User retains Marketing & Social menu access seamlessly via MARKETING permission.

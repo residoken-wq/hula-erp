@@ -1,4 +1,4 @@
-﻿id,method,route,source,handler,current,proposed_tier,proposed_perm,change,ops_risk,review,note
+id,method,route,source,handler,current,proposed_tier,proposed_perm,change,ops_risk,review,note
 R001,POST,/api/ai/pricing,src/ai/ai.controller.ts:20,suggestPrice,JWT,AUTH,,NO_CHANGE,THẤP,,
 R002,POST,/api/ai/chat,src/ai/ai.controller.ts:25,chat,JWT,AUTH,,NO_CHANGE,THẤP,,
 R003,POST,/api/ai/chat-stream,src/ai/ai.controller.ts:30,chatStream,JWT,AUTH,,NO_CHANGE,THẤP,,
@@ -571,3 +571,12 @@ R569,GET,/api/zns/orders/:orderId/latest-log,src/zns/zns.controller.ts:62,getLat
 R570,GET,/api/zns/deliveries/:deliveryId/latest-log,src/zns/zns.controller.ts:68,getLatestDeliveryLog,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R571,POST,/api/zns/orders/:orderId/send-confirmation,src/zns/zns.controller.ts:74,sendOrderConfirmation,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R572,POST,/api/zns/deliveries/:deliveryId/send-notice,src/zns/zns.controller.ts:86,sendDeliveryNotice,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R573,GET,/api/hr/me,src/hr/hr-me.controller.ts:28,getMyProfile,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R574,GET,/api/hr/me/attendances,src/hr/hr-me.controller.ts:34,getMyAttendances,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R575,GET,/api/hr/me/leaves,src/hr/hr-me.controller.ts:47,getMyLeaves,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R576,GET,/api/hr/me/payslips,src/hr/hr-me.controller.ts:58,getMyPayslips,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R577,GET,/api/hr/me/assets,src/hr/hr-me.controller.ts:71,getMyAssets,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R578,GET,/api/hr/me/balance,src/hr/hr-me.controller.ts:77,getMyLeaveBalance,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R579,POST,/api/hr/me/check-in,src/hr/hr-me.controller.ts:88,checkIn,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R580,POST,/api/hr/me/check-out,src/hr/hr-me.controller.ts:94,checkOut,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R581,POST,/api/hr/me/leaves,src/hr/hr-me.controller.ts:100,createMyLeave,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)

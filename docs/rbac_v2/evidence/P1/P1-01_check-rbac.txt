@@ -1,0 +1,69 @@
+======================================================
+               RBAC V2 ROUTE CHECKER                  
+======================================================
+
+Total routes scanned: 628
+Matrix route count:   581
+
+--- Route Breakdown by Tier ---
+  PUBLIC:        54
+  AUTH:          70
+  PERM:          499
+  APIKEY:        5
+  UNCLASSIFIED:  0
+  MULTI-TIER:    0
+
+[INFO] Matrix differences detected (48 differences - informational):
+  * [TIER_MISMATCH] R022 GET /api/test -> Code: PUBLIC vs Matrix: AUTH (Chưa có mapping)
+  * [NOT_IN_MATRIX] GET /api/auth/permission-catalog -> Code: AUTH (src/auth/auth.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/auth/me -> Code: AUTH (src/auth/auth.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/auth/rbac/mode -> Code: PERM (src/auth/rbac.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/auth/rbac/mode -> Code: PERM (src/auth/rbac.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/auth/rbac/report -> Code: PERM (src/auth/rbac.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/auth/rbac/unclassified -> Code: PERM (src/auth/rbac.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/categories/:id -> Code: AUTH (src/categories/categories.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/categories -> Code: PERM (src/categories/categories.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/categories/:id/sync-size -> Code: PERM (src/categories/categories.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/categories/:id -> Code: PERM (src/categories/categories.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/categories/:id -> Code: PERM (src/categories/categories.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/customers -> Code: PERM (src/customers/customers.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/customers/:id -> Code: PERM (src/customers/customers.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/customers/:id -> Code: PERM (src/customers/customers.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/finance/categories -> Code: PERM (src/finance/finance.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/finance/categories -> Code: PERM (src/finance/finance.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/finance/categories/:id -> Code: PERM (src/finance/finance.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/finance/categories/:id -> Code: PERM (src/finance/finance.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/finance/transactions/:id -> Code: PERM (src/finance/finance.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/finance/transactions/:id -> Code: PERM (src/finance/finance.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/planning/suggestion -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/planning/booking-stats -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/planning/bookings -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/planning/bookings/:sku -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/planning/gantt -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/planning/sync-booking-stock -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/planning/:id/confirm-bookings -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/planning/bookings/:itemId/revert -> Code: PERM (src/planning/planning.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/processes -> Code: PERM (src/processes/processes.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/processes/:id -> Code: PERM (src/processes/processes.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/processes/:id -> Code: PERM (src/processes/processes.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/products/:id -> Code: AUTH (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/products/:id -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/products/:id -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/products/:id/routings -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/products/:id/logistics -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/products/:id/pattern -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/products/:id/website-config -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/products/:id/boms -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/products/combo/add -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/products/combo/item/:id -> Code: PERM (src/products/products.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/purchasing/pooled/all -> Code: PERM (src/purchasing/purchasing.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/purchasing/create-pooled -> Code: PERM (src/purchasing/purchasing.controller.ts)
+  * [NOT_IN_MATRIX] GET /api/purchasing/pooled/:id/aggregate -> Code: PERM (src/purchasing/purchasing.controller.ts)
+  * [NOT_IN_MATRIX] POST /api/sales/portal/:uuid/action -> Code: PERM (src/sales/sales.controller.ts)
+  * [NOT_IN_MATRIX] PUT /api/tasks/:id -> Code: AUTH (src/tasks/tasks.controller.ts)
+  * [NOT_IN_MATRIX] DELETE /api/tasks/:id -> Code: AUTH (src/tasks/tasks.controller.ts)
+
+======================================================
+✅ RBAC CHECK PASSED: 100% routes classified with single decorator.
+======================================================
+

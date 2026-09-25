@@ -1,0 +1,38 @@
+=== SHADOW MODE RUNTIME AUDIT: 20 ADD_PERM ROUTES (P1-02) ===
+Date: 2026-09-25T15:24:31.888Z
+Test user: sales01 (User lacking Finance/Production/System permissions)
+Expected: SHADOW mode does NOT return 403; requests pass through unchanged.
+
+[PASS] GET /api/finance/cash-flow/summary -> HTTP 200 (Not blocked)
+[PASS] GET /api/finance/cash-flow/chart -> HTTP 200 (Not blocked)
+[PASS] GET /api/finance/cash-flow/receivables -> HTTP 200 (Not blocked)
+[PASS] GET /api/finance/cash-flow/payables -> HTTP 200 (Not blocked)
+[PASS] GET /api/finance/cash-flow/alerts -> HTTP 200 (Not blocked)
+[PASS] GET /api/finance/report -> HTTP 200 (Not blocked)
+[PASS] GET /api/finance/history/TEST -> HTTP 200 (Not blocked)
+[PASS] GET /api/ai/analytics -> HTTP 500 (Not blocked)
+[PASS] GET /api/categories -> HTTP 200 (Not blocked)
+[PASS] GET /api/materials -> HTTP 200 (Not blocked)
+[PASS] GET /api/suppliers -> HTTP 200 (Not blocked)
+[PASS] GET /api/processes -> HTTP 200 (Not blocked)
+[PASS] GET /api/marketing/campaigns -> HTTP 200 (Not blocked)
+[PASS] GET /api/marketing/promotions -> HTTP 404 (Not blocked)
+[PASS] GET /api/marketing/social-posts -> HTTP 404 (Not blocked)
+[PASS] GET /api/shipping/logs -> HTTP 404 (Not blocked)
+[PASS] GET /api/shipping/stats -> HTTP 404 (Not blocked)
+[PASS] GET /api/qc/inspections -> HTTP 500 (Not blocked)
+[PASS] GET /api/qc/criteria -> HTTP 500 (Not blocked)
+[PASS] GET /api/tasks -> HTTP 200 (Not blocked)
+
+Summary: 20/20 routes passed without blocking in SHADOW mode.
+
+Recent SHADOW Access Logs recorded in DB:
+  * [DENY_NO_PERM] GET /api/qc/:id (Required: PRODUCTION:view) at 2026-09-25T15:24:32.134Z
+  * [DENY_NO_PERM] GET /api/ai/analytics (Required: USERS:view) at 2026-09-25T15:24:32.087Z
+  * [DENY_NO_PERM] GET /api/finance/history/:refCode (Required: FINANCE:view) at 2026-09-25T15:24:32.073Z
+  * [DENY_NO_PERM] GET /api/finance/report (Required: FINANCE:view) at 2026-09-25T15:24:32.062Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/alerts (Required: FINANCE:view) at 2026-09-25T15:24:32.025Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/payables (Required: FINANCE:view) at 2026-09-25T15:24:32.016Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/receivables (Required: FINANCE:view) at 2026-09-25T15:24:31.960Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/chart (Required: FINANCE:view) at 2026-09-25T15:24:31.953Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/summary (Required: FINANCE:view) at 2026-09-25T15:24:31.904Z

@@ -1,0 +1,229 @@
+=== RBAC V2 SEED V1 VERIFICATION EVIDENCE (P1-03) ===
+Date: 2026-09-25T15:24:31.055Z
+Database: hula_db on 127.0.0.1:5432 (Sanitized Production Dump 23/08)
+
+1. RBAC_SEED_V1 CONFIG RECORD:
+{
+  "at": "2026-09-25T15:17:20.360Z",
+  "changes": [
+    {
+      "group_id": 1,
+      "group_name": "Sales",
+      "from": "SALES",
+      "to": "MARKETING",
+      "flags": {
+        "can_view": true,
+        "can_create": true,
+        "can_update": true,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 1,
+      "group_name": "Sales",
+      "from": "USERS",
+      "to": "SYSTEM",
+      "flags": {
+        "can_view": false,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 2,
+      "group_name": "Admin",
+      "from": "SALES",
+      "to": "MARKETING",
+      "flags": {
+        "can_view": true,
+        "can_create": true,
+        "can_update": true,
+        "can_delete": true,
+        "view_cost_price": true
+      }
+    },
+    {
+      "group_id": 2,
+      "group_name": "Admin",
+      "from": "USERS",
+      "to": "SYSTEM",
+      "flags": {
+        "can_view": true,
+        "can_create": true,
+        "can_update": true,
+        "can_delete": true,
+        "view_cost_price": true
+      }
+    },
+    {
+      "group_id": 3,
+      "group_name": "Planning Manager",
+      "from": "SALES",
+      "to": "MARKETING",
+      "flags": {
+        "can_view": true,
+        "can_create": true,
+        "can_update": true,
+        "can_delete": true,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 3,
+      "group_name": "Planning Manager",
+      "from": "USERS",
+      "to": "SYSTEM",
+      "flags": {
+        "can_view": false,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 4,
+      "group_name": "Accounting_manager",
+      "from": "SALES",
+      "to": "MARKETING",
+      "flags": {
+        "can_view": true,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 4,
+      "group_name": "Accounting_manager",
+      "from": "USERS",
+      "to": "SYSTEM",
+      "flags": {
+        "can_view": false,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 5,
+      "group_name": "Marketing_Design",
+      "from": "SALES",
+      "to": "MARKETING",
+      "flags": {
+        "can_view": false,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 5,
+      "group_name": "Marketing_Design",
+      "from": "USERS",
+      "to": "SYSTEM",
+      "flags": {
+        "can_view": false,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 6,
+      "group_name": "Partime theo giờ",
+      "from": "SALES",
+      "to": "MARKETING",
+      "flags": {
+        "can_view": false,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    },
+    {
+      "group_id": 6,
+      "group_name": "Partime theo giờ",
+      "from": "USERS",
+      "to": "SYSTEM",
+      "flags": {
+        "can_view": false,
+        "can_create": false,
+        "can_update": false,
+        "can_delete": false,
+        "view_cost_price": false
+      }
+    }
+  ],
+  "created_groups": [
+    {
+      "group_id": 7,
+      "name": "Biên tập Website (CMS)",
+      "permissions": [
+        {
+          "module_code": "CMS",
+          "can_view": true,
+          "can_create": true,
+          "can_update": true,
+          "can_delete": true,
+          "view_cost_price": false
+        }
+      ]
+    }
+  ],
+  "hr_groups": [
+    {
+      "group_id": 2,
+      "group_name": "Admin",
+      "users_count": 2,
+      "flags": {
+        "can_view": true,
+        "can_create": true,
+        "can_update": true,
+        "can_delete": true,
+        "view_cost_price": true
+      }
+    }
+  ]
+}
+
+2. TOTAL SEED CHANGES: 12 permission copies, 1 groups created.
+
+3. MARKETING PERMISSIONS (D2: Copied from SALES):
+Group ID | Group Name | can_view | can_create | can_update | can_delete | view_cost_price
+---------+------------+----------+------------+------------+------------+----------------
+1 | Sales | true | true | true | false | false
+2 | Admin | true | true | true | true | true
+3 | Planning Manager | true | true | true | true | false
+4 | Accounting_manager | true | false | false | false | false
+5 | Marketing_Design | false | false | false | false | false
+6 | Partime theo giờ | false | false | false | false | false
+
+4. SYSTEM PERMISSIONS (D3: Copied from USERS):
+Group ID | Group Name | can_view | can_create | can_update | can_delete | view_cost_price
+---------+------------+----------+------------+------------+------------+----------------
+1 | Sales | false | false | false | false | false
+2 | Admin | true | true | true | true | true
+3 | Planning Manager | false | false | false | false | false
+4 | Accounting_manager | false | false | false | false | false
+5 | Marketing_Design | false | false | false | false | false
+6 | Partime theo giờ | false | false | false | false | false
+
+5. CMS GROUP CREATED (D4):
+ID: 7, Name: "Biên tập Website (CMS)", Users: 0, CMS Perms: V=true, C=true, U=true, D=true, Cost=false
+
+6. GROUPS WITH HR PERMISSION (D7):
+Group 1 (Sales): Users=2, V=false, C=false, U=false, D=false
+Group 2 (Admin): Users=2, V=true, C=true, U=true, D=true
+Group 3 (Planning Manager): Users=1, V=false, C=false, U=false, D=false
+Group 4 (Accounting_manager): Users=1, V=false, C=false, U=false, D=false
+Group 5 (Marketing_Design): Users=1, V=false, C=false, U=false, D=false
+Group 6 (Partime theo giờ): Users=2, V=false, C=false, U=false, D=false
