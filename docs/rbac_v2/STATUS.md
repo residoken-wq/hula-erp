@@ -6,7 +6,7 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | AUDIT_PASS (vòng 2) | `rbac/p0` @ 9b25da2 | Chủ dự án: điều kiện merge/deploy trong AUDIT_P0.md vòng 2 | 2026-09-24 Claude |
+| P0 | MERGED (main @ 3f491fe, đã push) | `rbac/p0` | Chủ dự án: deploy VPS + smoke test (AUDIT_P0.md vòng 2, điều kiện 2–5) | 2026-09-25 Claude |
 | P1 | BLOCKED | `rbac/p1` | P0 DEPLOYED (D1–D7 đã chốt) | 2026-09-25 Claude |
 | P2 | BLOCKED | `rbac/p2` | P1 DEPLOYED; D8, D9 | 2026-09-24 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
@@ -34,6 +34,8 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 _(chưa có)_
 
 ## Nhật ký
+
+- 2026-09-25 · Claude · Theo lệnh Chủ dự án: xác nhận repo đã private (GitHub API 404), merge --no-ff rbac/p0 vào main (3f491fe), push origin main. CI sẽ build image app + frontend và sync sang erp4u-demo. Chờ Chủ dự án deploy VPS.
 
 - 2026-09-25 · Claude · Chủ dự án chốt D1–D7. Cập nhật P1_Instruction: bảng quyết định, seed tạo nhóm CMS (D4), P1.4 viết lại thành API /hr/me/* (D7; vá lỗi ProfilePage xem được lương/nghỉ phép/hồ sơ người khác). Master Plan: I-15 đổi, thêm I-17.
 - 2026-09-24 · Claude · Audit P0 vòng 2: AUDIT_PASS. Boot backend thật trên Postgres tạm, runtime PASS P0-01..09, 16, 18; P0-19 WAIVED (lỗi instruction E1). UI P0-10,12..15 chờ smoke test sau deploy. Trước khi push: repo đang public (xem điều kiện 1).
