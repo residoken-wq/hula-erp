@@ -1,0 +1,28 @@
+=== CLAUDE RUNTIME AUDIT P0 — round 2 (2026-09-24) ===
+Target: rbac/p0 @ 9b25da2, built with `nest build`, booted `node dist/main.js`
+DB: throwaway PostgreSQL 17 (embedded-postgres, UTF8, empty DB, synchronize via NODE_ENV=development)
+App boot: "Application is running on: http://127.0.0.1:3999" — DI OK (UsersModule <-> AuthModule forwardRef, APP_GUARD)
+Test users: admin (group 1), nv_sales (group 2: SALES view only). Real login -> real JWT.
+
+login tokens: admin=true sales=true
+initial mode (no RBAC_MODE row): {"mode":"SHADOW"}
+PASS | P0-01 | GET /api/planning anon -> 200; log DENY_NO_AUTH route=/api/planning
+PASS | P0-02 | status=403 (legacy guard); log DENY_NO_PERM required=FINANCE:view user=nv_sales
+PASS | P0-03 | 50 anon calls GET /api/suppliers -> 1 row
+PASS | P0-04 | rbac_access_logs renamed away -> GET /api/processes still 200
+PASS | P0-05 | PUT mode ENFORCE -> 400 "ENFORCE chỉ bật từ Phase 2"
+PASS | P0-06 | set OFF 200; anon GET /api/materials -> 0 new log rows
+PASS | P0-07 | non-admin GET /api/auth/rbac/mode -> 403
+PASS | P0-08 | activity_logs has no rows for rbac_access_logs (modules seen: REVIEW_QUESTIONS, GROUP_PERMISSIONS)
+PASS | P0-09 | GET /api/auth/me 200; keys=full_name,group_id,id,permissions,role_name,username; no password
+PASS | P0-18(backend) | POST /users/groups/2/permissions {permissions:[]} -> 400; group 2 perms still=2
+PASS | cache-invalidate | grant FINANCE -> save 201; /finance/summary now 200; 0 deny logs (no 60s stale cache)
+PASS | P0-16(api) | /auth/rbac/report aggregated: {route:/api/qc/summary, decision:DENY_NO_AUTH, count:3, last_seen, ips:[...]}
+FAIL | P0-19 | spoofed X-Forwarded-For 9.9.9.x logged as-is -> caused by main.ts `trust proxy = true` (req.ip = left-most XFF). Instruction defect (Claude), not code defect.
+
+Separate: real RbacAccessLogService on real PG (audit-db.e2e.ts)
+DDL twice -> table exists: 1
+rows inserted: 10 (expect 10), max user_agent len: 200 (expect 200)
+getReport: count=8 for /api/planning/pfo, ips capped at 5; DENY_NO_PERM filter OK
+unclassified: 3 calls different users/IPs -> 1 row (60-min route-level dedupe)
+cleanOldLogs removed >90d rows: true

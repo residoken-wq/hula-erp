@@ -1,0 +1,573 @@
+﻿id,method,route,source,handler,current,proposed_tier,proposed_perm,change,ops_risk,review,note
+R001,POST,/api/ai/pricing,src/ai/ai.controller.ts:20,suggestPrice,JWT,AUTH,,NO_CHANGE,THẤP,,
+R002,POST,/api/ai/chat,src/ai/ai.controller.ts:25,chat,JWT,AUTH,,NO_CHANGE,THẤP,,
+R003,POST,/api/ai/chat-stream,src/ai/ai.controller.ts:30,chatStream,JWT,AUTH,,NO_CHANGE,THẤP,,
+R004,POST,/api/ai/suggest-reply,src/ai/ai.controller.ts:64,suggestReply,JWT,AUTH,,NO_CHANGE,THẤP,,
+R005,POST,/api/ai/customer-360-summary,src/ai/ai.controller.ts:69,summarizeCustomer360,JWT,AUTH,,NO_CHANGE,THẤP,,
+R006,POST,/api/ai/feedback,src/ai/ai.controller.ts:74,submitFeedback,JWT,AUTH,,NO_CHANGE,THẤP,,
+R007,GET,/api/ai/analytics,src/ai/ai.controller.ts:80,getAnalytics,JWT,PERM,USERS:view,ADD_PERM,TRUNG BÌNH,,Thống kê dùng AI — trang /ai-dashboard
+R008,GET,/api/ai/proactive,src/ai/ai.controller.ts:85,getProactiveInsights,JWT,AUTH,,NO_CHANGE,THẤP,,
+R009,POST,/api/public/analytics/ping,src/analytics/analytics.controller.ts:26,ping,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R010,GET,/api/public/analytics/stats,src/analytics/analytics.controller.ts:73,getStats,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Chứa IP khách truy cập
+R011,GET,/api/public/analytics/visitors,src/analytics/analytics.controller.ts:78,getVisitors,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Chứa IP khách truy cập
+R012,GET,/api/announcements,src/announcements/announcements.controller.ts:14,findAll,JWT,AUTH,,NO_CHANGE,THẤP,,Mọi nhân viên đọc thông báo
+R013,GET,/api/announcements/:id,src/announcements/announcements.controller.ts:25,findOne,JWT,AUTH,,NO_CHANGE,THẤP,,Mọi nhân viên đọc thông báo
+R014,POST,/api/announcements,src/announcements/announcements.controller.ts:30,create,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,Soạn thông báo — menu hiện gate USERS
+R015,PUT,/api/announcements/:id,src/announcements/announcements.controller.ts:38,update,JWT,PERM,USERS:update,ADD_PERM,TRUNG BÌNH,,Soạn thông báo — menu hiện gate USERS
+R016,DELETE,/api/announcements/:id,src/announcements/announcements.controller.ts:43,delete,JWT,PERM,USERS:delete,ADD_PERM,TRUNG BÌNH,,Soạn thông báo — menu hiện gate USERS
+R017,GET,/api/announcements/user/active,src/announcements/announcements.controller.ts:53,findActiveForCurrentUser,JWT,AUTH,,NO_CHANGE,THẤP,,Mọi nhân viên đọc thông báo
+R018,GET,/api/announcements/user/unread,src/announcements/announcements.controller.ts:63,findUnreadForCurrentUser,JWT,AUTH,,NO_CHANGE,THẤP,,Mọi nhân viên đọc thông báo
+R019,GET,/api/announcements/user/unread-count,src/announcements/announcements.controller.ts:72,getUnreadCount,JWT,AUTH,,NO_CHANGE,THẤP,,Mọi nhân viên đọc thông báo
+R020,POST,/api/announcements/:id/read,src/announcements/announcements.controller.ts:81,markAsRead,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,Soạn thông báo — menu hiện gate USERS
+R021,POST,/api/announcements/user/read-all,src/announcements/announcements.controller.ts:89,markAllAsRead,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,Soạn thông báo — menu hiện gate USERS
+R022,GET,/api/test,src/app.controller.ts:6,test,NONE,AUTH,,ADD_LOGIN,CAO,Y,Chưa có mapping
+R023,POST,/api/auth/login,src/auth/auth.controller.ts:9,login,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R024,GET,/api/blogs/categories,src/blogs/blogs.controller.ts:10,getCategories,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,
+R025,POST,/api/blogs/categories,src/blogs/blogs.controller.ts:15,saveCategories,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,
+R026,GET,/api/blogs,src/blogs/blogs.controller.ts:21,findAll,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,
+R027,GET,/api/blogs/:id,src/blogs/blogs.controller.ts:26,findOne,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,
+R028,POST,/api/blogs,src/blogs/blogs.controller.ts:31,create,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,
+R029,PUT,/api/blogs/:id,src/blogs/blogs.controller.ts:36,update,NONE,PERM,CMS:update,ADD_LOGIN+PERM,CAO,,
+R030,POST,/api/blogs/:id/publish,src/blogs/blogs.controller.ts:41,publish,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,
+R031,POST,/api/blogs/:id/unpublish,src/blogs/blogs.controller.ts:46,unpublish,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,
+R032,DELETE,/api/blogs/:id,src/blogs/blogs.controller.ts:51,remove,NONE,PERM,CMS:delete,ADD_LOGIN+PERM,CAO,,
+R033,GET,/api/categories,src/categories/categories.controller.ts:14,undefined,NONE,AUTH,,ADD_LOGIN,CAO,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R034,POST,/api/customers,src/customers/customers.controller.ts:18,undefined,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R035,GET,/api/customers/:id,src/customers/customers.controller.ts:28,undefined,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R036,POST,/api/customers/:id/impersonate,src/customers/customers.controller.ts:31,impersonate,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R037,POST,/api/customers/:id/follow,src/customers/customers.controller.ts:37,addHistory,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R038,GET,/api/customers/:id/orders,src/customers/customers.controller.ts:42,getOrders,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R039,PUT,/api/customers/:id/bod-follow-up,src/customers/customers.controller.ts:47,updateBodFollowUp,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
+R040,GET,/api/customers/:id/comments,src/customers/customers.controller.ts:53,getComments,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R041,POST,/api/customers/:id/comment,src/customers/customers.controller.ts:58,addComment,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R042,GET,/api/customers/:id/credits,src/customers/customers.controller.ts:64,getCredits,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R043,POST,/api/customers/:id/credits,src/customers/customers.controller.ts:69,addCredit,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R044,GET,/api/customers/:id/portrait-360,src/customers/customers.controller.ts:75,getPortrait360,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R045,PUT,/api/customers/:id/portrait-notes,src/customers/customers.controller.ts:80,updatePortraitNotes,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
+R046,GET,/api/designs/logos,src/designs/designs.controller.ts:15,getLogos,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R047,POST,/api/designs/logos,src/designs/designs.controller.ts:21,createLogo,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R048,PUT,/api/designs/logos/:id,src/designs/designs.controller.ts:27,updateLogo,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R049,DELETE,/api/designs/logos/:id,src/designs/designs.controller.ts:33,deleteLogo,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R050,GET,/api/designs/print-designs,src/designs/designs.controller.ts:40,getPrintDesigns,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R051,GET,/api/designs/print-designs/:id,src/designs/designs.controller.ts:46,getPrintDesignById,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R052,POST,/api/designs/print-designs,src/designs/designs.controller.ts:52,createPrintDesign,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R053,PUT,/api/designs/print-designs/:id,src/designs/designs.controller.ts:58,updatePrintDesign,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R054,DELETE,/api/designs/print-designs/:id,src/designs/designs.controller.ts:64,deletePrintDesign,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R055,GET,/api/designs/print-samples,src/designs/designs.controller.ts:71,getPrintSamples,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R056,POST,/api/designs/print-samples,src/designs/designs.controller.ts:77,createPrintSample,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R057,PUT,/api/designs/print-samples/:id/status,src/designs/designs.controller.ts:83,updatePrintSampleStatus,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R058,GET,/api/designs/orders,src/designs/designs.controller.ts:90,getDesignOrders,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R059,GET,/api/designs/orders/:id,src/designs/designs.controller.ts:96,getDesignOrderById,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R060,POST,/api/designs/orders,src/designs/designs.controller.ts:102,createDesignOrder,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R061,PUT,/api/designs/orders/:id,src/designs/designs.controller.ts:108,updateDesignOrder,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R062,PUT,/api/designs/orders/:id/status,src/designs/designs.controller.ts:114,updateDesignOrderStatus,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R063,DELETE,/api/designs/orders/:id,src/designs/designs.controller.ts:120,deleteDesignOrder,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R064,POST,/api/designs/orders/:id/items,src/designs/designs.controller.ts:127,addDesignOrderItem,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R065,PUT,/api/designs/order-items/:itemId,src/designs/designs.controller.ts:133,updateDesignOrderItem,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R066,DELETE,/api/designs/order-items/:itemId,src/designs/designs.controller.ts:139,deleteDesignOrderItem,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R067,GET,/api/discussions,src/discussions/discussions.controller.ts:9,findAll,NONE,AUTH,,ADD_LOGIN,CAO,,
+R068,GET,/api/discussions/:id,src/discussions/discussions.controller.ts:14,findOne,NONE,AUTH,,ADD_LOGIN,CAO,,
+R069,POST,/api/discussions,src/discussions/discussions.controller.ts:19,create,NONE,AUTH,,ADD_LOGIN,CAO,,
+R070,PUT,/api/discussions/:id,src/discussions/discussions.controller.ts:24,update,NONE,AUTH,,ADD_LOGIN,CAO,,
+R071,DELETE,/api/discussions/:id,src/discussions/discussions.controller.ts:29,remove,NONE,AUTH,,ADD_LOGIN,CAO,,
+R072,POST,/api/discussions/:id/comments,src/discussions/discussions.controller.ts:35,addComment,NONE,AUTH,,ADD_LOGIN,CAO,,
+R073,DELETE,/api/discussions/comments/:commentId,src/discussions/discussions.controller.ts:40,removeComment,NONE,AUTH,,ADD_LOGIN,CAO,,
+R074,PUT,/api/discussions/:id/review,src/discussions/discussions.controller.ts:45,review,NONE,AUTH,,ADD_LOGIN,CAO,,
+R075,GET,/api/finance/cash-flow/summary,src/finance/cash-flow.controller.ts:15,getSummary,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R076,GET,/api/finance/cash-flow/chart,src/finance/cash-flow.controller.ts:24,getChart,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R077,GET,/api/finance/cash-flow/receivables,src/finance/cash-flow.controller.ts:34,getReceivables,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R078,GET,/api/finance/cash-flow/payables,src/finance/cash-flow.controller.ts:43,getPayables,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R079,GET,/api/finance/cash-flow/alerts,src/finance/cash-flow.controller.ts:52,getAlerts,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R080,GET,/api/finance/summary,src/finance/finance.controller.ts:17,undefined,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R081,GET,/api/finance/transactions,src/finance/finance.controller.ts:20,getTransactions,"PERM FINANCE,can_view",PERM,FINANCE:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R082,POST,/api/finance/transactions,src/finance/finance.controller.ts:30,undefined,JWT,PERM,FINANCE:create,ADD_PERM,TRUNG BÌNH,,
+R083,PUT,/api/finance/transactions/:id/approve,src/finance/finance.controller.ts:33,approveTransaction,"PERM FINANCE,can_update",PERM,FINANCE:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R084,POST,/api/finance/delivery-expense/:deliveryId,src/finance/finance.controller.ts:42,createDeliveryExpense,"PERM FINANCE,can_create",PERM,FINANCE:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R085,POST,/api/finance/delivery-expense/batch,src/finance/finance.controller.ts:51,createBatchDeliveryExpense,"PERM FINANCE,can_create",PERM,FINANCE:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R086,GET,/api/finance/report,src/finance/finance.controller.ts:59,getReport,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R087,GET,/api/finance/so-profit,src/finance/finance.controller.ts:65,getSOProfit,"PERM FINANCE,can_view",PERM,FINANCE:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R088,GET,/api/finance/history/:refCode,src/finance/finance.controller.ts:72,getHistory,JWT,PERM,FINANCE:view,ADD_PERM,TRUNG BÌNH,,
+R089,POST,/api/finance/payment,src/finance/finance.controller.ts:78,undefined,JWT,PERM,FINANCE:create,ADD_PERM,TRUNG BÌNH,,
+R090,POST,/api/finance/payment/po,src/finance/finance.controller.ts:80,createPOPayment,JWT,PERM,FINANCE:create,ADD_PERM,TRUNG BÌNH,,
+R091,POST,/api/finance/payment/bulk-po,src/finance/finance.controller.ts:86,createBulkPOPayment,JWT,PERM,FINANCE:create,ADD_PERM,TRUNG BÌNH,,
+R092,POST,/api/finance/payment/fix-mapping,src/finance/finance.controller.ts:92,fixMapping,JWT,PERM,FINANCE:create,ADD_PERM,TRUNG BÌNH,,
+R093,GET,/api/hr/shifts,src/hr/hr.controller.ts:16,findAllShifts,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R094,POST,/api/hr/shifts,src/hr/hr.controller.ts:21,createShift,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R095,PUT,/api/hr/shifts/:id,src/hr/hr.controller.ts:26,updateShift,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R096,DELETE,/api/hr/shifts/:id,src/hr/hr.controller.ts:31,deleteShift,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
+R097,GET,/api/hr/employees,src/hr/hr.controller.ts:37,findAllEmployees,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R098,GET,/api/hr/employees/by-user/:userId,src/hr/hr.controller.ts:42,findEmployeeByUserId,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R099,GET,/api/hr/employees/:id,src/hr/hr.controller.ts:47,findOneEmployee,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R100,POST,/api/hr/employees,src/hr/hr.controller.ts:52,createEmployee,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R101,PUT,/api/hr/employees/:id,src/hr/hr.controller.ts:57,updateEmployee,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R102,DELETE,/api/hr/employees/:id,src/hr/hr.controller.ts:62,deleteEmployee,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
+R103,GET,/api/hr/attendances,src/hr/hr.controller.ts:68,findAttendances,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R104,POST,/api/hr/check-in,src/hr/hr.controller.ts:81,checkIn,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán; Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R105,POST,/api/hr/check-out,src/hr/hr.controller.ts:86,checkOut,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán; Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R106,POST,/api/hr/attendances,src/hr/hr.controller.ts:91,createAttendance,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R107,PUT,/api/hr/attendances/:id,src/hr/hr.controller.ts:96,updateAttendance,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R108,DELETE,/api/hr/attendances/:id,src/hr/hr.controller.ts:101,deleteAttendance,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
+R109,GET,/api/hr/leaves,src/hr/hr.controller.ts:107,findAllLeaves,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R110,POST,/api/hr/leaves,src/hr/hr.controller.ts:112,createLeave,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R111,PUT,/api/hr/leaves/:id/approve,src/hr/hr.controller.ts:117,approveLeave,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R112,DELETE,/api/hr/leaves/:id,src/hr/hr.controller.ts:126,deleteLeave,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R113,GET,/api/hr/entitlements,src/hr/hr.controller.ts:132,findEntitlements,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R114,POST,/api/hr/entitlements,src/hr/hr.controller.ts:143,createEntitlement,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R115,PUT,/api/hr/entitlements/:id,src/hr/hr.controller.ts:148,updateEntitlement,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R116,GET,/api/hr/balance/:employeeId,src/hr/hr.controller.ts:153,getLeaveBalance,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R117,GET,/api/hr/assets,src/hr/hr.controller.ts:163,findAllAssets,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R118,POST,/api/hr/assets,src/hr/hr.controller.ts:168,createAsset,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R119,PUT,/api/hr/assets/:id,src/hr/hr.controller.ts:173,updateAsset,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R120,DELETE,/api/hr/assets/:id,src/hr/hr.controller.ts:178,deleteAsset,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
+R121,GET,/api/hr/payslips,src/hr/hr.controller.ts:184,findPayslips,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R122,POST,/api/hr/payslips,src/hr/hr.controller.ts:197,createPayslip,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R123,PUT,/api/hr/payslips/:id,src/hr/hr.controller.ts:202,updatePayslip,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R124,DELETE,/api/hr/payslips/:id,src/hr/hr.controller.ts:207,deletePayslip,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,Y,Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R125,GET,/api/hr/trainings,src/hr/hr.controller.ts:213,findTrainingPlans,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R126,POST,/api/hr/trainings,src/hr/hr.controller.ts:218,createTrainingPlan,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R127,PUT,/api/hr/trainings/:id,src/hr/hr.controller.ts:223,updateTrainingPlan,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R128,DELETE,/api/hr/trainings/:id,src/hr/hr.controller.ts:228,deleteTrainingPlan,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
+R129,GET,/api/hr/recruitment/jobs,src/hr/hr.controller.ts:236,findAllJobs,"PERM HR,can_view",PERM,HR:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R130,POST,/api/hr/recruitment/jobs,src/hr/hr.controller.ts:242,createJob,"PERM HR,can_create",PERM,HR:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R131,PUT,/api/hr/recruitment/jobs/:id,src/hr/hr.controller.ts:248,updateJob,"PERM HR,can_update",PERM,HR:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R132,DELETE,/api/hr/recruitment/jobs/:id,src/hr/hr.controller.ts:254,deleteJob,"PERM HR,can_delete",PERM,HR:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R133,POST,/api/hr/recruitment/jobs/parse-requirements,src/hr/hr.controller.ts:260,parseRequirements,"PERM HR,can_create",PERM,HR:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R134,GET,/api/hr/recruitment/candidates,src/hr/hr.controller.ts:269,findCandidates,"PERM HR,can_view",PERM,HR:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R135,POST,/api/hr/recruitment/candidates,src/hr/hr.controller.ts:275,createCandidate,"PERM HR,can_create",PERM,HR:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R136,PUT,/api/hr/recruitment/candidates/:id,src/hr/hr.controller.ts:281,updateCandidate,"PERM HR,can_update",PERM,HR:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R137,DELETE,/api/hr/recruitment/candidates/:id,src/hr/hr.controller.ts:287,deleteCandidate,"PERM HR,can_delete",PERM,HR:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R138,POST,/api/hr/recruitment/candidates/:id/send-assessment,src/hr/hr.controller.ts:293,sendAssessment,"PERM HR,can_update",PERM,HR:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R139,POST,/api/hr/recruitment/candidates/:id/generate-questions,src/hr/hr.controller.ts:299,generateQuestions,"PERM HR,can_update",PERM,HR:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R140,GET,/api/hr/recruitment/assessments/:candidateId,src/hr/hr.controller.ts:305,getAssessment,"PERM HR,can_view",PERM,HR:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R141,POST,/api/hr/recruitment/assessments/:id/evaluate,src/hr/hr.controller.ts:311,evaluateAssessment,"PERM HR,can_update",PERM,HR:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R142,GET,/api/hr/recruitment/interviews,src/hr/hr.controller.ts:317,findInterviews,"PERM HR,can_view",PERM,HR:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R143,POST,/api/hr/recruitment/interviews,src/hr/hr.controller.ts:323,createInterview,"PERM HR,can_create",PERM,HR:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R144,PUT,/api/hr/recruitment/interviews/:id,src/hr/hr.controller.ts:329,updateInterview,"PERM HR,can_update",PERM,HR:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R145,DELETE,/api/hr/recruitment/interviews/:id,src/hr/hr.controller.ts:335,deleteInterview,"PERM HR,can_delete",PERM,HR:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R146,GET,/api/hr/review-questions,src/hr/hr.controller.ts:342,findAllReviewQuestions,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R147,POST,/api/hr/review-questions,src/hr/hr.controller.ts:347,createReviewQuestion,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R148,PUT,/api/hr/review-questions/:id,src/hr/hr.controller.ts:352,updateReviewQuestion,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R149,DELETE,/api/hr/review-questions/:id,src/hr/hr.controller.ts:357,deleteReviewQuestion,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
+R150,GET,/api/hr/review-campaigns,src/hr/hr.controller.ts:363,findAllReviewCampaigns,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R151,POST,/api/hr/review-campaigns,src/hr/hr.controller.ts:368,createReviewCampaign,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R152,PUT,/api/hr/review-campaigns/:id,src/hr/hr.controller.ts:373,updateReviewCampaign,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
+R153,DELETE,/api/hr/review-campaigns/:id,src/hr/hr.controller.ts:378,deleteReviewCampaign,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
+R154,GET,/api/hr/employee-reviews,src/hr/hr.controller.ts:384,findEmployeeReviews,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
+R155,POST,/api/hr/employee-reviews/:id/submit,src/hr/hr.controller.ts:395,submitEmployeeReview,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
+R156,POST,/api/hr/review-questions-seed,src/hr/hr.controller.ts:401,seedReviewQuestions,PUBLIC(@Public),PERM,HR:create,ADD_LOGIN+PERM,CAO,,
+R157,GET,/api/inventory/history,src/inventory/inventory.controller.ts:15,getHistory,"PERM INVENTORY,can_view",PERM,INVENTORY:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R158,GET,/api/inventory/stocks,src/inventory/inventory.controller.ts:20,getStocks,"PERM INVENTORY,can_view",PERM,INVENTORY:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R159,POST,/api/inventory/adjust,src/inventory/inventory.controller.ts:25,adjust,"PERM INVENTORY,can_create",PERM,INVENTORY:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R160,POST,/api/inventory/reset,src/inventory/inventory.controller.ts:41,reset,"PERM INVENTORY,can_delete",PERM,INVENTORY:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R161,POST,/api/inventory/transfer,src/inventory/inventory.controller.ts:47,transfer,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R162,POST,/api/inventory/convert-btp,src/inventory/inventory.controller.ts:57,convertBtp,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R163,POST,/api/inventory/goods-receipt/draft,src/inventory/inventory.controller.ts:66,createDraft,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R164,GET,/api/inventory/goods-receipt/pending,src/inventory/inventory.controller.ts:71,getPendingGoodsReceipts,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R165,GET,/api/inventory/goods-receipt/po/:poId,src/inventory/inventory.controller.ts:74,getReceiptsByPo,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R166,POST,/api/inventory/goods-receipt/:id/confirm,src/inventory/inventory.controller.ts:77,confirm,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R167,DELETE,/api/inventory/goods-receipt/:id,src/inventory/inventory.controller.ts:82,deleteReceipt,JWT,PERM,INVENTORY:delete,ADD_PERM,TRUNG BÌNH,,
+R168,GET,/api/inventory/deliveries/pending,src/inventory/inventory.controller.ts:88,getPendingDeliveries,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R169,GET,/api/inventory/deliveries/completed,src/inventory/inventory.controller.ts:93,getCompletedDeliveries,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R170,POST,/api/inventory/deliveries/:id/confirm,src/inventory/inventory.controller.ts:98,confirmDelivery,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R171,GET,/api/inventory/shipping-carriers,src/inventory/inventory.controller.ts:108,getShippingCarriers,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R172,POST,/api/inventory/shipping-carriers,src/inventory/inventory.controller.ts:113,createShippingCarrier,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R173,PUT,/api/inventory/shipping-carriers/:id,src/inventory/inventory.controller.ts:118,updateShippingCarrier,JWT,PERM,INVENTORY:update,ADD_PERM,TRUNG BÌNH,,
+R174,DELETE,/api/inventory/shipping-carriers/:id,src/inventory/inventory.controller.ts:123,deleteShippingCarrier,JWT,PERM,INVENTORY:delete,ADD_PERM,TRUNG BÌNH,,
+R175,POST,/api/inventory/goods-issue,src/inventory/inventory.controller.ts:133,createGoodsIssue,"PERM INVENTORY,can_create",PERM,INVENTORY:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R176,PUT,/api/inventory/goods-issue/:id,src/inventory/inventory.controller.ts:139,updateGoodsIssue,"PERM INVENTORY,can_create",PERM,INVENTORY:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R177,GET,/api/inventory/goods-issue/unlinked/:pfoId,src/inventory/inventory.controller.ts:144,getUnlinkedIssues,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R178,POST,/api/inventory/goods-issue/:id/link-po,src/inventory/inventory.controller.ts:149,linkGoodsIssueToPo,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R179,GET,/api/inventory/goods-issue,src/inventory/inventory.controller.ts:154,getGoodsIssues,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R180,GET,/api/inventory/goods-issue/:id,src/inventory/inventory.controller.ts:162,getGoodsIssueDetail,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R181,POST,/api/inventory/goods-issue/:id/confirm,src/inventory/inventory.controller.ts:167,confirmGoodsIssue,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R182,POST,/api/inventory/goods-issue/:id/delivered,src/inventory/inventory.controller.ts:172,markGoodsIssueDelivered,JWT,PERM,INVENTORY:create,ADD_PERM,TRUNG BÌNH,,
+R183,DELETE,/api/inventory/goods-issue/:id,src/inventory/inventory.controller.ts:178,deleteGoodsIssue,"PERM INVENTORY,can_delete",PERM,INVENTORY:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R184,GET,/api/inventory/supplier-stocks/all,src/inventory/inventory.controller.ts:187,getAllSupplierStocks,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R185,GET,/api/inventory/supplier-stocks/:supplierId,src/inventory/inventory.controller.ts:192,getSupplierStocks,JWT,PERM,INVENTORY:view,ADD_PERM,TRUNG BÌNH,,
+R186,GET,/api/inventory/samples/transactions,src/inventory/samples/inventory-samples.controller.ts:10,getTransactions,NONE,PERM,INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R187,POST,/api/inventory/samples/transactions,src/inventory/samples/inventory-samples.controller.ts:15,createTransaction,NONE,PERM,INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R188,PUT,/api/inventory/samples/transactions/:id,src/inventory/samples/inventory-samples.controller.ts:32,updateTransaction,NONE,PERM,INVENTORY:update,ADD_LOGIN+PERM,CAO,,
+R189,GET,/api/inventory/samples/transactions/:id,src/inventory/samples/inventory-samples.controller.ts:48,getTransaction,NONE,PERM,INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R190,POST,/api/inventory/samples/transactions/:id/confirm,src/inventory/samples/inventory-samples.controller.ts:53,confirmTransaction,NONE,PERM,INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R191,DELETE,/api/inventory/samples/transactions/:id,src/inventory/samples/inventory-samples.controller.ts:58,deleteTransaction,NONE,PERM,INVENTORY:delete,ADD_LOGIN+PERM,CAO,,
+R192,GET,/api/inventory/samples/stocks,src/inventory/samples/inventory-samples.controller.ts:63,getStocks,NONE,PERM,INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R193,GET,/api/marketing/dashboard,src/marketing/marketing.controller.ts:14,getDashboard,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R194,GET,/api/marketing/campaigns,src/marketing/marketing.controller.ts:21,getAllCampaigns,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R195,GET,/api/marketing/campaigns/:id,src/marketing/marketing.controller.ts:26,getCampaign,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R196,POST,/api/marketing/campaigns,src/marketing/marketing.controller.ts:31,createCampaign,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R197,PUT,/api/marketing/campaigns/:id,src/marketing/marketing.controller.ts:36,updateCampaign,NONE,PERM,MARKETING:update,ADD_LOGIN+PERM,CAO,,
+R198,PUT,/api/marketing/campaigns/:id/status,src/marketing/marketing.controller.ts:44,updateCampaignStatus,NONE,PERM,MARKETING:update,ADD_LOGIN+PERM,CAO,,
+R199,DELETE,/api/marketing/campaigns/:id,src/marketing/marketing.controller.ts:52,deleteCampaign,NONE,PERM,MARKETING:delete,ADD_LOGIN+PERM,CAO,,
+R200,GET,/api/marketing/segments,src/marketing/marketing.controller.ts:60,getAllSegments,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R201,GET,/api/marketing/segments/:id,src/marketing/marketing.controller.ts:65,getSegment,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R202,GET,/api/marketing/segments/:id/customers,src/marketing/marketing.controller.ts:70,getSegmentCustomers,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R203,POST,/api/marketing/segments/:id/calculate,src/marketing/marketing.controller.ts:75,calculateSegment,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R204,POST,/api/marketing/segments,src/marketing/marketing.controller.ts:81,createSegment,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R205,PUT,/api/marketing/segments/:id,src/marketing/marketing.controller.ts:86,updateSegment,NONE,PERM,MARKETING:update,ADD_LOGIN+PERM,CAO,,
+R206,DELETE,/api/marketing/segments/:id,src/marketing/marketing.controller.ts:94,deleteSegment,NONE,PERM,MARKETING:delete,ADD_LOGIN+PERM,CAO,,
+R207,GET,/api/marketing/workflows,src/marketing/marketing.controller.ts:102,getAllWorkflows,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R208,GET,/api/marketing/workflows/:id,src/marketing/marketing.controller.ts:107,getWorkflow,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R209,POST,/api/marketing/workflows,src/marketing/marketing.controller.ts:112,createWorkflow,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R210,PUT,/api/marketing/workflows/:id,src/marketing/marketing.controller.ts:117,updateWorkflow,NONE,PERM,MARKETING:update,ADD_LOGIN+PERM,CAO,,
+R211,PUT,/api/marketing/workflows/:id/status,src/marketing/marketing.controller.ts:125,updateWorkflowStatus,NONE,PERM,MARKETING:update,ADD_LOGIN+PERM,CAO,,
+R212,DELETE,/api/marketing/workflows/:id,src/marketing/marketing.controller.ts:133,deleteWorkflow,NONE,PERM,MARKETING:delete,ADD_LOGIN+PERM,CAO,,
+R213,GET,/api/materials,src/materials/materials.controller.ts:9,findAll,NONE,AUTH,,ADD_LOGIN,CAO,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R214,POST,/api/materials,src/materials/materials.controller.ts:12,create,NONE,PERM,INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R215,PUT,/api/materials/:id,src/materials/materials.controller.ts:15,update,NONE,PERM,INVENTORY:update,ADD_LOGIN+PERM,CAO,,
+R216,DELETE,/api/materials/:id,src/materials/materials.controller.ts:18,remove,NONE,PERM,INVENTORY:delete,ADD_LOGIN+PERM,CAO,,
+R217,GET,/api/notifications,src/notifications/notifications.controller.ts:11,findAll,JWT,AUTH,,NO_CHANGE,THẤP,,
+R218,POST,/api/notifications/:id/read,src/notifications/notifications.controller.ts:16,read,JWT,AUTH,,NO_CHANGE,THẤP,,
+R219,POST,/api/notifications/read-all,src/notifications/notifications.controller.ts:21,readAll,JWT,AUTH,,NO_CHANGE,THẤP,,
+R220,GET,/api/planning,src/planning/planning.controller.ts:30,undefined,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R221,GET,/api/planning/demand/npl,src/planning/planning.controller.ts:33,getNplDemand,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R222,GET,/api/planning/demand/gc,src/planning/planning.controller.ts:38,getGcDemand,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R223,GET,/api/planning/pfo/suggestions,src/planning/planning.controller.ts:43,getPfoSuggestions,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R224,POST,/api/planning/pfo/generate,src/planning/planning.controller.ts:48,generatePfo,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R225,POST,/api/planning/pfo/material-issue/:reqId,src/planning/planning.controller.ts:58,updateMaterialIssue,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R226,GET,/api/planning/pfo/:id,src/planning/planning.controller.ts:68,getPfoDetails,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R227,DELETE,/api/planning/pfo/:id,src/planning/planning.controller.ts:73,deletePfo,NONE,PERM,PRODUCTION:delete,ADD_LOGIN+PERM,CAO,,
+R228,PUT,/api/planning/pfo/:id/status,src/planning/planning.controller.ts:78,updatePfoStatus,NONE,PERM,PRODUCTION:update,ADD_LOGIN+PERM,CAO,,
+R229,PUT,/api/planning/pfo/:id/quantity,src/planning/planning.controller.ts:83,updatePfoQuantity,NONE,PERM,PRODUCTION:update,ADD_LOGIN+PERM,CAO,,
+R230,PUT,/api/planning/pfo/:id/custom-quantities,src/planning/planning.controller.ts:88,updatePfoCustomQuantities,NONE,PERM,PRODUCTION:update,ADD_LOGIN+PERM,CAO,,
+R231,GET,/api/planning/pfo/:id/preview-btp,src/planning/planning.controller.ts:94,previewBtpRequirements,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R232,POST,/api/planning/pfo/:id/calculate-bom,src/planning/planning.controller.ts:99,calculateBom,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R233,POST,/api/planning/pfo/:id/save-requirements,src/planning/planning.controller.ts:108,saveRequirements,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R234,POST,/api/planning/pfo/:id/request-material,src/planning/planning.controller.ts:113,requestMaterial,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R235,POST,/api/planning/pfo/:id/assign-vendor,src/planning/planning.controller.ts:119,assignVendor,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R236,POST,/api/planning/pfo/:id/process-routing,src/planning/planning.controller.ts:124,updateProcessRouting,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R237,POST,/api/planning/pfo/:id/generate-pos,src/planning/planning.controller.ts:130,generatePos,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R238,GET,/api/planning/pfo/:id/pos,src/planning/planning.controller.ts:135,getPos,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R239,GET,/api/planning/pfo/:id/pxks,src/planning/planning.controller.ts:140,getPxks,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R240,POST,/api/planning/pfo/:id/milestone,src/planning/planning.controller.ts:146,updateMilestone,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R241,POST,/api/planning/pfo/:id/qc,src/planning/planning.controller.ts:151,submitQcRecord,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R242,GET,/api/planning/:id/booking-items,src/planning/planning.controller.ts:159,undefined,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R243,GET,/api/processes,src/processes/processes.controller.ts:12,undefined,NONE,AUTH,,ADD_LOGIN,CAO,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R244,POST,/api/processes/seed,src/processes/processes.controller.ts:14,undefined,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R245,POST,/api/production/orders,src/production/production.controller.ts:9,createWorkOrder,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R246,GET,/api/production/orders,src/production/production.controller.ts:14,getAllWorkOrders,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R247,POST,/api/production/orders/:id/start,src/production/production.controller.ts:19,startWorkOrder,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R248,POST,/api/production/orders/:id/complete,src/production/production.controller.ts:24,completeWorkOrder,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R249,GET,/api/production/work-orders/plan/:pfoId,src/production/production.controller.ts:30,getWorkOrdersByPlan,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R250,GET,/api/production/work-orders/:id,src/production/production.controller.ts:35,getWorkOrderDetail,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R251,PUT,/api/production/steps/:stepId/status,src/production/production.controller.ts:40,updateStepStatus,NONE,PERM,PRODUCTION:update,ADD_LOGIN+PERM,CAO,,
+R252,DELETE,/api/production/steps/:stepId,src/production/production.controller.ts:45,deleteStep,NONE,PERM,PRODUCTION:delete,ADD_LOGIN+PERM,CAO,,
+R253,POST,/api/production/assignments,src/production/production.controller.ts:54,createAssignment,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R254,GET,/api/production/assignments,src/production/production.controller.ts:59,getAssignments,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R255,GET,/api/production/assignments/:id,src/production/production.controller.ts:72,getAssignmentDetail,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R256,PUT,/api/production/assignments/:id,src/production/production.controller.ts:77,updateAssignment,NONE,PERM,PRODUCTION:update,ADD_LOGIN+PERM,CAO,,
+R257,DELETE,/api/production/assignments/:id,src/production/production.controller.ts:82,deleteAssignment,NONE,PERM,PRODUCTION:delete,ADD_LOGIN+PERM,CAO,,
+R258,GET,/api/products/packing-specs,src/products/products.controller.ts:16,getPackingSpecs,"PERM PRODUCT,can_view",AUTH,,NO_CHANGE,THẤP,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R259,POST,/api/products/packing-specs,src/products/products.controller.ts:25,createPackingSpec,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R260,PUT,/api/products/packing-specs/:id,src/products/products.controller.ts:31,updatePackingSpec,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R261,DELETE,/api/products/packing-specs/:id,src/products/products.controller.ts:37,deletePackingSpec,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R262,GET,/api/products,src/products/products.controller.ts:44,undefined,JWT,AUTH,,NO_CHANGE,THẤP,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R263,POST,/api/products,src/products/products.controller.ts:48,undefined,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R264,POST,/api/products/create-variant,src/products/products.controller.ts:51,createVariant,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R265,GET,/api/products/:id/routings,src/products/products.controller.ts:57,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
+R266,GET,/api/products/:id/logistics,src/products/products.controller.ts:60,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
+R267,GET,/api/products/:id/pattern,src/products/products.controller.ts:64,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
+R268,GET,/api/products/:id/website-config,src/products/products.controller.ts:68,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
+R269,GET,/api/products/:sku/boms,src/products/products.controller.ts:72,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
+R270,POST,/api/products/:id/sync-variants,src/products/products.controller.ts:74,undefined,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R271,GET,/api/products/combo/:sku,src/products/products.controller.ts:78,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
+R272,POST,/api/products/:id/components,src/products/products.controller.ts:80,saveComponents,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R273,POST,/api/products/copy-bom,src/products/products.controller.ts:85,copyBom,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R274,POST,/api/products/copy-routings,src/products/products.controller.ts:90,copyRoutings,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R275,POST,/api/products/copy-logistics,src/products/products.controller.ts:95,copyLogistics,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R276,POST,/api/products/copy-semi-finished,src/products/products.controller.ts:100,copySemiFinished,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
+R277,GET,/api/products/calculate-cost/:sku,src/products/products.controller.ts:105,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
+R278,POST,/api/products/calculate-all-costs,src/products/products.controller.ts:107,calculateAllCosts,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán
+R279,GET,/api/products/:id/sales-history,src/products/products.controller.ts:113,getSalesHistory,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R280,GET,/api/projects,src/projects/projects.controller.ts:11,findAll,JWT,AUTH,,NO_CHANGE,THẤP,,
+R281,GET,/api/projects/:id,src/projects/projects.controller.ts:16,findOne,JWT,AUTH,,NO_CHANGE,THẤP,,
+R282,POST,/api/projects,src/projects/projects.controller.ts:21,create,JWT,AUTH,,NO_CHANGE,THẤP,,
+R283,PUT,/api/projects/:id,src/projects/projects.controller.ts:26,update,JWT,AUTH,,NO_CHANGE,THẤP,,
+R284,DELETE,/api/projects/:id,src/projects/projects.controller.ts:31,remove,JWT,AUTH,,NO_CHANGE,THẤP,,
+R285,POST,/api/projects/from-so/:soId,src/projects/projects.controller.ts:37,createFromSO,JWT,AUTH,,NO_CHANGE,THẤP,,
+R286,GET,/api/projects/:id/cost-summary,src/projects/projects.controller.ts:43,getCostSummary,JWT,AUTH,,NO_CHANGE,THẤP,,
+R287,POST,/api/projects/:id/milestones,src/projects/projects.controller.ts:49,addMilestone,JWT,AUTH,,NO_CHANGE,THẤP,,
+R288,PUT,/api/projects/milestones/:milestoneId,src/projects/projects.controller.ts:54,updateMilestone,JWT,AUTH,,NO_CHANGE,THẤP,,
+R289,DELETE,/api/projects/milestones/:milestoneId,src/projects/projects.controller.ts:59,removeMilestone,JWT,AUTH,,NO_CHANGE,THẤP,,
+R290,POST,/api/public/portal/request-otp,src/public/portal.controller.ts:70,requestOtp,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R291,POST,/api/public/portal/verify-otp,src/public/portal.controller.ts:162,verifyOtp,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R292,GET,/api/public/portal/dashboard/:slug,src/public/portal.controller.ts:232,getDashboard,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R293,POST,/api/public/portal/reorder/:slug,src/public/portal.controller.ts:341,reorder,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R294,GET,/api/public/portal/validate-token,src/public/portal.controller.ts:416,validateToken,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R295,GET,/api/public/portal/promotion/:slug/:id,src/public/portal.controller.ts:434,getPromotionDetail,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R296,POST,/api/public/portal/promotion/:slug/:id/order,src/public/portal.controller.ts:460,orderFromPromotion,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R297,GET,/api/public/portal/product-stats/:slug,src/public/portal.controller.ts:542,getProductStats,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R298,POST,/api/public/portal/custom-order/:slug,src/public/portal.controller.ts:606,createCustomOrder,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R299,GET,/api/public/school-experience,src/public/public.controller.ts:56,getSchoolExperienceConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R300,GET,/api/public/home-config,src/public/public.controller.ts:61,getHomeConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R301,GET,/api/public/about-config,src/public/public.controller.ts:66,getAboutConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R302,GET,/api/public/settings,src/public/public.controller.ts:71,getSettings,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R303,GET,/api/public/products/:sku,src/public/public.controller.ts:216,getProductBySku,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R304,GET,/api/public/categories,src/public/public.controller.ts:254,getCategories,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R305,GET,/api/public/blogs,src/public/public.controller.ts:277,getBlogs,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R306,GET,/api/public/blogs/:slug,src/public/public.controller.ts:301,getBlogBySlug,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R307,POST,/api/public/leads,src/public/public.controller.ts:341,createLead,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R308,POST,/api/public/orders,src/public/public.controller.ts:387,createOrder,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R309,GET,/api/public/products,src/public/public.controller.ts:465,getProducts,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R310,GET,/api/public/policies,src/public/public.controller.ts:544,getPolicies,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R311,GET,/api/public/policies/:slug,src/public/public.controller.ts:579,getPolicy,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R312,PUT,/api/public/policies/:slug,src/public/public.controller.ts:592,updatePolicy,NONE,PERM,CMS:update,ADD_LOGIN+PERM,CAO,,CMS write đang nằm trong public controller
+R313,GET,/api/public/wizard/config,src/public/public.controller.ts:623,getWizardConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R314,PUT,/api/public/wizard/config,src/public/public.controller.ts:645,updateWizardConfig,NONE,PERM,CMS:update,ADD_LOGIN+PERM,CAO,,CMS write đang nằm trong public controller
+R315,GET,/api/public/recruitment/jobs,src/public/public.controller.ts:669,getPublicJobs,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R316,GET,/api/public/recruitment/jobs/:slug,src/public/public.controller.ts:676,getJobBySlug,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R317,POST,/api/public/recruitment/apply,src/public/public.controller.ts:685,applyJob,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R318,GET,/api/public/recruitment/portal/:token,src/public/public.controller.ts:699,getCandidatePortal,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R319,POST,/api/public/recruitment/portal/:token/submit-assessment,src/public/public.controller.ts:715,submitPortalAssessment,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R320,POST,/api/public/wizard/submit,src/public/public.controller.ts:720,submitWizardLead,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R321,GET,/api/public/projects,src/public/public.controller.ts:797,getWebsiteProjects,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R322,GET,/api/public/projects/:slug,src/public/public.controller.ts:806,getWebsiteProject,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R323,POST,/api/public/projects,src/public/public.controller.ts:817,createWebsiteProject,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,CMS write đang nằm trong public controller
+R324,PUT,/api/public/projects/:id,src/public/public.controller.ts:823,updateWebsiteProject,NONE,PERM,CMS:update,ADD_LOGIN+PERM,CAO,,CMS write đang nằm trong public controller
+R325,DELETE,/api/public/projects/:id,src/public/public.controller.ts:829,deleteWebsiteProject,NONE,PERM,CMS:delete,ADD_LOGIN+PERM,CAO,,CMS write đang nằm trong public controller
+R326,GET,/api/public/portal/quote/:uuid,src/public/public.controller.ts:840,getPortalQuote,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R327,POST,/api/public/portal/quote/:uuid/action,src/public/public.controller.ts:944,portalQuoteAction,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R328,POST,/api/public/portal/quote/:orderId/comment,src/public/public.controller.ts:963,portalAddComment,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,Y,Giữ public nhưng phải siết (Phase 5)
+R329,DELETE,/api/public/portal/quote/comment/:commentId,src/public/public.controller.ts:975,portalDeleteComment,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,Y,Giữ public nhưng phải siết (Phase 5)
+R330,GET,/api/public/proxy-image,src/public/public.controller.ts:980,proxyImage,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,Y,Giữ public nhưng phải siết (Phase 5)
+R331,POST,/api/purchasing,src/purchasing/purchasing.controller.ts:9,create,NONE,PERM,PURCHASE:create,ADD_LOGIN+PERM,CAO,,
+R332,GET,/api/purchasing,src/purchasing/purchasing.controller.ts:12,findAll,NONE,PERM,PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R333,GET,/api/purchasing/requirements,src/purchasing/purchasing.controller.ts:15,undefined,NONE,PERM,PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R334,GET,/api/purchasing/available-for-pooling,src/purchasing/purchasing.controller.ts:22,undefined,NONE,PERM,PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R335,GET,/api/purchasing/:id,src/purchasing/purchasing.controller.ts:25,findOne,NONE,PERM,PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R336,GET,/api/purchasing/:id/payment-history,src/purchasing/purchasing.controller.ts:28,getPaymentHistory,NONE,PERM,PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R337,PUT,/api/purchasing/:id,src/purchasing/purchasing.controller.ts:31,update,NONE,PERM,PURCHASE:update,ADD_LOGIN+PERM,CAO,,
+R338,POST,/api/purchasing/batch-delete,src/purchasing/purchasing.controller.ts:35,batchDelete,NONE,PERM,PURCHASE:create,ADD_LOGIN+PERM,CAO,,
+R339,DELETE,/api/purchasing/:id,src/purchasing/purchasing.controller.ts:40,remove,NONE,PERM,PURCHASE:delete,ADD_LOGIN+PERM,CAO,,
+R340,GET,/api/purchasing/:id/outsourcing-materials,src/purchasing/purchasing.controller.ts:47,getOutsourcingMaterials,NONE,PERM,PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R341,POST,/api/purchasing/:id/receive,src/purchasing/purchasing.controller.ts:53,receive,NONE,PERM,PURCHASE:create,ADD_LOGIN+PERM,CAO,,
+R342,GET,/api/purchasing/portal/:uuid,src/purchasing/purchasing.controller.ts:56,getPortal,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R343,POST,/api/purchasing/portal/:uuid/action,src/purchasing/purchasing.controller.ts:59,portalAction,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R344,GET,/api/purchasing/supplier-portal/:uuid,src/purchasing/purchasing.controller.ts:63,getSupplierPortal,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R345,POST,/api/qc,src/qc/qc.controller.ts:10,create,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R346,GET,/api/qc,src/qc/qc.controller.ts:15,getAll,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R347,GET,/api/qc/summary,src/qc/qc.controller.ts:30,getSummary,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R348,GET,/api/qc/supplier/:id/report,src/qc/qc.controller.ts:35,getSupplierReport,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R349,GET,/api/qc/:id,src/qc/qc.controller.ts:40,getDetail,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
+R350,POST,/api/qc/:id/start,src/qc/qc.controller.ts:46,start,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R351,POST,/api/qc/:id/complete,src/qc/qc.controller.ts:51,complete,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R352,POST,/api/qc/:id/defects,src/qc/qc.controller.ts:57,addDefect,NONE,PERM,PRODUCTION:create,ADD_LOGIN+PERM,CAO,,
+R353,DELETE,/api/qc/defects/:defectId,src/qc/qc.controller.ts:62,removeDefect,NONE,PERM,PRODUCTION:delete,ADD_LOGIN+PERM,CAO,,
+R354,DELETE,/api/qc/:id,src/qc/qc.controller.ts:67,deleteInspection,NONE,PERM,PRODUCTION:delete,ADD_LOGIN+PERM,CAO,,
+R355,POST,/api/sales/price-lists,src/sales/sales.controller.ts:21,createPriceList,"PERM SALES,can_create",PERM,SALES:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R356,GET,/api/sales/price-lists,src/sales/sales.controller.ts:25,getAllPriceLists,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R357,POST,/api/sales/price-lists/:id/rules,src/sales/sales.controller.ts:29,createRule,"PERM SALES,can_create",PERM,SALES:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R358,GET,/api/sales/price-lists/:id/rules,src/sales/sales.controller.ts:32,getRules,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R359,GET,/api/sales/validate-price,src/sales/sales.controller.ts:35,validatePrice,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R360,GET,/api/sales/samples/all,src/sales/sales.controller.ts:40,getAllSamples,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R361,GET,/api/sales/analytics,src/sales/sales.controller.ts:45,getAnalytics,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R362,POST,/api/sales/analytics/push-reminder,src/sales/sales.controller.ts:56,pushReminder,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R363,GET,/api/sales/targets,src/sales/sales.controller.ts:63,getTargets,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R364,POST,/api/sales/targets,src/sales/sales.controller.ts:69,upsertTarget,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R365,GET,/api/sales/promotions,src/sales/sales.controller.ts:75,getAllPromotions,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R366,GET,/api/sales/promotions/active,src/sales/sales.controller.ts:78,getActivePromotions,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R367,GET,/api/sales/promotions/for-customer/:customerId,src/sales/sales.controller.ts:81,getPromotionsForCustomer,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R368,POST,/api/sales/promotions,src/sales/sales.controller.ts:87,createPromotion,"PERM SALES,can_create",PERM,SALES:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R369,PUT,/api/sales/promotions/:id,src/sales/sales.controller.ts:91,updatePromotion,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R370,DELETE,/api/sales/promotions/:id,src/sales/sales.controller.ts:97,deletePromotion,"PERM SALES,can_delete",PERM,SALES:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R371,GET,/api/sales/:id/comments,src/sales/sales.controller.ts:106,getComments,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R372,POST,/api/sales/:id/comment,src/sales/sales.controller.ts:109,addComment,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R373,PUT,/api/sales/comment/:id,src/sales/sales.controller.ts:114,updateComment,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
+R374,POST,/api/sales/comment/:id/toggle,src/sales/sales.controller.ts:117,toggleComment,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R375,DELETE,/api/sales/comment/:id,src/sales/sales.controller.ts:120,softDeleteComment,JWT,PERM,SALES:delete,ADD_PERM,TRUNG BÌNH,,
+R376,GET,/api/sales/:id/activities,src/sales/sales.controller.ts:125,getActivities,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R377,GET,/api/sales/:id/deliveries,src/sales/sales.controller.ts:130,getDeliveries,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R378,POST,/api/sales/:id/delivery,src/sales/sales.controller.ts:133,createDelivery,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R379,PUT,/api/sales/delivery/:deliveryId,src/sales/sales.controller.ts:136,updateDelivery,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
+R380,GET,/api/sales/:code/payments,src/sales/sales.controller.ts:139,getPayments,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R381,GET,/api/sales/:code/payment-history,src/sales/sales.controller.ts:142,getPaymentHistory,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R382,POST,/api/sales/:id/issue-vat-invoice,src/sales/sales.controller.ts:147,issueVatInvoice,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R383,GET,/api/sales/:id/vat-invoice-status,src/sales/sales.controller.ts:153,getVatInvoiceStatus,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R384,GET,/api/sales/:id/vat-invoice-preview,src/sales/sales.controller.ts:159,previewVatInvoice,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R385,POST,/api/sales/:id/vat-invoice-email,src/sales/sales.controller.ts:165,sendVatInvoiceEmail,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R386,DELETE,/api/sales/:id/vat-invoice/:ikey,src/sales/sales.controller.ts:171,deleteDraftVatInvoice,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R387,GET,/api/sales/:id/easyinvoice-pdf,src/sales/sales.controller.ts:177,downloadEasyInvoicePdf,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R388,GET,/api/sales/portal/:uuid,src/sales/sales.controller.ts:209,customerAction,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R389,POST,/api/sales,src/sales/sales.controller.ts:222,create,"PERM SALES,can_create",PERM,SALES:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R390,GET,/api/sales,src/sales/sales.controller.ts:226,findAll,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R391,GET,/api/sales/:idOrCode,src/sales/sales.controller.ts:231,findOne,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R392,PUT,/api/sales/:id,src/sales/sales.controller.ts:239,update,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R393,POST,/api/sales/:id/convert,src/sales/sales.controller.ts:245,convert,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R394,PUT,/api/sales/:id/bod-follow-up,src/sales/sales.controller.ts:249,updateBodFollowUp,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
+R395,PUT,/api/sales/quote/:id,src/sales/sales.controller.ts:254,updateQuote,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
+R396,DELETE,/api/sales/quote/:id,src/sales/sales.controller.ts:257,deleteQuote,JWT,PERM,SALES:delete,ADD_PERM,TRUNG BÌNH,,
+R397,POST,/api/sales/:id/approve-samples,src/sales/sales.controller.ts:262,approveSamples,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R398,POST,/api/sales/:id/complete,src/sales/sales.controller.ts:265,complete,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R399,POST,/api/sales/:id/cancel,src/sales/sales.controller.ts:268,cancel,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R400,POST,/api/sales/:id/revision,src/sales/sales.controller.ts:272,createRevision,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R401,GET,/api/sales/:id/revisions,src/sales/sales.controller.ts:277,getRevisions,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R402,DELETE,/api/sales/delivery/:deliveryId,src/sales/sales.controller.ts:280,deleteDelivery,JWT,PERM,SALES:delete,ADD_PERM,TRUNG BÌNH,,
+R403,DELETE,/api/sales/:id,src/sales/sales.controller.ts:287,deleteOrder,"PERM SALES,can_delete",PERM,SALES:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R404,POST,/api/sales/:id/book-items,src/sales/sales.controller.ts:293,bookItems,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
+R405,GET,/api/sales/:id/checklist,src/sales/sales.controller.ts:303,getChecklist,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
+R406,POST,/api/sales/:id/checklist/init,src/sales/sales.controller.ts:306,initChecklist,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán
+R407,POST,/api/sales/:id/checklist/toggle/:itemId,src/sales/sales.controller.ts:311,toggleChecklistItem,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán
+R408,POST,/api/sales/:id/checklist/add,src/sales/sales.controller.ts:316,addChecklistItem,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán
+R409,PUT,/api/sales/:id/checklist/:itemId/note,src/sales/sales.controller.ts:321,updateChecklistNote,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
+R410,DELETE,/api/sales/:id/checklist/:itemId,src/sales/sales.controller.ts:326,deleteChecklistItem,JWT,PERM,SALES:delete,ADD_PERM,TRUNG BÌNH,,
+R411,POST,/api/sales/:id/checklist/sync,src/sales/sales.controller.ts:331,syncChecklist,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán
+R412,GET,/api/school-experience/public,src/school-experience/school-experience.controller.ts:24,getPublicConfig,PUBLIC(@Public),PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R413,GET,/api/school-experience/draft,src/school-experience/school-experience.controller.ts:33,getDraft,JWT,PERM,CMS:view,ADD_PERM,TRUNG BÌNH,,
+R414,PUT,/api/school-experience/draft,src/school-experience/school-experience.controller.ts:42,saveDraft,JWT,PERM,CMS:update,ADD_PERM,TRUNG BÌNH,,
+R415,POST,/api/school-experience/publish,src/school-experience/school-experience.controller.ts:52,publishDraft,JWT,PERM,CMS:create,ADD_PERM,TRUNG BÌNH,,
+R416,GET,/api/school-experience/revisions,src/school-experience/school-experience.controller.ts:62,getRevisions,JWT,PERM,CMS:view,ADD_PERM,TRUNG BÌNH,,
+R417,POST,/api/school-experience/rollback/:id,src/school-experience/school-experience.controller.ts:71,rollback,JWT,PERM,CMS:create,ADD_PERM,TRUNG BÌNH,,
+R418,GET,/api/shipping/deliveries,src/shipping/shipping.controller.ts:29,getAllDeliveries,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R419,GET,/api/shipping/config,src/shipping/shipping.controller.ts:226,getConfig,NONE,PERM,SYSTEM:view,ADD_LOGIN+PERM,CAO,,Cấu hình token hãng vận chuyển
+R420,POST,/api/shipping/config,src/shipping/shipping.controller.ts:241,saveConfig,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,Cấu hình token hãng vận chuyển
+R421,POST,/api/shipping/test-connection,src/shipping/shipping.controller.ts:246,testConnection,NONE,PERM,SYSTEM:view,ADD_LOGIN+PERM,CAO,Y,Cấu hình token hãng vận chuyển; POST nhưng bản chất là đọc/tính toán
+R422,POST,/api/shipping/ghtk/parse-address,src/shipping/shipping.controller.ts:251,parseAddress,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R423,GET,/api/shipping/ghtk/pick-addresses,src/shipping/shipping.controller.ts:256,getPickAddresses,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R424,POST,/api/shipping/ghtk/estimate-fee,src/shipping/shipping.controller.ts:261,estimateFee,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R425,POST,/api/shipping/delivery/:deliveryId/push-ghtk,src/shipping/shipping.controller.ts:266,pushDeliveryToGhtk,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R426,POST,/api/shipping/delivery/:deliveryId/cancel-ghtk,src/shipping/shipping.controller.ts:274,cancelGhtkOrder,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R427,GET,/api/shipping/delivery/:deliveryId/tracking,src/shipping/shipping.controller.ts:279,getTracking,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R428,GET,/api/shipping/delivery/:deliveryId/label,src/shipping/shipping.controller.ts:284,getLabelUrl,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R429,GET,/api/shipping/delivery/:deliveryId/print-label,src/shipping/shipping.controller.ts:305,printLabel,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R430,GET,/api/shipping/delivery/:deliveryId/label-pdf,src/shipping/shipping.controller.ts:314,printLabelPdf,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R431,POST,/api/shipping/webhook/ghtk,src/shipping/shipping.controller.ts:340,handleGhtkWebhook,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R432,GET,/api/shipping/lalamove/config,src/shipping/shipping.controller.ts:349,getLalamoveConfig,NONE,PERM,SYSTEM:view,ADD_LOGIN+PERM,CAO,,Cấu hình token hãng vận chuyển
+R433,POST,/api/shipping/lalamove/config,src/shipping/shipping.controller.ts:370,saveLalamoveConfig,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,Cấu hình token hãng vận chuyển
+R434,POST,/api/shipping/lalamove/test-connection,src/shipping/shipping.controller.ts:375,testLalamoveConnection,NONE,PERM,SYSTEM:view,ADD_LOGIN+PERM,CAO,Y,Cấu hình token hãng vận chuyển; POST nhưng bản chất là đọc/tính toán
+R435,GET,/api/shipping/lalamove/vehicles,src/shipping/shipping.controller.ts:380,getLalamoveVehicles,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R436,POST,/api/shipping/lalamove/geocode,src/shipping/shipping.controller.ts:385,geocodeLalamoveAddress,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R437,POST,/api/shipping/lalamove/quotation,src/shipping/shipping.controller.ts:390,getLalamoveQuotation,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R438,POST,/api/shipping/lalamove/estimate-fee,src/shipping/shipping.controller.ts:395,estimateLalamoveFee,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R439,POST,/api/shipping/delivery/:deliveryId/push-lalamove,src/shipping/shipping.controller.ts:400,pushDeliveryToLalamove,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R440,POST,/api/shipping/delivery/:deliveryId/sync-lalamove,src/shipping/shipping.controller.ts:408,syncLalamoveStatus,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R441,POST,/api/shipping/delivery/:deliveryId/sync-carrier,src/shipping/shipping.controller.ts:413,syncCarrierStatus,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R442,POST,/api/shipping/delivery/:deliveryId/create-expense,src/shipping/shipping.controller.ts:437,createDeliveryExpense,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R443,GET,/api/shipping/delivery/:deliveryId/lalamove-order/:orderId,src/shipping/shipping.controller.ts:445,getLalamoveOrderDetails,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R444,GET,/api/shipping/delivery/:deliveryId/lalamove-driver/:driverId,src/shipping/shipping.controller.ts:453,getLalamoveDriverDetails,NONE,PERM,SALES:view | INVENTORY:view,ADD_LOGIN+PERM,CAO,,
+R445,POST,/api/shipping/delivery/:deliveryId/lalamove-priority-fee,src/shipping/shipping.controller.ts:461,addLalamovePriorityFee,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R446,POST,/api/shipping/delivery/:deliveryId/cancel-lalamove,src/shipping/shipping.controller.ts:469,cancelLalamoveOrder,NONE,PERM,SALES:create | INVENTORY:create,ADD_LOGIN+PERM,CAO,,
+R447,GET,/api/shipping/webhook/lalamove,src/shipping/shipping.controller.ts:475,verifyLalamoveWebhook,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R448,POST,/api/shipping/webhook/lalamove,src/shipping/shipping.controller.ts:481,handleLalamoveWebhook,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R449,GET,/api/social/channels,src/social/social.controller.ts:14,getAllChannels,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R450,GET,/api/social/channels/:id,src/social/social.controller.ts:19,getChannel,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R451,GET,/api/social/channels/:id/stats,src/social/social.controller.ts:24,getChannelStats,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R452,POST,/api/social/channels,src/social/social.controller.ts:29,createChannel,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R453,PUT,/api/social/channels/:id,src/social/social.controller.ts:34,updateChannel,NONE,PERM,MARKETING:update,ADD_LOGIN+PERM,CAO,,
+R454,DELETE,/api/social/channels/:id,src/social/social.controller.ts:42,deleteChannel,NONE,PERM,MARKETING:delete,ADD_LOGIN+PERM,CAO,,
+R455,GET,/api/social/orders,src/social/social.controller.ts:50,getAllOrders,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R456,GET,/api/social/orders/:id,src/social/social.controller.ts:58,getOrder,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R457,POST,/api/social/orders/:id/sync,src/social/social.controller.ts:63,syncOrderToSalesOrder,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R458,GET,/api/social/mappings,src/social/social.controller.ts:70,getAllMappings,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R459,POST,/api/social/mappings,src/social/social.controller.ts:75,createMapping,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R460,PUT,/api/social/mappings/:id,src/social/social.controller.ts:80,updateMapping,NONE,PERM,MARKETING:update,ADD_LOGIN+PERM,CAO,,
+R461,DELETE,/api/social/mappings/:id,src/social/social.controller.ts:88,deleteMapping,NONE,PERM,MARKETING:delete,ADD_LOGIN+PERM,CAO,,
+R462,POST,/api/suppliers,src/suppliers/suppliers.controller.ts:11,create,NONE,PERM,INVENTORY:create | PURCHASE:create,ADD_LOGIN+PERM,CAO,,
+R463,GET,/api/suppliers,src/suppliers/suppliers.controller.ts:16,findAll,NONE,AUTH,,ADD_LOGIN,CAO,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R464,GET,/api/suppliers/:id,src/suppliers/suppliers.controller.ts:21,findOne,NONE,PERM,INVENTORY:view | PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R465,GET,/api/suppliers/:id/transactions,src/suppliers/suppliers.controller.ts:27,getTransactions,NONE,PERM,INVENTORY:view | PURCHASE:view,ADD_LOGIN+PERM,CAO,,
+R466,PUT,/api/suppliers/:id,src/suppliers/suppliers.controller.ts:33,update,NONE,PERM,INVENTORY:update | PURCHASE:update,ADD_LOGIN+PERM,CAO,,
+R467,DELETE,/api/suppliers/:id,src/suppliers/suppliers.controller.ts:38,remove,NONE,PERM,INVENTORY:delete | PURCHASE:delete,ADD_LOGIN+PERM,CAO,,
+R468,POST,/api/suppliers/:id/material-price,src/suppliers/suppliers.controller.ts:45,addPrice,NONE,PERM,INVENTORY:create | PURCHASE:create,ADD_LOGIN+PERM,CAO,,
+R469,DELETE,/api/suppliers/material-price/:id,src/suppliers/suppliers.controller.ts:50,removePrice,NONE,PERM,INVENTORY:delete | PURCHASE:delete,ADD_LOGIN+PERM,CAO,,
+R470,POST,/api/suppliers/price,src/suppliers/suppliers.controller.ts:56,addSupplierPrice,NONE,PERM,INVENTORY:create | PURCHASE:create,ADD_LOGIN+PERM,CAO,,
+R471,POST,/api/suppliers/check-price,src/suppliers/suppliers.controller.ts:61,checkPrice,NONE,PERM,INVENTORY:view | PURCHASE:view,ADD_LOGIN+PERM,CAO,Y,POST nhưng bản chất là đọc/tính toán
+R472,GET,/api/api/v1/agent/orders,src/system/agent-api.controller.ts:11,getOrders,APIKEY,APIKEY,,NO_CHANGE,THẤP,,Agent API — giữ ApiKeyGuard
+R473,GET,/api/api/v1/agent/orders/:id,src/system/agent-api.controller.ts:20,getOrderDetail,APIKEY,APIKEY,,NO_CHANGE,THẤP,,Agent API — giữ ApiKeyGuard
+R474,GET,/api/api/v1/agent/inventory,src/system/agent-api.controller.ts:25,getInventory,APIKEY,APIKEY,,NO_CHANGE,THẤP,,Agent API — giữ ApiKeyGuard
+R475,GET,/api/api/v1/agent/mrp/needs,src/system/agent-api.controller.ts:33,getMrpNeeds,APIKEY,APIKEY,,NO_CHANGE,THẤP,,Agent API — giữ ApiKeyGuard
+R476,GET,/api/api/v1/agent/customers,src/system/agent-api.controller.ts:44,getCustomers,APIKEY,APIKEY,,NO_CHANGE,THẤP,,Agent API — giữ ApiKeyGuard
+R477,GET,/api/system/dashboard/stats,src/system/dashboard.controller.ts:19,getStats,NONE,AUTH,,ADD_LOGIN,CAO,,
+R478,GET,/api/system/smtp,src/system/system.controller.ts:12,getSmtpConfig,NONE,PERM,SYSTEM:view,ADD_LOGIN+PERM,CAO,,
+R479,POST,/api/system/smtp,src/system/system.controller.ts:17,saveSmtpConfig,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,
+R480,POST,/api/system/smtp/test,src/system/system.controller.ts:22,testSmtp,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,
+R481,GET,/api/system/company,src/system/system.controller.ts:27,getCompanyConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,Y,Giữ public nhưng phải siết (Phase 5)
+R482,POST,/api/system/company,src/system/system.controller.ts:32,saveCompanyConfig,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,
+R483,GET,/api/system/seller-info,src/system/system.controller.ts:37,getSellerInfo,NONE,AUTH,,ADD_LOGIN,CAO,,Đọc mẫu dùng khi in/gửi mail
+R484,GET,/api/system/easyinvoice,src/system/system.controller.ts:43,getEasyInvoiceConfig,NONE,PERM,SYSTEM:view,ADD_LOGIN+PERM,CAO,,
+R485,POST,/api/system/easyinvoice,src/system/system.controller.ts:48,saveEasyInvoiceConfig,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,
+R486,GET,/api/system/logs,src/system/system.controller.ts:55,getLogs,"PERM USERS,can_view",PERM,USERS:view,NO_CHANGE,THẤP,,Giữ như hiện tại
+R487,GET,/api/system/api-tokens,src/system/system.controller.ts:64,getApiTokens,"PERM USERS,can_view",PERM,USERS:view,NO_CHANGE,THẤP,,Giữ như hiện tại
+R488,POST,/api/system/api-tokens,src/system/system.controller.ts:71,createApiToken,"PERM USERS,can_create",PERM,USERS:create,NO_CHANGE,THẤP,,Giữ như hiện tại
+R489,DELETE,/api/system/api-tokens/:id,src/system/system.controller.ts:78,revokeApiToken,"PERM USERS,can_delete",PERM,USERS:delete,NO_CHANGE,THẤP,,Giữ như hiện tại
+R490,GET,/api/system/config/:key,src/system/system.controller.ts:83,getConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,Y,Giữ public nhưng phải siết (Phase 5)
+R491,POST,/api/system/config,src/system/system.controller.ts:89,saveConfig,NONE,PERM,SYSTEM:update,ADD_LOGIN+PERM,CAO,,Kèm allowlist key; SITE_MODE cho CMS
+R492,GET,/api/system/templates,src/system/system.controller.ts:95,getTemplates,NONE,AUTH,,ADD_LOGIN,CAO,,Đọc mẫu dùng khi in/gửi mail
+R493,POST,/api/system/templates,src/system/system.controller.ts:98,saveTemplate,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,
+R494,DELETE,/api/system/templates/:id,src/system/system.controller.ts:101,deleteTemplate,NONE,PERM,SYSTEM:delete,ADD_LOGIN+PERM,CAO,,
+R495,GET,/api/system/email-templates,src/system/system.controller.ts:105,getEmailTemplates,NONE,AUTH,,ADD_LOGIN,CAO,,Đọc mẫu dùng khi in/gửi mail
+R496,POST,/api/system/email-templates,src/system/system.controller.ts:108,saveEmailTemplate,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,
+R497,DELETE,/api/system/email-templates/:id,src/system/system.controller.ts:111,deleteEmailTemplate,NONE,PERM,SYSTEM:delete,ADD_LOGIN+PERM,CAO,,
+R498,GET,/api/system/home-config,src/system/system.controller.ts:115,getHomeConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,CMS trang chủ/giới thiệu
+R499,POST,/api/system/home-config,src/system/system.controller.ts:118,saveHomeConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,CMS trang chủ/giới thiệu
+R500,GET,/api/system/about-config,src/system/system.controller.ts:122,getAboutConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,CMS trang chủ/giới thiệu
+R501,POST,/api/system/about-config,src/system/system.controller.ts:125,saveAboutConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,CMS trang chủ/giới thiệu
+R502,GET,/api/system/so-project-template,src/system/system.controller.ts:129,getSOProjectTemplate,NONE,AUTH,,ADD_LOGIN,CAO,,Đọc mẫu dùng khi in/gửi mail
+R503,POST,/api/system/so-project-template,src/system/system.controller.ts:132,saveSOProjectTemplate,NONE,PERM,SYSTEM:create,ADD_LOGIN+PERM,CAO,,
+R504,GET,/api/tasks,src/tasks/tasks.controller.ts:12,undefined,NONE,AUTH,,ADD_LOGIN,CAO,,
+R505,POST,/api/tasks,src/tasks/tasks.controller.ts:22,undefined,NONE,AUTH,,ADD_LOGIN,CAO,,
+R506,POST,/api/tasks/:id/start-timer,src/tasks/tasks.controller.ts:24,startTimer,NONE,AUTH,,ADD_LOGIN,CAO,,
+R507,POST,/api/tasks/:id/stop-timer,src/tasks/tasks.controller.ts:29,stopTimer,NONE,AUTH,,ADD_LOGIN,CAO,,
+R508,GET,/api/tasks/:id/logs,src/tasks/tasks.controller.ts:34,getLogs,NONE,AUTH,,ADD_LOGIN,CAO,,
+R509,GET,/api/tiktok/auth/url,src/tiktok/tiktok-auth.controller.ts:15,getAuthUrl,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R510,GET,/api/tiktok/auth/callback,src/tiktok/tiktok-auth.controller.ts:26,handleCallback,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R511,GET,/api/tiktok/auth/channels,src/tiktok/tiktok-auth.controller.ts:46,getChannels,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R512,GET,/api/tiktok/comments/stats,src/tiktok/tiktok-comment.controller.ts:14,getStats,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R513,POST,/api/tiktok/comments/sync,src/tiktok/tiktok-comment.controller.ts:23,syncComments,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R514,GET,/api/tiktok/comments,src/tiktok/tiktok-comment.controller.ts:35,getComments,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R515,GET,/api/tiktok/comments/:id/replies,src/tiktok/tiktok-comment.controller.ts:54,getReplies,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R516,POST,/api/tiktok/comments/:id/reply,src/tiktok/tiktok-comment.controller.ts:63,replyToComment,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R517,GET,/api/tiktok/inbox/stats,src/tiktok/tiktok-inbox.controller.ts:13,getStats,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R518,POST,/api/tiktok/inbox/sync,src/tiktok/tiktok-inbox.controller.ts:22,syncConversations,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R519,GET,/api/tiktok/inbox/conversations,src/tiktok/tiktok-inbox.controller.ts:31,getConversations,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R520,GET,/api/tiktok/inbox/conversations/:id,src/tiktok/tiktok-inbox.controller.ts:40,getConversation,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R521,GET,/api/tiktok/inbox/conversations/:id/messages,src/tiktok/tiktok-inbox.controller.ts:49,getMessages,NONE,PERM,MARKETING:view,ADD_LOGIN+PERM,CAO,,
+R522,POST,/api/tiktok/inbox/conversations/:id/sync,src/tiktok/tiktok-inbox.controller.ts:58,syncMessages,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R523,POST,/api/tiktok/inbox/conversations/:id/reply,src/tiktok/tiktok-inbox.controller.ts:67,replyMessage,NONE,PERM,MARKETING:create,ADD_LOGIN+PERM,CAO,,
+R524,POST,/api/tiktok/webhook,src/tiktok/tiktok-webhook.controller.ts:22,handleWebhook,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R525,GET,/api/upload/list,src/upload/upload.controller.ts:30,listFiles,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Thư viện media
+R526,GET,/api/upload/usage,src/upload/upload.controller.ts:55,getImageUsage,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Thư viện media
+R527,POST,/api/upload/materials,src/upload/upload.controller.ts:148,uploadMaterials,NONE,PERM,INVENTORY:create | PRODUCT:create,ADD_LOGIN+PERM,CAO,,Import Excel
+R528,POST,/api/upload/image,src/upload/upload.controller.ts:155,uploadImage,NONE,AUTH,,ADD_LOGIN,CAO,,Đính kèm file dùng ở mọi module
+R529,POST,/api/upload/products,src/upload/upload.controller.ts:162,uploadProducts,NONE,PERM,PRODUCT:create,ADD_LOGIN+PERM,CAO,,Import Excel
+R530,POST,/api/upload/boms,src/upload/upload.controller.ts:169,uploadBoms,NONE,PERM,INVENTORY:create | PRODUCT:create,ADD_LOGIN+PERM,CAO,,Import Excel
+R531,POST,/api/upload/combos,src/upload/upload.controller.ts:176,uploadCombos,NONE,PERM,PRODUCT:create,ADD_LOGIN+PERM,CAO,,Import Excel
+R532,POST,/api/upload/customers,src/upload/upload.controller.ts:184,uploadCustomers,NONE,PERM,SALES:create,ADD_LOGIN+PERM,CAO,,Import Excel
+R533,POST,/api/upload/suppliers,src/upload/upload.controller.ts:192,uploadSuppliers,NONE,PERM,INVENTORY:create,ADD_LOGIN+PERM,CAO,,Import Excel
+R534,POST,/api/upload/sales,src/upload/upload.controller.ts:200,uploadSales,NONE,PERM,SALES:create,ADD_LOGIN+PERM,CAO,,Import Excel
+R535,POST,/api/upload/file,src/upload/upload.controller.ts:208,uploadFile,NONE,AUTH,,ADD_LOGIN,CAO,,Đính kèm file dùng ở mọi module
+R536,POST,/api/upload/watermark/image,src/upload/upload.controller.ts:216,uploadWatermarkImage,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
+R537,GET,/api/upload/watermark/config,src/upload/upload.controller.ts:222,getWatermarkConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Watermark website
+R538,POST,/api/upload/watermark/config,src/upload/upload.controller.ts:227,saveWatermarkConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
+R539,POST,/api/upload/watermark/b2b/image,src/upload/upload.controller.ts:234,uploadWatermarkB2BImage,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
+R540,GET,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:240,getWatermarkB2BConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Watermark website
+R541,POST,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:245,saveWatermarkB2BConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
+R542,POST,/api/upload/watermark/regenerate,src/upload/upload.controller.ts:250,regenerateWatermarks,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
+R543,GET,/api/upload/files/original/:filename,src/upload/upload.controller.ts:256,serveOriginalFile,PUBLIC(@Public),PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R544,GET,/api/upload/files/b2b/:filename,src/upload/upload.controller.ts:262,serveB2BFile,PUBLIC(@Public),PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R545,GET,/api/upload/template/:type,src/upload/upload.controller.ts:267,downloadTemplate,NONE,AUTH,,ADD_LOGIN,CAO,,Đính kèm file dùng ở mọi module
+R546,GET,/api/upload/files/:filename,src/upload/upload.controller.ts:281,serveFile,PUBLIC(@Public),PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R547,DELETE,/api/upload/files/:filename,src/upload/upload.controller.ts:286,deleteFile,NONE,PERM,CMS:delete,ADD_LOGIN+PERM,CAO,,Thư viện media
+R548,GET,/api/users,src/users/users.controller.ts:12,getAll,JWT,AUTH,,NO_CHANGE,THẤP,,Danh sách user dùng cho dropdown giao việc/@mention ở nhiều trang
+R549,GET,/api/users/online,src/users/users.controller.ts:17,getOnline,JWT,AUTH,,NO_CHANGE,THẤP,,Danh sách user dùng cho dropdown giao việc/@mention ở nhiều trang
+R550,POST,/api/users,src/users/users.controller.ts:22,create,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,
+R551,PUT,/api/users/:id,src/users/users.controller.ts:27,update,JWT,PERM,USERS:update,ADD_PERM,TRUNG BÌNH,,
+R552,DELETE,/api/users/:id,src/users/users.controller.ts:32,delete,JWT,PERM,USERS:delete,ADD_PERM,TRUNG BÌNH,,
+R553,POST,/api/users/:id/change-password,src/users/users.controller.ts:37,changePass,JWT,AUTH,SELF_OR:USERS:update,NO_CHANGE,THẤP,,"Tự đổi mật khẩu của mình, hoặc USERS"
+R554,GET,/api/users/groups,src/users/users.controller.ts:43,getGroups,JWT,PERM,USERS:view,ADD_PERM,TRUNG BÌNH,,
+R555,GET,/api/users/groups/:id,src/users/users.controller.ts:48,getGroupDetail,JWT,PERM,USERS:view,ADD_PERM,TRUNG BÌNH,,
+R556,POST,/api/users/groups,src/users/users.controller.ts:53,createGroup,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,
+R557,POST,/api/users/groups/:id/permissions,src/users/users.controller.ts:59,updatePerms,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,
+R558,POST,/api/users/groups/:id/update,src/users/users.controller.ts:65,updateGroup,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,
+R559,GET,/api/website-projects,src/website-projects/website-projects.controller.ts:10,findAll,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
+R560,GET,/api/website-projects/:id,src/website-projects/website-projects.controller.ts:15,findOne,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,
+R561,POST,/api/website-projects,src/website-projects/website-projects.controller.ts:21,create,JWT,PERM,CMS:create,ADD_PERM,TRUNG BÌNH,,
+R562,PUT,/api/website-projects/:id,src/website-projects/website-projects.controller.ts:27,update,JWT,PERM,CMS:update,ADD_PERM,TRUNG BÌNH,,
+R563,DELETE,/api/website-projects/:id,src/website-projects/website-projects.controller.ts:33,remove,JWT,PERM,CMS:delete,ADD_PERM,TRUNG BÌNH,,
+R564,GET,/api/zns/config,src/zns/zns.controller.ts:14,getConfig,"PERM SYSTEM,can_view",PERM,SYSTEM:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R565,POST,/api/zns/config,src/zns/zns.controller.ts:34,saveConfig,"PERM SYSTEM,can_update",PERM,SYSTEM:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R566,POST,/api/zns/refresh-token,src/zns/zns.controller.ts:40,refreshToken,"PERM SYSTEM,can_update",PERM,SYSTEM:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R567,POST,/api/zns/test-connection,src/zns/zns.controller.ts:46,testConnection,"PERM SYSTEM,can_view",PERM,SYSTEM:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R568,GET,/api/zns/logs,src/zns/zns.controller.ts:52,getLogs,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R569,GET,/api/zns/orders/:orderId/latest-log,src/zns/zns.controller.ts:62,getLatestOrderLog,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R570,GET,/api/zns/deliveries/:deliveryId/latest-log,src/zns/zns.controller.ts:68,getLatestDeliveryLog,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R571,POST,/api/zns/orders/:orderId/send-confirmation,src/zns/zns.controller.ts:74,sendOrderConfirmation,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R572,POST,/api/zns/deliveries/:deliveryId/send-notice,src/zns/zns.controller.ts:86,sendDeliveryNotice,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có

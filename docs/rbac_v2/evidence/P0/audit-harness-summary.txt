@@ -1,0 +1,20 @@
+=== CLAUDE HTTP HARNESS TEST RESULTS (AUDIT P0 Section 1.1) ===
+Environment: Mini Nest application with RbacGuard as APP_GUARD, real JWT, supertest
+Target: Branch rbac/p0
+Test scenarios: 16/16 Passed
+
+OK  | SHADOW anon GET unguarded            | 200 | DENY_NO_AUTH@/api/open/x[AUTH]
+OK  | SHADOW anon GET param route (?token=)| 200 | DENY_NO_AUTH@/api/open/item/:id[AUTH] (không lộ query string)
+OK  | SHADOW anon @Public                  | 200 | -
+OK  | SHADOW sales @Perm PURCHASE          | 200 | DENY_NO_PERM@/api/open/perm[PURCHASE:view]
+OK  | SHADOW legacy sales can_view         | 200 | -
+OK  | SHADOW legacy sales can_create       | 403 | DENY_NO_PERM@/api/legacy/c[SALES:create] (guard cũ vẫn chặn)
+OK  | SHADOW legacy anon                   | 401 | DENY_NO_AUTH@/api/legacy/v[SALES:view]
+OK  | SHADOW bad token                     | 200 | DENY_NO_AUTH
+OK  | SHADOW apikey route                  | 401 | - (RbacGuard bỏ qua đúng, ApiKeyGuard xử lý)
+OK  | OFF anon                             | 200 | -
+OK  | ENFORCE anon unguarded               | 401 |
+OK  | ENFORCE sales @Perm PURCHASE         | 403 |
+OK  | ENFORCE admin @Perm PURCHASE         | 200 |
+OK  | ENFORCE sales @AuthOnly              | 200 |
+OK  | ENFORCE anon @Public                 | 200 |
