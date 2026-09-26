@@ -46,6 +46,8 @@ CB2-14,P2,XSS (T29),Khách gửi <img src=x onerror=alert(1)> và <script>,Hiể
 CB2-15,P2,Ẩn launcher,Mở Tour360 / /checkout / CartDrawer,Launcher ẩn; Zalo + cột nút ẩn khi panel mở,NOT_RUN,,
 CB2-16,P2,Analytics,Kiểm network GA4/Pixel khi chat,Không có nội dung chat/SĐT trong request analytics,NOT_RUN,,
 CB2-17,P2,Inbox quyền,User không CHATBOT gọi GET /chatbot/admin/conversations (SHADOW),403/401,NOT_RUN,,
+CB2-18,P2,Lead CRM (Q-06),Gửi request đủ brief; mở lead trong ERP CRM,Lead có contact_person/phone/expected_quantity; notes chứa tóm tắt brief + mã YC; history có request_code + conversation_public_code; CRM logic không đổi,NOT_RUN,,
+CB2-19,P2,Email template (Q-08),Tạo request/ticket/human.requested với notify_emails cấu hình; render template ra file,Đủ 3 template; subject đúng mẫu; giá trị khách nhập được escape (thử <script>); có 2 link; không đính kèm file; địa chỉ nhận không xuất hiện trong code/seed (grep),NOT_RUN,,
 CB3-01,P3,T01,Bé 4 tuổi nằm giường lưới muốn dễ giặt,Nhận đủ 3 slot; không hỏi lại,NOT_RUN,,
 CB3-02,P3,T02,Lớp mới 15 bé lấy nệm gối,segment trường/lớp; không chuyển khách lẻ,NOT_RUN,,
 CB3-03,P3,T03,30 bộ màu be bộ đầy đủ rồi hỏi bao nhiêu tiền,Nhớ brief; dự toán từ tool hoặc hỏi thiếu / needs_sales; không số tiền ngoài tool,NOT_RUN,,

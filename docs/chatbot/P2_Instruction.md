@@ -28,12 +28,31 @@ LEAD (Q-06):
 - Chuẩn hoá SĐT (bỏ khoảng trắng, `+84`→`0`). Tìm `customers` theo SĐT đã chuẩn hoá. Có thì gắn `customer_id` và thêm `history` `{action:'CHATBOT_REQUEST', code}`.
 - Không có thì tạo `type='LEAD'`, `lead_status='NEW'`, `lead_source='CHATBOT'`, `history` `CREATED_FROM_CHATBOT`. Mã khách: dùng lại hàm sinh mã LEAD có sẵn nếu an toàn khi chạy đồng thời; nếu hàm đó là `count+1` thì bọc retry khi gặp unique violation (tối đa 3 lần). **Không** sửa `public.controller.ts`.
 - **Không** trả thông tin khách cũ về widget. Widget không được biết SĐT đã tồn tại hay chưa.
+- **Để sales follow-up trong CRM** (Chủ dự án chốt 2026-09-26):
+  - Map các trường giống `POST /public/leads`: `contact_person`, `company_name` (tên trường/đơn vị nếu khách nêu), `phone`, `email`, `expected_quantity`.
+  - `notes` = tóm tắt brief (hạng mục, số lượng, màu/logo, tỉnh, hạn mong muốn, kênh liên hệ ưu tiên) + mã `YC-…`.
+  - Thêm một mục `history` có `request_code` và `conversation_public_code`, để từ màn khách hàng/lead trong ERP biết mở hội thoại nào.
+  - Không đổi `assigned_to_id`, pipeline hay logic CRM hiện có. Lead nằm trong danh sách lead CRM như lead từ form liên hệ.
+  - Màn `/chatbot/requests` có link sang lead/khách hàng tương ứng trong ERP.
 
 ## P2.2 Outbox và thông báo
 - `@Cron('*/1 * * * *')` trong `ChatbotOutboxService`. Lấy tối đa 20 dòng `pending` có `next_attempt_at<=now` bằng `FOR UPDATE SKIP LOCKED`.
 - `request.created` / `ticket.created` / `human.requested`:
   - `NotificationsService.create` cho từng user trong `notify_user_ids`. Nếu danh sách rỗng thì gửi cho mọi user thuộc nhóm có `CHATBOT` can_update.
-  - `EmailService.sendMail` tới `notify_emails`. Nội dung email chỉ gồm mã, loại, tóm tắt hạng mục/số lượng và link admin. **Không** chép SĐT/email khách vào email.
+  - `EmailService.sendMail` tới **mọi** địa chỉ trong `CHATBOT_CONFIG.notify_emails`, theo template ở dưới.
+  - Địa chỉ nhận do Chủ dự án chốt (STATUS Q-08) và được **nhập qua `/chatbot/settings`** khi cấu hình. **Không** hard-code trong code, seed hay test (code sync sang repo public). Test-env dùng địa chỉ test; SMTP ở test-env đã bị sanitize xoá, nên kiểm bằng cách render template ra file evidence.
+- **Email template** (`src/chatbot/templates/request-created.html` + bản text), tiếng Việt, HTML đơn giản, **escape** mọi giá trị khách nhập:
+  - Subject: `[Cừu Hula] Yêu cầu mới {code} — {loại} — {hạng mục} x {số lượng}` (thiếu thì ghi "chưa xác định")
+  - Thân email:
+    - mã yêu cầu, thời điểm (giờ VN), loại (báo giá/mẫu/mua/đổi thiết kế), phân khúc;
+    - tóm tắt brief theo từng dòng; hạn khách mong muốn (ghi rõ "khách mong muốn", không phải cam kết);
+    - người liên hệ + SĐT/Zalo/email + kênh ưu tiên (Chủ dự án chọn gửi email để sales gọi lại, nên được chứa liên hệ);
+    - lý do chuyển / câu hỏi còn treo;
+    - 2 link: `/chatbot/requests/{id}` và lead trong CRM ERP;
+    - dòng cuối: "Email tự động — vui lòng nhận xử lý trong ERP để khách không phải chờ".
+  - Không đính kèm file của khách. Không chép toàn bộ hội thoại.
+  - `ticket.created` và `human.requested` dùng template tương tự, subject `[Cừu Hula] Ticket {code} — {category}` / `[Cừu Hula] Khách cần gặp nhân viên — {public_code}`.
+  - Base URL của link lấy từ env `ERP_PUBLIC_URL` nếu có, mặc định `https://erp.nemmamnon.com`.
 - Lỗi thì `attempts+1`, backoff `1,2,5,10,30,60,120,240` phút, sau 8 lần thì `failed` và hiện cảnh báo trên hộp thư.
 - Cảnh báo "request chưa có owner" sau `limits.unassigned_alert_min` (mặc định 30) trong giờ làm việc.
 
