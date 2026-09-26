@@ -1,108 +1,206 @@
-# P2 — Widget, hội thoại, gửi yêu cầu và hộp thư
+# P2 — Hội thoại, gửi yêu cầu, LEAD + email, hộp thư ERP, widget website
 
-**Điều kiện:** P1 AUDIT_PASS, đã chốt Q-03, Q-06, Q-08 (phần code), Q-13. Nhánh `chatbot/p2`.
-**Sau deploy:** cờ vẫn tắt, khách không thấy gì. Bật cờ ở test-env/staging để nghiệm thu.
-**Bot ở P2 chưa dùng LLM thật:** dùng `FakeProvider` + kịch bản nút bấm. Mục tiêu là luồng dữ liệu, UI và bàn giao chạy đúng; P3 thay phần "trí tuệ".
+**Điều kiện:** P1 AUDIT_PASS. Đã chốt:
+- **Q-03 (2026-09-26):** nút **"Tư vấn ngay"** trên header website mở chatbot (có animation). Sau **5 giây** tự hiện cửa sổ tư vấn.
+- **Hộp thư và yêu cầu:** đặt trong **ERP** (Chủ dự án chốt 2026-09-26).
+- **Q-06:** tạo LEAD trong CRM.
+- **Q-08:** email template, cấu hình trong Cấu hình hệ thống.
+
+**Nhánh:** `chatbot/p2`, Claude tạo từ nhánh P1 đã pass, kèm `scripts/chatbot/accept-p2.js` (hợp đồng, **không sửa**). Quy trình nhanh theo `00_START-HERE.md`.
+**Sau deploy:** cờ `enabled` vẫn tắt nên khách không thấy gì. Khi tắt cờ, nút "Tư vấn ngay" vẫn là link `/lien-he` như cũ.
+**Bot ở P2 là bot kịch bản** (không gọi LLM). P3 thay phần trả lời bằng AI.
 
 ---
 
-## P2.1 API public (tất cả `@Public()` + `ChatSessionGuard` + rate limit, trừ config/sessions)
-| Method | Route | Việc |
-|---|---|---|
-| GET | `/public/chat/config` | `publicView()` |
-| POST | `/public/chat/sessions` | P0.4 |
-| GET | `/public/chat/conversation?after=<message_id>` | Tin mới sau cursor, `state`, `human_active`, brief hiện tại (revision), request/ticket đã tạo (code + trạng thái hiển thị) |
-| POST | `/public/chat/messages` | `{client_msg_id (uuid), text}`. Trùng `client_msg_id` thì trả lại **đúng** kết quả cũ, không tạo tin mới. P2: phản hồi từ `ScriptedResponder` (P2.3) |
-| POST | `/public/chat/actions` | `{client_msg_id, action, value}` cho nút nhanh: `start:parent\|school\|sample\|support`, `human`, `edit_brief` |
-| PUT | `/public/chat/brief` | `{base_revision, patch}`. `base_revision` cũ hơn hiện tại → 409 kèm brief mới. Tạo revision mới, dự toán cũ `stale` |
-| POST | `/public/chat/requests` | `{idempotency_key (uuid), type, brief_revision, contact:{name?, phone?, email?, zalo?, preferred_channel}, consent:{contact:true, marketing:boolean, notice_version}}` |
+## P2.1 Bảng + cấu hình bổ sung
 
-Quy tắc `POST /public/chat/requests`:
-1. Validate: `brief_revision` phải là revision **hiện tại**, khác thì 409. Tối thiểu có hạng mục + số lượng dự kiến (với `quote`) và **một** kênh liên hệ. Email chỉ bắt buộc khi `preferred_channel='email'`. `consent.contact` phải `true`.
-2. **Một transaction:** insert consent → (Q-06) tìm hoặc tạo LEAD → insert `chatbot_requests` (code từ sequence `YC-YYMMDD-NNNN`) → insert outbox `request.created` → cập nhật state `submitted` → audit.
-3. Trùng `idempotency_key` thì trả lại request cũ, cùng code, HTTP 200 (T25).
-4. DB lỗi thì rollback, trả 500 `{code:'SUBMIT_FAILED'}`, state `submission_failed`. Widget hiện "Chưa gửi được, thử lại" và **không** hiện mã (T26).
-5. Thành công: trả `{code, status:'received'}`. Câu hiển thị: "Dạ em đã tiếp nhận yêu cầu **{code}**…". **Không** nói nhân viên đã nhận/đã đọc (T27).
+1. Không thêm bảng mới. Dùng các bảng P0: `chatbot_messages`, `chatbot_briefs`, `chatbot_consents`, `chatbot_requests`, `chatbot_outbox`, `chatbot_audit_events`. Thêm cột (DDL `ADD COLUMN IF NOT EXISTS`):
+   - `chatbot_outbox.channel varchar(12)` (`inapp` | `email`)
+   - `chatbot_outbox.ref_id varchar(64)` (id request/conversation)
+   - `chatbot_requests.summary text`
+2. `CHATBOT_CONFIG` thêm khối `widget` (defaults trong `chatbot.defaults.ts`, validator dùng chung khi đọc và ghi, tab Cấu hình hệ thống thêm khối **"Nút & tự mở"**, `publicView()` trả thêm `widget`):
+   ```ts
+   widget: { cta_label: 'Tư vấn ngay', auto_open: true, auto_open_delay_s: 5, auto_open_mobile: 'teaser', snooze_hours: 24 }
+   ```
+   - `cta_label`: 2–30 ký tự, không có `<>{}`.
+   - `auto_open_delay_s`: 3–60.
+   - `auto_open_mobile`: `teaser` | `panel` | `off`.
+   - `snooze_hours`: 1–168.
 
-LEAD (Q-06):
-- Chuẩn hoá SĐT (bỏ khoảng trắng, `+84`→`0`). Tìm `customers` theo SĐT đã chuẩn hoá. Có thì gắn `customer_id` và thêm `history` `{action:'CHATBOT_REQUEST', code}`.
-- Không có thì tạo `type='LEAD'`, `lead_status='NEW'`, `lead_source='CHATBOT'`, `history` `CREATED_FROM_CHATBOT`. Mã khách: dùng lại hàm sinh mã LEAD có sẵn nếu an toàn khi chạy đồng thời; nếu hàm đó là `count+1` thì bọc retry khi gặp unique violation (tối đa 3 lần). **Không** sửa `public.controller.ts`.
-- **Không** trả thông tin khách cũ về widget. Widget không được biết SĐT đã tồn tại hay chưa.
-- **Để sales follow-up trong CRM** (Chủ dự án chốt 2026-09-26):
-  - Map các trường giống `POST /public/leads`: `contact_person`, `company_name` (tên trường/đơn vị nếu khách nêu), `phone`, `email`, `expected_quantity`.
-  - `notes` = tóm tắt brief (hạng mục, số lượng, màu/logo, tỉnh, hạn mong muốn, kênh liên hệ ưu tiên) + mã `YC-…`.
-  - Thêm một mục `history` có `request_code` và `conversation_public_code`, để từ màn khách hàng/lead trong ERP biết mở hội thoại nào.
-  - Không đổi `assigned_to_id`, pipeline hay logic CRM hiện có. Lead nằm trong danh sách lead CRM như lead từ form liên hệ.
-  - Màn `/chatbot/requests` có link sang lead/khách hàng tương ứng trong ERP.
+## P2.2 API công khai (`@Public()` + `ChatSessionGuard` + rate limit theo P0.6)
 
-## P2.2 Outbox và thông báo
-- `@Cron('*/1 * * * *')` trong `ChatbotOutboxService`. Lấy tối đa 20 dòng `pending` có `next_attempt_at<=now` bằng `FOR UPDATE SKIP LOCKED`.
-- `request.created` / `ticket.created` / `human.requested`:
-  - `NotificationsService.create` cho từng user trong `notify_user_ids`. Nếu danh sách rỗng thì gửi cho mọi user thuộc nhóm có `CHATBOT` can_update.
-  - `EmailService.sendMail` tới **mọi** địa chỉ trong `CHATBOT_CONFIG.notify_emails`, theo template ở dưới.
-  - Địa chỉ nhận do Chủ dự án chốt (STATUS Q-08) và được **nhập qua **Cấu hình hệ thống → tab "Trợ lý AI website"**** khi cấu hình. **Không** hard-code trong code, seed hay test (code sync sang repo public). Test-env dùng địa chỉ test; SMTP ở test-env đã bị sanitize xoá, nên kiểm bằng cách render template ra file evidence.
-- **Email template** (`src/chatbot/templates/request-created.html` + bản text), tiếng Việt, HTML đơn giản, **escape** mọi giá trị khách nhập:
-  - Subject: `[{short_name}] Yêu cầu mới {code} — {loại} — {hạng mục} x {số lượng}` (thiếu thì ghi "chưa xác định")
-  - Thân email:
-    - mã yêu cầu, thời điểm (giờ VN), loại (báo giá/mẫu/mua/đổi thiết kế), phân khúc;
-    - tóm tắt brief theo từng dòng; hạn khách mong muốn (ghi rõ "khách mong muốn", không phải cam kết);
-    - người liên hệ + SĐT/Zalo/email + kênh ưu tiên (Chủ dự án chọn gửi email để sales gọi lại, nên được chứa liên hệ);
-    - lý do chuyển / câu hỏi còn treo;
-    - 2 link: `/chatbot/requests/{id}` và lead trong CRM ERP;
-    - dòng cuối: "Email tự động — vui lòng nhận xử lý trong ERP để khách không phải chờ".
-  - Không đính kèm file của khách. Không chép toàn bộ hội thoại.
-  - `ticket.created` và `human.requested` dùng template tương tự, subject `[{short_name}] Ticket {code} — {category}` / `[{short_name}] Khách cần gặp nhân viên — {public_code}`.
-  - Base URL của link lấy từ env `ERP_PUBLIC_URL` nếu có, mặc định `https://erp.nemmamnon.com`.
-- Lỗi thì `attempts+1`, backoff `1,2,5,10,30,60,120,240` phút, sau 8 lần thì `failed` và hiện cảnh báo trên hộp thư.
-- Cảnh báo "request chưa có owner" sau `limits.unassigned_alert_min` (mặc định 30) trong giờ làm việc.
+| id | Method | Route | Body / query | Trả về |
+|---|---|---|---|---|
+| CB-201 | GET | `/api/public/chat/conversation` | `?after=<message_id>` | `{conversation:{public_code,state,intent,segment,human_active}, messages:[Msg], brief:{revision,data}\|null, requests:[{code,type,status}], poll_ms}` |
+| CB-202 | POST | `/api/public/chat/messages` | `{client_msg_id:uuid, text}` | `{message:Msg, replies:[Msg], conversation:{state,human_active}}` |
+| CB-203 | POST | `/api/public/chat/actions` | `{client_msg_id:uuid, action:'start'\|'human'\|'set_slot', value}` | giống CB-202 |
+| CB-204 | PUT | `/api/public/chat/brief` | `{base_revision:int, patch:{…}}` | `{brief:{revision,data}}`, hoặc 409 `{code:'BRIEF_STALE', brief}` |
+| CB-205 | POST | `/api/public/chat/requests` | xem P2.4 | 201 `{code, status:'received'}`; trùng key → 200 cùng `code` |
 
-## P2.3 ScriptedResponder (chỉ P2, P3 thay bằng pipeline LLM)
-- Nút nhanh mở luồng tương ứng SPEC §6.3/§6.4/§6.5/§6.6. Mỗi lượt hỏi **1–2** slot còn thiếu theo thứ tự SPEC §6.4.
-- Slot lấy từ nút/chip và ô nhập có cấu trúc (số lượng, tỉnh). Text tự do thì gửi qua `FakeProvider` để trích slot.
-- Đủ tối thiểu thì hiện **thẻ tóm tắt** (P2.5). Khách muốn gặp người (nút hoặc từ khoá) thì `request_human`.
-- Câu chữ lấy từ knowledge `script.*`. Chưa có bản `published` thì dùng câu mặc định trong code, chép nguyên SPEC §6.7.
+- `Msg = {id, role:'customer'|'ai'|'staff'|'system', text, payload|null, created_at, sender_label}`.
+  - `sender_label`: `ai` = `short_name` từ config; `staff` = **"Nhân viên HULA"**, **không** trả tên thật, **không** trả `sender_user_id`.
+- `poll_ms`: 4000 khi `human_active` hoặc đang chờ sales, còn lại 15000.
+- **Idempotent:** trùng `(conversation, client_msg_id)` thì trả **đúng** response lần đầu, cùng các id, không tạo tin mới. `text` dài hơn `limits.max_message_chars` → 400 `MESSAGE_TOO_LONG`. `text` rỗng → 400.
+- `patch` của brief chỉ nhận các key: `segment` (`parent|school|business|after_sale`), `items` (mảng string), `quantity` (int 1–100000), `colors`, `logo`, `surface`, `care`, `storage`, `budget`, `region`, `need_by` (YYYY-MM-DD), `school_name`, `notes` (≤ 1000). Key lạ → 400. Mỗi lần đổi tạo revision mới (append-only).
+- `action set_slot` có `value:{key, value}`, dùng cùng whitelist và cùng validate như `patch`.
+- Chưa có brief thì revision hiện tại = 0 (`base_revision: 0` hợp lệ cho lần PUT đầu).
+- Conversation lấy **chỉ** từ session. Không route nào nhận `conversation_id` từ client.
+- **Không trả** `internal_note`, `owner_user_id`, `customer_id`, `contact` của request ra phía khách.
 
-## P2.4 Nhân viên nhận chat
-- `human_active=true` khi nhân viên bấm "Nhận xử lý": ghi `assigned_user_id`, audit, tin hệ thống "Nhân viên HULA đang hỗ trợ anh/chị". Từ lúc đó mọi tin khách chỉ được lưu, AI không trả lời.
-- "Trả lại cho AI" thì `human_active=false`, có tin hệ thống.
-- Ranh giới T35: trong transaction lưu tin AI, đọc lại `human_active` bằng `FOR UPDATE`. Nếu đã `true` thì huỷ tin AI và log `ai_reply_dropped_takeover`.
+## P2.3 Bot kịch bản (`ScriptedResponder`, không LLM)
 
-## P2.5 Widget website (`hula-web/website/src/components/chat/`)
-**Mount:** `ChatWidget` trong `LayoutWrapper.tsx`. Gọi `GET /public/chat/config`, `enabled=false` thì **không render gì** và không tải thêm JS (dynamic import panel).
+- `action start` với `value`:
+  - `parent` / `school` / `sample` / `support` thì đặt `segment` (`sample` → `school`, `support` → `after_sale`) và `intent` tương ứng.
+  - Bot trả **1 tin** hỏi **tối đa 2** thông tin còn thiếu theo thứ tự SPEC §6.4 / §6.3.
+  - Câu chữ lấy từ knowledge `script.*` đang `published`; nếu không có thì dùng câu mặc định chép SPEC §6.7.
+- **Trích slot từ text** (regex, không LLM):
+  - `(\d{1,6})\s*(bộ|cái|chiếc|set|bé)` → `quantity`
+  - `màu\s+([\p{L} ]{2,20})` → `colors`
+  - `mầm non|mẫu giáo|lớp|trường` → `segment=school`
+  - `cho bé|con tôi|con mình` → `segment=parent`
 
-**Vị trí (Q-03, theo phương án đã chốt):**
-- Launcher 56 px dùng ảnh cừu, `aria-label="Mở trợ lý AI {short_name}"`.
-- Mở panel thì ẩn `FloatingActionWidgets` và bong bóng Zalo: thêm class `body.chat-open`, CSS ẩn `.zalo-chat-widget` và cột nút (sửa `globals.css` cạnh rule `tour-360-active` L388-399).
-- Ẩn launcher khi: `body.tour-360-active`, route `/checkout`, CartDrawer đang mở.
-- z-index: panel `z-[90]` (trên Header z-50 và drawer, dưới modal z-[100]).
+  Có slot mới thì tạo brief revision mới. Bot **không hỏi lại** slot đã có.
+- **Muốn gặp người:** `action human`, hoặc text khớp `/nhân viên|gặp người|người thật|tư vấn viên|sales/i`. Khi đó:
+  - state → `waiting_sales`;
+  - outbox `human.requested` (kênh `inapp`, thêm `email` nếu có `notify_emails`);
+  - bot trả 1 tin: "Dạ em đã chuyển để nhân viên HULA hỗ trợ…". Ngoài giờ làm việc thêm câu giờ làm việc lấy từ config. **Không** hứa thời gian cụ thể nếu `response_sla_text` rỗng.
+- Brief đủ tối thiểu (`items` khác rỗng hoặc `segment=school`, **và** có `quantity`) thì bot trả thêm `payload:{type:'summary', brief_revision, fields:{…}}` để widget hiện thẻ tóm tắt, và state → `request_review`.
+- **`human_active=true` thì không có reply của bot** (`replies: []`), tin khách vẫn lưu, `unread_staff+1`.
+- **Ranh giới T35:**
+  - Responder chạy xong mới lưu reply, trong transaction `SELECT … FOR UPDATE` trên conversation.
+  - Nếu lúc đó `human_active=true` thì **bỏ** reply, log `ai_reply_dropped_takeover`, trả `replies: []`.
+- **Hook test** (chỉ khi env `CHATBOT_TEST_HOOKS='true'`, **không bao giờ** đặt trên VPS): text chứa `[[delay:NNNN]]` (tối đa 10000) làm responder chờ NNNN ms trước khi lưu reply.
+- Mọi text bot trả **không** chứa số tiền, và không chứa "đã gửi", "đã nhận tiền", "đã giao".
 
-**Avatar:** `scripts/chatbot/build-avatar.js` dùng `sharp` sinh `public/images/chatbot/cuu-hula-96.webp`, `-192.webp`, `-512.png` từ `docs/chatbot/source/cuu-hula-avatar.png`. Không chỉnh nhận diện ảnh. `avatar_url` trong config cho phép thay ảnh.
+## P2.4 Gửi yêu cầu (`POST /api/public/chat/requests`)
+
+Body: `{idempotency_key:uuid, type:'quote'|'sample'|'purchase', brief_revision:int, contact:{name?, phone?, email?, zalo?, preferred_channel:'phone'|'zalo'|'email'}, consent:{contact:boolean, marketing:boolean, notice_version:string}}`
+
+1. **Kiểm tra theo thứ tự:**
+   1. Trùng `idempotency_key` → trả request cũ (200, cùng `code`).
+   2. `consent.contact !== true` → 400 `CONSENT_REQUIRED`.
+   3. Không có kênh nào (phone/zalo/email), hoặc `preferred_channel` trỏ vào kênh bị bỏ trống → 400 `CONTACT_REQUIRED`.
+   4. `phone` có mà không phải SĐT VN (sau chuẩn hoá: `0` + 9 số) → 400 `PHONE_INVALID`.
+   5. `brief_revision` khác revision hiện tại → 409 `BRIEF_STALE`.
+   6. `type='quote'` mà brief thiếu `quantity`, hoặc (`items` rỗng và `segment≠school`) → 400 `BRIEF_INCOMPLETE`.
+2. **Một transaction:**
+   1. consent (`contact`; `marketing` thành dòng riêng nếu true);
+   2. `code = 'YC-' + YYMMDD(giờ VN) + '-' + lpad(nextval(chatbot_request_seq),4,'0')`;
+   3. `chatbot_requests` (`summary` = tóm tắt brief 1 dòng);
+   4. LEAD (P2.5);
+   5. outbox `request.created`: 1 dòng `channel='inapp'`, thêm 1 dòng `channel='email'` nếu `notify_emails` không rỗng;
+   6. state → `submitted`;
+   7. tin `system`: "Dạ em đã tiếp nhận yêu cầu {code}. Nhân viên HULA sẽ liên hệ qua {kênh} trong giờ làm việc." (**không** nói "nhân viên đã nhận");
+   8. audit `request.create`.
+3. **Hook test** (`CHATBOT_TEST_HOOKS='true'`): `contact.name === '[[fail:db]]'` thì ném lỗi **sau** khi đã insert request, trong transaction. Kết quả phải là 500 `{code:'SUBMIT_FAILED'}` và **không còn** request / LEAD / outbox / consent nào của key đó (rollback). Sau rollback mới ghi state `submission_failed`.
+
+## P2.5 LEAD trong CRM (Q-06)
+
+- Chuẩn hoá SĐT: bỏ khoảng trắng, dấu chấm, gạch; `+84`/`84` đầu → `0`.
+- Tìm `customers` có `phone` chuẩn hoá bằng (chuẩn hoá cột trong câu SQL, **không** sửa dữ liệu cũ).
+  - **Có:** gắn `customer_id`, append `history {action:'CHATBOT_REQUEST', timestamp, data:{request_code, conversation_public_code, summary}}`.
+  - **Không có:** tạo mới:
+    - `code = 'LEAD-' + request_code` (duy nhất, không dùng `count+1`);
+    - `name` = `school_name` trong brief, không có thì `contact.name`, không có nữa thì `'Khách chat ' + public_code`;
+    - `type='LEAD'`, `lead_status='NEW'`, `lead_source='CHATBOT'`, `phone` (đã chuẩn hoá), `email`;
+    - `history [{action:'CREATED_FROM_CHATBOT', timestamp, data:{request_code, conversation_public_code, contact_person, summary, preferred_channel}}]`.
+- Không đổi `assigned_to_id`, `lead_status` của khách cũ. **Không** sửa `public.controller.ts`.
+- Widget **không** được biết SĐT đã tồn tại hay chưa: response giống hệt nhau.
+
+## P2.6 Outbox + thông báo
+
+- `@Cron('*/1 * * * *')` gọi `ChatbotOutboxService.run()`: lấy tối đa 20 dòng `status='pending' AND next_attempt_at<=now()` bằng `FOR UPDATE SKIP LOCKED`, xử lý theo `channel`:
+  - `inapp`: `NotificationsService.create` cho từng user trong `notify_user_ids`. Danh sách rỗng thì gửi cho mọi user active thuộc nhóm có `CHATBOT.can_update`. `link='/chatbot/requests/<id>'` hoặc `'/chatbot/inbox/<conversation_id>'`. Thành công → `status='sent'`.
+  - `email`: `EmailService.sendMail(to, subject, html)` theo template (subject `[{short_name}] Yêu cầu mới {code} — {loại} — {hạng mục} x {số lượng}`; thân email như P2.2 bản cũ: tóm tắt, liên hệ, hạn **khách mong muốn**, 2 link ERP theo env `ERP_PUBLIC_URL`, mặc định `https://erp.nemmamnon.com`). Mọi giá trị khách nhập được escape.
+- `sendMail` trả `false` hoặc ném lỗi → `attempts+1`, `last_error` (≤ 300 ký tự, **không** chứa địa chỉ email), `next_attempt_at` theo backoff `1,2,5,10,30,60,120,240` phút. Sau 8 lần → `failed`.
+- `POST /api/chatbot/admin/inbox/outbox/run` gọi cùng `run()` (dùng cho nút "Gửi lại" trên ERP và cho script test).
+
+## P2.7 API hộp thư ERP (prefix `/api/chatbot/admin/inbox`, cặp quyền `CHATBOT` như P0)
+
+| id | Method | Route | Quyền | Việc |
+|---|---|---|---|---|
+| CB-210 | GET | `/conversations?state=&unassigned=&human_active=&q=&page=&limit=` | view | `{items:[{id,public_code,state,intent,segment,human_active,assigned_user_id,unread_staff,last_message_at,request_codes}], total}`. `q` tìm theo `public_code` hoặc mã YC |
+| CB-211 | GET | `/conversations/:id` | view | `{conversation, messages (đủ, có sender_user_id), briefs:[{revision,data,changed_by,created_at}], requests:[… đủ trường, có contact]}`. Ghi audit `view_contact` |
+| CB-212 | POST | `/conversations/:id/take` | update | `human_active=true`, `assigned_user_id=me`, `unread_staff=0`, tin system "Nhân viên HULA đang hỗ trợ anh/chị", audit |
+| CB-213 | POST | `/conversations/:id/release` | update | `human_active=false`, tin system, audit |
+| CB-214 | POST | `/conversations/:id/messages` | update | `{text}` → tin `staff` (`sender_user_id=me`). Chưa `take` → 409 `NOT_TAKEN` |
+| CB-215 | GET | `/requests?status=&owner=&q=&page=&limit=` | view | `{items:[{id,code,type,status,owner_user_id,customer_id,summary,created_at}], total}` |
+| CB-216 | GET | `/requests/:id` | view | đủ trường + `customer:{id,code,name}` + `conversation_id` |
+| CB-217 | PUT | `/requests/:id` | update | `{status?, owner_user_id?, internal_note?, promised_due_at?}`. Status chỉ đi tới theo `received→assigned→contacted→quoted→closed`; `cancelled` từ mọi trạng thái; đi lùi → 400 `INVALID_TRANSITION`. Audit |
+| CB-218 | GET | `/outbox?status=` | view | `{items:[{id,event,channel,status,attempts,last_error,created_at}], failed_count}` |
+| CB-219 | POST | `/outbox/run` | update | `{processed, sent, failed}` (P2.6) |
+
+Mọi route vào `route-matrix.csv` (CB-201..205, CB-210..219) trong cùng commit.
+
+## P2.8 Hộp thư ERP (`frontend/src/pages/chatbot/`, menu "Trợ lý AI" gate `hasPerm('CHATBOT')`, menu và `<Route>` cùng điều kiện)
+
+- `/chatbot/inbox`:
+  - Cột trái: danh sách hội thoại, lọc theo trạng thái, chưa có người nhận, đang do người xử lý, tìm mã. Badge `unread_staff`. Cảnh báo đỏ khi `failed_count>0`.
+  - Giữa: khung chat, text thuần. Tin khách, bot, nhân viên, hệ thống có màu khác nhau.
+  - Phải: brief hiện tại + lịch sử revision, yêu cầu đã tạo, nút **Nhận xử lý / Trả lại bot**, ô gửi tin khi đã nhận.
+  - Polling 5 giây khi tab đang mở.
+- `/chatbot/requests`: bảng yêu cầu, Drawer chi tiết (liên hệ, tóm tắt, link lead CRM theo route khách hàng ERP đang có, link hội thoại), đổi trạng thái, người phụ trách (chọn user), ghi chú nội bộ, ngày hẹn.
+- Link trong thông báo in-app mở đúng trang.
+
+## P2.9 Widget website (`hula-web/website/src/components/chat/`)
+
+**Nút "Tư vấn ngay" (Q-03):**
+- `Header.tsx`: nút desktop (hiện là `<Link href="/lien-he">` L176-182) và nút trong menu mobile (L260-270):
+  - `enabled=true`: thành `<button>` mở chat. Nhãn = `widget.cta_label`. Thêm icon avatar cừu 20 px bên trái và **animation**: vòng sáng lan (pulse ring) + avatar lắc nhẹ mỗi 4 giây. Tắt animation khi `prefers-reduced-motion`.
+  - `enabled=false` hoặc lỗi API: giữ nguyên `<Link href="/lien-he">` như hiện tại.
+- Vì nút desktop bị ẩn dưới 640 px, **trên mobile** thêm nút cừu tròn 56 px ở **vị trí dưới cùng** của cột `FloatingActionWidgets` (cùng animation), để khách mở lại chat sau khi đóng. Chỉ hiện khi `enabled=true` và màn hình < 640 px.
+- Trạng thái chat mở/đóng chia sẻ qua React context `ChatWidgetContext`, đặt trong `LayoutWrapper`.
+
+**Tự mở sau 5 giây:**
+- Chỉ khi `widget.auto_open=true` và đủ các điều kiện:
+  - chưa tự mở trong phiên này (`sessionStorage.hula_chat_autoopened`);
+  - khách chưa đóng chat trong `snooze_hours` giờ qua (`localStorage.hula_chat_snooze_until`);
+  - không ở `/checkout`, `/lien-he`, `/dat-hang-si`, `/beta-login`;
+  - không có `body.tour-360-active`, CartDrawer không mở, không có modal nào đang mở;
+  - tab đang hiển thị (`document.visibilityState`).
+- Desktop: mở panel.
+- Mobile (<768 px) theo `auto_open_mobile`:
+  - `teaser` (mặc định): một **thẻ nhỏ** phía trên cột nút nổi (avatar, lời chào 1–2 dòng, 4 nút bắt đầu, nút ×). **Không** che quá 35% chiều cao màn hình. Chạm vào thì mở panel.
+  - `panel`: mở full.
+  - `off`: không tự mở.
+- Khách đóng panel/teaser → ghi `snooze_until = now + snooze_hours`.
+- Gửi event GA `chat_auto_open` (không có PII).
+- Lý do có `teaser` trên mobile: panel full-screen tự bật sẽ che nội dung và dễ làm khách thoát trang (SPEC §7). Chủ dự án có thể đổi sang `panel` trong Cấu hình hệ thống.
 
 **Panel:**
-- Desktop rộng `min(400px, 100vw-32px)`, cao `min(640px, 100dvh-120px)`. Mobile (<768px) toàn màn hình, dùng `100dvh`, `env(safe-area-inset-*)`. Composer dính đáy, xử lý bàn phím bằng `visualViewport` để tin cuối không bị che.
-- Đầu panel: avatar, tên, nhãn **"AI"**, nút "Gặp nhân viên", thu nhỏ, đóng. Không có chấm "online".
-- Bốn nút bắt đầu: "Chọn cho bé", "Đặt cho trường", "Xem mẫu", "Hỗ trợ đơn hàng". Ô nhập tự do luôn có.
-- Tin nhắn render **text thuần** (`white-space: pre-wrap`). Cards render từ payload có cấu trúc: `product`, `compare` (mobile xem lần lượt), `summary` (sửa từng trường, nút "Gửi yêu cầu"), `contact_form` (checkbox đồng ý liên hệ **không** tick sẵn; checkbox marketing tách riêng, không bắt buộc), `status` (mã thật).
-- Trạng thái: đang trả lời (typing), đang gửi, đã tiếp nhận + mã, đang chờ nhân viên, lỗi + nút thử lại. API lỗi hoặc 503/timeout thì hiện **form tiếp nhận dự phòng** + kênh liên hệ từ config (T37).
-- Polling `GET /public/chat/conversation`: 4 s khi `human_active` hoặc đang chờ, 15 s khi panel mở và rảnh, dừng khi panel đóng hoặc tab ẩn.
-- Lưu `session_token` trong `localStorage.hula_chat_session` (try/catch; lỗi thì chạy trong RAM). Mỗi tab dùng chung một session là chấp nhận được. Hai trình duyệt/thiết bị khác nhau không bao giờ dùng chung (T38).
-- Truy cập: bẫy focus khi panel mở, `Esc` đóng, trả focus về launcher, `prefers-reduced-motion` tắt animation, tương phản AA.
-- **Không** gửi nội dung chat vào GA4/Meta Pixel. Chỉ được bắn event không PII: `chat_open`, `chat_request_submitted`.
+- Kích thước: desktop 400 px (tối đa `100vw-32px`); mobile toàn màn hình, dùng `100dvh`, safe-area, `visualViewport` để bàn phím không che tin cuối.
+- Bố cục: header có avatar, `display_name`, nhãn "AI", nút "Gặp nhân viên", nút đóng; 4 nút bắt đầu; tin nhắn text thuần (`white-space: pre-wrap`, cấm `dangerouslySetInnerHTML`); thẻ tóm tắt sửa từng trường và nút "Gửi yêu cầu".
+- Form liên hệ: checkbox đồng ý liên hệ **không tick sẵn**, marketing tách riêng và không bắt buộc.
+- Trạng thái: đang gửi, đã tiếp nhận kèm mã thật, lỗi kèm thử lại. Form dự phòng + kênh liên hệ khi 503/timeout.
+- Kỹ thuật:
+  - polling theo `poll_ms`, dừng khi panel đóng hoặc tab ẩn;
+  - `localStorage.hula_chat_session` (try/catch);
+  - mở panel thì ẩn cột nút nổi và bong bóng Zalo (`body.chat-open`, sửa `globals.css` cạnh rule `tour-360-active`);
+  - z-index `z-[90]`;
+  - tắt khi Tour360.
+- Nội dung: không chép nội dung chat sang GA/Pixel; không có chữ "Cừu Hula" cứng (tên lấy từ config).
+- Avatar: `scripts/chatbot/build-avatar.js` dùng `sharp` sinh `public/images/chatbot/cuu-hula-{96,192}.webp` từ `docs/chatbot/source/cuu-hula-avatar.png`.
+- Tính năng chưa bật: **chưa** upload file, **chưa** hiện giá.
 
-## P2.6 Hộp thư ERP (`frontend/src/pages/chatbot/`)
-| Route | Nội dung | Quyền |
-|---|---|---|
-| `/chatbot/inbox` | Danh sách hội thoại (lọc state/intent/chưa owner/human_active), khung chat, brief + lịch sử revision, nút Nhận xử lý / Trả lại AI / Gửi tin thủ công, tạo request thay khách | `hasPerm('CHATBOT')` |
-| `/chatbot/requests` | Bảng yêu cầu: phân công, trạng thái (`received → assigned → quoted/contacted → closed/cancelled`), ghi chú nội bộ, `promised_due_at` chỉ nhân viên nhập, lịch sử | `hasPerm('CHATBOT')` |
+## P2.10 Chạy nghiệm thu
 
-- Backend `chatbot/admin/conversations|requests` theo mẫu P0.8. Tin nhân viên gửi: `role='staff'`, lưu `sender_user_id`, widget hiển thị "Nhân viên HULA" (không hiển thị tên thật trừ khi cấu hình cho phép).
-- Hiển thị SĐT/email khách chỉ trong khung chi tiết. Mỗi lần xem chi tiết ghi audit `view_contact`.
+```bash
+bash docs/rbac_v2/test-env/pgenv.sh reset && npx nest build
+DB_HOST=127.0.0.1 DB_PORT=5432 DB_USERNAME=hula_user DB_PASSWORD=hula_password DB_DATABASE=hula_db \
+  PORT=3999 NODE_ENV=production CHATBOT_ALLOW_FIXTURES=true CHATBOT_TEST_HOOKS=true node dist/main.js &
+node scripts/chatbot/accept-p2.js > docs/chatbot/evidence/P2/accept-p2.txt
+npm run qa   # tắt backend sau khi xong
+```
+
+**Ảnh evidence (6):**
+1. Header desktop: nút "Tư vấn ngay" có avatar.
+2. Panel desktop tự mở sau 5 giây.
+3. Teaser trên mobile ở 390×844.
+4. Panel mobile khi mở bàn phím.
+5. Hộp thư ERP đang ở trạng thái đã nhận xử lý.
+6. Drawer yêu cầu có link lead.
 
 ## Không làm ở P2
-- Không gọi LLM thật. Không dự toán giá trên widget (`features.price_estimate=false`).
-- Không upload file (P4). Không tra đơn.
-
-## Tự kiểm
-- Ảnh chụp widget 360×740, 390×844, 768×1024, 1366×768: đóng/mở, bàn phím mở (mobile), câu dài 2000 ký tự, ảnh sản phẩm lỗi, mất mạng, xoay ngang, phóng chữ 200%.
-- Gửi request 2 lần cùng key → 1 bản ghi, 1 outbox (query DB làm evidence).
-- Tắt DB giữa chừng hoặc ép lỗi → widget không hiện mã.
+- Không LLM, không dự toán giá, không upload, không tra đơn.
+- Không sửa `public.controller.ts`, `src/ai/**`.
+- Không đổi luồng `/lien-he` khi cờ tắt.
