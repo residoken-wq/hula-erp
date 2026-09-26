@@ -1,0 +1,65 @@
+================================================================================
+P2-00d ACCEPTANCE TEST: RBAC SAFETY NET MUTATION 3 TEST
+Scenario: Developer mutates decorator in code (@Public() -> @Perm('CMS', 'view'))
+without updating docs/rbac_v2/route-matrix.csv.
+Expected: scripts/check-rbac.js (and QA) MUST FAIL with exit code 1.
+================================================================================
+
+--- [RUN 1: MUTATED CODE - EXPECT FAIL (EXIT 1)] ---
+Command: node scripts/check-rbac.js
+Exit code: 1
+Output:
+======================================================
+               RBAC V2 ROUTE CHECKER                  
+======================================================
+
+Total routes scanned: 631
+Matrix route count:   631
+
+--- Route Breakdown by Tier ---
+  PUBLIC:        55
+  AUTH:          69
+  PERM:          502
+  APIKEY:        5
+  UNCLASSIFIED:  0
+  MULTI-TIER:    0
+
+======================================================
+======================================================
+
+
+
+[ERROR] Matrix differences detected (1 differences):
+  * [TIER_MISMATCH] R540 GET /api/upload/watermark/b2b/config -> Code: PERM vs Matrix: PUBLIC (E5: Watermark website B2B public config)
+❌ RBAC CHECK FAILED: Found unclassified routes or spec mismatches with route-matrix.csv.
+
+
+--- [RUN 2: REVERTED CODE - EXPECT PASS (EXIT 0)] ---
+Command: node scripts/check-rbac.js
+Exit code: 0
+Output:
+======================================================
+               RBAC V2 ROUTE CHECKER                  
+======================================================
+
+Total routes scanned: 631
+Matrix route count:   631
+
+--- Route Breakdown by Tier ---
+  PUBLIC:        56
+  AUTH:          69
+  PERM:          501
+  APIKEY:        5
+  UNCLASSIFIED:  0
+  MULTI-TIER:    0
+
+======================================================
+✅ RBAC CHECK PASSED: 100% routes strictly conform to route-matrix spec.
+======================================================
+
+
+
+================================================================================
+VERIFICATION RESULT: Run 1 Exit=1 (Expected 1), Run 2 Exit=0 (Expected 0)
+STATUS: PASS — Route matrix enforcement safety net caught code mutation successfully!
+================================================================================
