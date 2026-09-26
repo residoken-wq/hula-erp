@@ -8,7 +8,7 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 |---|---|---|---|---|
 | P0 | DEPLOYED | `rbac/p0` → main @ 3f491fe | — | 2026-09-25 Chủ dự án (Claude ghi) |
 | P1 | DEPLOYED 2026-09-26 11:40 | `rbac/p1` → main @ 912c104 | — | 2026-09-26 Chủ dự án (Claude ghi) |
-| P2.0 | AUDIT_PASS (vòng 2) | `rbac/p2` @ 014711f | Chủ dự án: merge + deploy (không chặn thêm ai) | 2026-09-26 Claude |
+| P2.0 | MERGED (main @ 59a7d90, đã push) | `rbac/p2` | Chủ dự án: deploy VPS (không chặn thêm ai) | 2026-09-26 Claude |
 | P2 ENFORCE | BLOCKED | — | P2.0 DEPLOYED; I-18; **SHADOW tới 2026-10-26 11:40** (D8); checklist P2.2 ký | 2026-09-26 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
 | P4 | DESIGN_ONLY | — | Chủ dự án giao phần nghiệp vụ | 2026-09-24 Claude |
@@ -38,6 +38,7 @@ _(chưa có)_
 
 ## Nhật ký
 
+- 2026-09-26 · Claude · Theo lệnh Chủ dự án: merge --no-ff rbac/p2 vào main (59a7d90); thêm luật "route-matrix là spec bắt buộc" vào .agents/rules/technical-rules.md (Chủ dự án duyệt); push origin main.
 - 2026-09-26 · Claude · Audit P2.0 vòng 2: AUDIT_PASS. Metadata sau build: 631 route, 0 lệch code↔matrix. 6 đột biến (M1–M6) đều bị QA chặn (exit 1). F2 trả 400.
 - 2026-09-26 · Antigravity · Sửa xong toàn bộ F1, F2, F3 theo AUDIT_P2.0.md (vòng 2). F1 theo cách (a): đồng bộ matrix với code (R022 -> PUBLIC, 21 route designs -> PRODUCT:x | PRODUCTION:x, R104-R105 HR check-in/out -> HR:create) và nâng cấp check-rbac.js exit 1 khi có bất kỳ lệch tier/perm nào; F2: thêm ParseIntPipe cho poId trong route supplier portal NPL (400 thay vì 500); F3: cập nhật REPORT_P2.0.md vòng 2 và ACCEPTANCE.csv. Đã chạy P2-00d (mutation 3 FAIL exit 1 & PASS exit 0) và P2-00e (poId 'abc' trả về 400), lưu đầy đủ evidence .txt. Chuyển trạng thái P2.0 = SUBMITTED.
 - 2026-09-26 · Claude · Audit P2.0 vòng 1: AUDIT_FAIL. E5, E6 đúng và an toàn (test thật với NCC #17/#5: PO của mình 200, PO NCC khác 404). F1 MAJOR: check-public-callers đọc matrix thay vì code, check-rbac chỉ cảnh báo khi code lệch matrix → đột biến "đổi decorator trong code" vẫn qua QA. F2: poId không phải số trả 500. F3: REPORT ghi "không lệch".
