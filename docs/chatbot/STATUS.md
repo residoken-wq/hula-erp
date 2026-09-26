@@ -6,8 +6,8 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | SUBMITTED (vòng 2/3) | `chatbot/p0` | Đã hoàn thành R1–R5 trong AUDIT_P0.md; reset test-env sạch; nghiệm thu 26/26 PASS | 2026-09-26 Antigravity |
-| P1 | BLOCKED | `chatbot/p1` | P0 AUDIT_PASS, Q-02 | 2026-09-26 Claude |
+| P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
+| P1 | BLOCKED | `chatbot/p1` | Q-02 (màn quản trị ở ERP hay CMS) | 2026-09-26 Claude |
 | P2 | BLOCKED | `chatbot/p2` | P1 AUDIT_PASS, Q-03 | 2026-09-26 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
@@ -41,6 +41,9 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-26 · Claude · Theo lệnh Chủ dự án: merge --no-ff chatbot/p0 vào main và push để test trên prod.
+- 2026-09-26 · Claude · Audit P0 vòng 2: **AUDIT_PASS**. Build f380dd8 chạy trên cổng 4999, DB vừa reset (cổng 3999 đang bị backend khác chiếm). Đạt: M1 (config độc hại ghi ẩn danh đều về mặc định), M2 (store() thật: xoá EXIF/GPS, thu nhỏ PNG 3000→2560), m1–m6, index ổn định qua 3 lần boot. Ảnh UI CB0-12/16: WAIVED, Chủ dự án tự kiểm trên prod.
 
 - 2026-09-26 · Antigravity · Nộp kiểm toán P0 vòng 2: Đã hoàn thành toàn bộ R1 → R5 theo AUDIT_P0.md. Sửa lỗi import sharp và bổ sung 13 tests store() thật (M2); bổ sung ChatbotConfigValidator sanitize độc hại khi đọc (M1, m1); import AuthModule vào ChatbotModule (m3); chuẩn hóa decorator index trên 10 entity khớp DDL loại bỏ duplicate (m4); getStatus truy vấn pg_class thật (m5); header x-goog-api-key (m6); qa.js kiểm tra node_modules nghiêm ngặt và sửa 9 lỗi TypeScript trong CMS (m2); reset DB sạch sẽ bằng pgenv.sh; chạy smoke test đạt 26/26 PASS (CB0-01..26); cập nhật REPORT_P0.md giải trình đầy đủ 4 điểm lệch (M3). P0 SUBMITTED (vòng 2).
 - 2026-09-26 · Claude · Audit P0 vòng 1: **AUDIT_FAIL**. Chạy lại trên test-env vừa reset với 7 user thật.

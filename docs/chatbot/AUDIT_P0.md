@@ -1,5 +1,41 @@
 # AUDIT P0 — Chatbot (Cừu Hula)
 
+## VÒNG 2 — 2026-09-26 — **AUDIT_PASS**
+
+- **Đối tượng:** `chatbot/p0` @ `f380dd8`.
+- **Môi trường:**
+  - Test-env `pgenv.sh reset`, backend build từ commit trên, cổng **4999**.
+  - Cổng 3999 đang bị một backend khác giữ (PID 21724, không phải của Claude), nên lần chạy đầu của harness trúng nhầm server đó; kết quả lần đó đã bỏ.
+- **Evidence:** `evidence/P0/claude-audit-r2-{harness,store,indexes,qa}.txt`.
+
+| Lỗi vòng 1 | Kết quả | Kiểm chứng của Claude |
+|---|---|---|
+| M1 config độc hại | ĐẠT | Ghi ẩn danh config y hệt vòng 1. Public view: avatar về mặc định, `zalo_url` rỗng, hotline và messenger lấy giá trị dự phòng từ website, SLA rỗng, `working_hours` về mặc định. Kiểu sai (CB0-14b) cũng về mặc định |
+| m1 avatar `//host` | ĐẠT | PUT → 400 "must start with / (not //) or https://" |
+| M2 sharp | ĐẠT | Gọi thật `store()` trên bản build. JPEG có EXIF/GPS: lưu xong không còn exif. PNG 3000×1000 → 2560×853. Nội dung JPEG đuôi `.png` → MISMATCH. 11 MB → TOO_LARGE |
+| M3 evidence | ĐẠT phần backend | Smoke có output từng dòng CB0-01..26. **Vẫn thiếu ảnh UI** của CB0-12/16. Chủ dự án kiểm trên prod (mục "Smoke test prod" bên dưới), nên phần UI ghi **WAIVED** |
+| m2 qa.js | ĐẠT | Thiếu `node_modules` → fail; `lint` bỏ `--fix` |
+| m3 PermissionCacheService | ĐẠT | Bỏ provider trùng |
+| m4 index | ĐẠT | Index giống hệt nhau giữa prod-boot, dev-boot lần 1 và lần 2; 25 index, 0 index trùng cột |
+| m5 schema_ok | ĐẠT | Kiểm động |
+| m6 Gemini key | ĐẠT | Gửi bằng header `x-goog-api-key` |
+
+Chạy lại các dòng khác bằng harness vòng 1: CB0-02, 04, 05, 06 (session thứ 31 → 429), 08, 09, 10, 11, 12 (API), 14, 15, 21 đều PASS. check-rbac exit 0, public-callers exit 0, 2 script chatbot sạch, jest 44/44, tsc sạch.
+
+**Smoke test prod (Chủ dự án làm sau khi deploy, thay cho ảnh UI của CB0-12/16):**
+1. Đăng nhập admin → Cấu hình hệ thống → tab **"Trợ lý AI website"** hiện ra. Đổi "Tên ngắn" → khung xem trước đổi theo → Lưu → F5 → giá trị vẫn giữ.
+2. Mở `https://erp.nemmamnon.com/api/public/chat/config` → trả `{"enabled":false}`. **Chưa bật cờ** cho tới P2.
+3. Màn Phân quyền có 2 mã mới `CHATBOT`, `CHATBOT_KB`. Nhóm Sales có CHATBOT = VCU--.
+4. Đăng nhập một user không có quyền SYSTEM (ví dụ sales) → không thấy menu Cấu hình hệ thống.
+
+**Ảnh hưởng vận hành khi deploy P0:**
+- Khách: không đổi gì (website không bị sửa, cờ tắt).
+- Admin: có thêm tab cấu hình, 2 mã quyền; 10 bảng mới được tạo lúc backend khởi động.
+- Không cần thêm env.
+- Rollback: deploy lại image cũ; bảng mới không ảnh hưởng bản cũ.
+- Rủi ro còn lại (thuộc E7, agent khác đang xử lý): người lạ vẫn có thể bật cờ qua `/system/config`. Khi đó chỉ mở được `sessions` và `ping` (có rate limit), và mọi giá trị độc hại đã bị lọc (M1).
+- Code chatbot sẽ sync sang repo public `erp4u-demo`: đã kiểm, không có secret, không có email thật.
+
 ## VÒNG 1 — 2026-09-26 — **AUDIT_FAIL** (vòng 1/3)
 
 - **Đối tượng:** `chatbot/p0` @ `e83312c`

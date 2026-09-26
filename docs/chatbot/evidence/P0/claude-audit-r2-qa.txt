@@ -1,0 +1,8 @@
+======================================================
+
+public_callers_exit=0
+✅ check-no-secrets: Scanned 38 files. No secrets or real emails detected.
+✅ check-no-hardcoded-name: Scanned 31 files. No hardcoded name outside defaults.
+Test Suites: 6 passed, 6 total
+Tests:       44 passed, 44 total
+tsc_exit=0
