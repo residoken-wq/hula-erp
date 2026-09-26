@@ -42,7 +42,7 @@ LEAD (Q-06):
   - `EmailService.sendMail` tới **mọi** địa chỉ trong `CHATBOT_CONFIG.notify_emails`, theo template ở dưới.
   - Địa chỉ nhận do Chủ dự án chốt (STATUS Q-08) và được **nhập qua **Cấu hình hệ thống → tab "Trợ lý AI website"**** khi cấu hình. **Không** hard-code trong code, seed hay test (code sync sang repo public). Test-env dùng địa chỉ test; SMTP ở test-env đã bị sanitize xoá, nên kiểm bằng cách render template ra file evidence.
 - **Email template** (`src/chatbot/templates/request-created.html` + bản text), tiếng Việt, HTML đơn giản, **escape** mọi giá trị khách nhập:
-  - Subject: `[Cừu Hula] Yêu cầu mới {code} — {loại} — {hạng mục} x {số lượng}` (thiếu thì ghi "chưa xác định")
+  - Subject: `[{short_name}] Yêu cầu mới {code} — {loại} — {hạng mục} x {số lượng}` (thiếu thì ghi "chưa xác định")
   - Thân email:
     - mã yêu cầu, thời điểm (giờ VN), loại (báo giá/mẫu/mua/đổi thiết kế), phân khúc;
     - tóm tắt brief theo từng dòng; hạn khách mong muốn (ghi rõ "khách mong muốn", không phải cam kết);
@@ -51,7 +51,7 @@ LEAD (Q-06):
     - 2 link: `/chatbot/requests/{id}` và lead trong CRM ERP;
     - dòng cuối: "Email tự động — vui lòng nhận xử lý trong ERP để khách không phải chờ".
   - Không đính kèm file của khách. Không chép toàn bộ hội thoại.
-  - `ticket.created` và `human.requested` dùng template tương tự, subject `[Cừu Hula] Ticket {code} — {category}` / `[Cừu Hula] Khách cần gặp nhân viên — {public_code}`.
+  - `ticket.created` và `human.requested` dùng template tương tự, subject `[{short_name}] Ticket {code} — {category}` / `[{short_name}] Khách cần gặp nhân viên — {public_code}`.
   - Base URL của link lấy từ env `ERP_PUBLIC_URL` nếu có, mặc định `https://erp.nemmamnon.com`.
 - Lỗi thì `attempts+1`, backoff `1,2,5,10,30,60,120,240` phút, sau 8 lần thì `failed` và hiện cảnh báo trên hộp thư.
 - Cảnh báo "request chưa có owner" sau `limits.unassigned_alert_min` (mặc định 30) trong giờ làm việc.
@@ -71,7 +71,7 @@ LEAD (Q-06):
 **Mount:** `ChatWidget` trong `LayoutWrapper.tsx`. Gọi `GET /public/chat/config`, `enabled=false` thì **không render gì** và không tải thêm JS (dynamic import panel).
 
 **Vị trí (Q-03, theo phương án đã chốt):**
-- Launcher 56 px dùng ảnh cừu, `aria-label="Mở trợ lý AI Cừu Hula"`.
+- Launcher 56 px dùng ảnh cừu, `aria-label="Mở trợ lý AI {short_name}"`.
 - Mở panel thì ẩn `FloatingActionWidgets` và bong bóng Zalo: thêm class `body.chat-open`, CSS ẩn `.zalo-chat-widget` và cột nút (sửa `globals.css` cạnh rule `tour-360-active` L388-399).
 - Ẩn launcher khi: `body.tour-360-active`, route `/checkout`, CartDrawer đang mở.
 - z-index: panel `z-[90]` (trên Header z-50 và drawer, dưới modal z-[100]).

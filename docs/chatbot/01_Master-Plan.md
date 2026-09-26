@@ -119,7 +119,7 @@ flowchart LR
 `new → exploring → qualified → request_review → submitted → assigned → resolved`. Thêm các trạng thái `waiting_customer`, `waiting_sales`, `human_active` (cờ riêng, không phải state), `cancelled`, `submission_failed`. Intent độc lập với state (SPEC §6.2). `request_review` bật khi brief đủ **tối thiểu** (hạng mục + số lượng dự kiến), hoặc khi khách tự bấm "Gửi yêu cầu".
 
 ### 3.4 Cấu hình
-- **Không bí mật:** `system_configs.CHATBOT_CONFIG` (JSON): `enabled`, `display_name`, `avatar_url`, `greeting`, `working_hours`, `contact_channels`, `response_sla_text`, `notify_user_ids`, `notify_emails`, `features{price_estimate, order_lookup, attachments, sample_request}`, `limits{…}`, `retention_days{…}`, `llm{daily_call_budget, timeout_ms}`. Website chỉ nhận **tập con whitelist** qua `GET /public/chat/config`.
+- **Không bí mật:** `system_configs.CHATBOT_CONFIG` (JSON): `enabled`, `display_name`, `short_name`, `avatar_url`, `greeting`, `working_hours`, `contact_channels`, `response_sla_text`, `notify_user_ids`, `notify_emails`, `features{price_estimate, order_lookup, attachments, sample_request}`, `limits{…}`, `retention_days{…}`, `llm{daily_call_budget, timeout_ms}`. Website chỉ nhận **tập con whitelist** qua `GET /public/chat/config`.
 - **Bí mật (env, Chủ dự án thêm vào `.env` trên VPS):** `CHATBOT_LLM_PROVIDER` (`gemini`|`fake`), `CHATBOT_LLM_API_KEY`, `CHATBOT_LLM_MODEL`.
 
 ## 4. Lộ trình phase
@@ -174,5 +174,5 @@ P0→P5 làm tuần tự. P1 và P2 dùng chung P0; nếu Chủ dự án muốn 
 | Q-10 | Thời hạn lưu dữ liệu? | Chat + file 12 tháng; request/ticket/audit 24 tháng; ảnh UNC 24 tháng. Cấu hình được | P5 |
 | Q-11 | Người duyệt nội dung theo mảng (SPEC §3: Sales lead, Kỹ thuật, Kế toán, CSKH)? | Chủ dự án chỉ định tài khoản ERP, gán `CHATBOT_KB` | P5 |
 | Q-12 | Bật dự toán giá khi go-live? | **Tắt** tới khi sales duyệt đủ rule giá. Bot chỉ ghi nhận và chuyển sales | P5 |
-| Q-13 | Tên hiển thị và avatar? | "Cừu Hula — Trợ lý AI", ảnh cừu nhận được, sửa được trong admin | P2 |
-| Q-14 ⚠ | Vá lỗ hổng §2.4 (`/system/config/:key` lộ `SMTP_PASS`)? | **Làm ngay** trong RBAC P2.0 (E7), đổi mật khẩu SMTP sau khi vá — **Chốt 2026-09-26: E7 = hotfix RBAC P2.0.1 nhánh `rbac/e7` (D13), gộp thêm `/system/smtp` và `POST /system/config`** | Điều kiện go-live P5 |
+| Q-13 | Tên hiển thị và avatar? | "Cừu Hula — Trợ lý AI", ảnh cừu nhận được — **Chốt 2026-09-26: mặc định Cừu Hula, sửa được trong Cấu hình hệ thống (P0.4, P0.10); mọi nơi đọc từ config** | P0 |
+| Q-14 ⚠ | Vá lỗ hổng §2.4 (`/system/config/:key` lộ `SMTP_PASS`)? | **Làm ngay** trong RBAC P2.0 (E7), đổi mật khẩu SMTP sau khi vá — **2026-09-26: agent codebase review đang xử lý (gồm cả `/system/smtp`, `POST /system/config`). Gói chatbot không phụ thuộc, tự validate config khi đọc (P0.4)** | Điều kiện go-live P5 |

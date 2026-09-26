@@ -18,7 +18,7 @@ Mục tiêu: có một trợ lý AI trên `nemmamnon.com`. Trợ lý tư vấn t
 2. **Bí mật chỉ nằm trong env** (`CHATBOT_LLM_API_KEY`…). **Cấm** lưu key, token, mật khẩu vào `system_configs`: route `GET /system/config/:key` đang public (xem 01 §2.6). Frontend không bao giờ chứa key.
 3. **Route mới:**
    - Route public của khách: `@Public()`, xác thực bằng chat session token (P0.4). **Không bao giờ** tin `conversation_id`, `customer_id`, `employee_id`, `status`, giá… từ body/query để quyết định quyền.
-   - Route quản trị: controller mới gắn `@UseGuards(JwtAuthGuard, PermissionsGuard)` ở class, mỗi method gắn **cặp** `@RequirePermission('X','can_a')` + `@Perm('X','a')` (mẫu D12 của RBAC). Đây là ngoại lệ có chủ đích của luật 2 `docs/rbac_v2/00_START-HERE.md`, cần Chủ dự án chốt **Q-04**. Lý do: RBAC đang SHADOW tới 2026-10-26, nên nếu chỉ gắn `@Perm` thì người **chưa đăng nhập** vẫn đọc được hội thoại có SĐT khách.
+   - Route quản trị: controller mới gắn `@UseGuards(JwtAuthGuard, PermissionsGuard)` ở class, mỗi method gắn **cặp** `@RequirePermission('X','can_a')` + `@Perm('X','a')` (mẫu D12 của RBAC). Đây là ngoại lệ có chủ đích của luật 2 `docs/rbac_v2/00_START-HERE.md` và điều 3 mục RBAC v2 trong `technical-rules.md`, Chủ dự án **đã ký Q-04** (xem STATUS "Chấp nhận ngoại lệ"). Lý do: RBAC đang SHADOW tới 2026-10-26, nên nếu chỉ gắn `@Perm` thì người **chưa đăng nhập** vẫn đọc được hội thoại có SĐT khách.
    - Mọi route mới phải có dòng trong `docs/rbac_v2/route-matrix.csv`, id `CB-NNN`, **thêm vào cuối file** để tránh conflict với nhánh `rbac/*`. `npm run qa` phải xanh.
 4. Bảng/cột mới: DDL `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` trong `onModuleInit`, bọc try/catch. Entity phải đăng ký ở `entities[]` của `app.module.ts` **và** `forFeature`. Bảng log/tin nhắn thêm vào danh sách loại trừ `shouldLog()` (`src/system/subscribers/activity.subscriber.ts`).
 5. Không log nội dung tin nhắn, SĐT, email, token, file vào console, `activity_logs` hay analytics (GA4/Meta Pixel). Log kỹ thuật chỉ ghi id + mã lỗi.
@@ -29,6 +29,7 @@ Mục tiêu: có một trợ lý AI trên `nemmamnon.com`. Trợ lý tư vấn t
 10. Commit tiếng Anh, prefix `feat(chatbot):` / `fix(chatbot):` / `test(chatbot):`. Mỗi phase một nhánh `chatbot/p<n>`, tạo từ `main` mới nhất; phase sau tạo từ phase trước nếu phase trước chưa merge. **Không commit/merge vào `main`, không push** khi Chủ dự án chưa ra lệnh.
 11. Code tự sync sang repo public `erp4u-demo`, nên seed/fixture **không** chứa dữ liệu khách thật, SĐT, email, giá thật của HULA. Giá test phải có nhãn `FIXTURE`.
 12. **Không ghi PASS cho thứ chưa chạy thật.** Evidence phải là output thật (HTTP status + body, query DB, ảnh chụp). Tính năng chưa bật thì ghi `NOT_ENABLED` kèm bằng chứng fallback, không ghi PASS.
+13. **Tên trợ lý sửa được:** "Cừu Hula" chỉ là mặc định trong `src/chatbot/chatbot.defaults.ts`. Mọi nơi hiển thị tên (widget, lời chào, email, prompt, tin hệ thống) đọc `display_name`/`short_name` từ `CHATBOT_CONFIG`. QA fail nếu hard-code ở chỗ khác (P0.4).
 
 ## Kết thúc mỗi phase phải nộp
 

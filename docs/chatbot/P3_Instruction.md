@@ -10,7 +10,7 @@ Làm đúng 01 §3.1, thay `ScriptedResponder` khi `CHATBOT_LLM_PROVIDER` khác 
 
 - Schema JSON cho "hiểu" và "diễn đạt" đặt ở `src/chatbot/llm/schemas/*.ts`. Validate bằng code trước khi dùng. Sai schema thì thử lại 1 lần, vẫn sai thì dùng câu dự phòng.
 - Prompt đặt ở `src/chatbot/prompts/understand.v1.md`, `compose.v1.md`. `PROMPT_VERSION` là hằng số, đổi nội dung prompt thì tăng version.
-- System prompt diễn đạt dựa trên SPEC §12, **bổ sung**:
+- System prompt diễn đạt dựa trên SPEC §12. Câu mở đầu "Bạn là Cừu Hula" thay bằng `Bạn là {display_name}` lấy từ `CHATBOT_CONFIG` (P0.4), không hard-code. **Bổ sung**:
   - "Chỉ dùng dữ kiện trong khối FACTS"
   - "Không viết số tiền, phần trăm, số ngày giao hàng nếu không có trong FACTS"
   - "Câu hỏi tối đa 2"
