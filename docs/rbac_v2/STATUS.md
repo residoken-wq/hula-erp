@@ -8,7 +8,7 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 |---|---|---|---|---|
 | P0 | DEPLOYED | `rbac/p0` → main @ 3f491fe | — | 2026-09-25 Chủ dự án (Claude ghi) |
 | P1 | DEPLOYED 2026-09-26 11:40 | `rbac/p1` → main @ 912c104 | — | 2026-09-26 Chủ dự án (Claude ghi) |
-| P2.0 | SUBMITTED | `rbac/p2` (tạo từ `main`) | — (làm song song trong lúc SHADOW) | 2026-09-26 Antigravity |
+| P2.0 | AUDIT_FAIL (vòng 1/3) | `rbac/p2` @ 41f644b | Sửa F1 (MAJOR), F2, F3 trong AUDIT_P2.0.md | 2026-09-26 Claude |
 | P2 ENFORCE | BLOCKED | — | P2.0 DEPLOYED; I-18; **SHADOW tới 2026-10-26 11:40** (D8); checklist P2.2 ký | 2026-09-26 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
 | P4 | DESIGN_ONLY | — | Chủ dự án giao phần nghiệp vụ | 2026-09-24 Claude |
@@ -38,6 +38,7 @@ _(chưa có)_
 
 ## Nhật ký
 
+- 2026-09-26 · Claude · Audit P2.0 vòng 1: AUDIT_FAIL. E5, E6 đúng và an toàn (test thật với NCC #17/#5: PO của mình 200, PO NCC khác 404). F1 MAJOR: check-public-callers đọc matrix thay vì code, check-rbac chỉ cảnh báo khi code lệch matrix → đột biến "đổi decorator trong code" vẫn qua QA. F2: poId không phải số trả 500. F3: REPORT ghi "không lệch".
 - 2026-09-26 · Antigravity · Hoàn thành P2.0 (E5 watermark B2B @Public, E6 portal NCC NPL theo uuid, check-public-callers quét 126 file 61 call 0 lệch, tích hợp qa.js). Reset test-env, test acceptance PASS 3/3 (P2-00a, P2-00b, P2-00c), nộp REPORT_P2.0.md, chuyển trạng thái P2.0 sang SUBMITTED.
 - 2026-09-26 · Antigravity · Nhận P2.0, tạo nhánh rbac/p2 từ main, chuyển trạng thái P2.0 sang IN_PROGRESS.
 - 2026-09-26 · Claude · Chủ dự án xác nhận "P1 deployed OK" lúc 2026-09-26 11:40 → P1 DEPLOYED. Cửa sổ SHADOW (D8): 2026-09-26 11:40 → 2026-10-26 11:40. Tách P2 thành P2.0 (code, READY ngay) và P2 ENFORCE (sau SHADOW).
