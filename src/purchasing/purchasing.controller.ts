@@ -81,5 +81,14 @@ export class PurchasingController {
   @Get('supplier-portal/:uuid')
   getSupplierPortal(@Param('uuid') uuid: string) { return this.s.getSupplierPortalData(uuid); }
 
+  @Public()
+  @Get('supplier-portal/:uuid/outsourcing-materials/:poId')
+  getSupplierPortalOutsourcingMaterials(
+    @Param('uuid') uuid: string,
+    @Param('poId') poId: number,
+  ) {
+    return this.s.getSupplierPortalOutsourcingMaterials(uuid, poId);
+  }
+
 
 }
