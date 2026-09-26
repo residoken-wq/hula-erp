@@ -7,8 +7,9 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
 | P0 | DEPLOYED | `rbac/p0` → main @ 3f491fe | — | 2026-09-25 Chủ dự án (Claude ghi) |
-| P1 | MERGED (main @ 912c104, đã push) | `rbac/p1` | Chủ dự án: deploy VPS + F5 (AUDIT_P1 vòng 2) | 2026-09-26 Claude |
-| P2 | BLOCKED | `rbac/p2` | P1 DEPLOYED; P2.0 (E5, E6, check-public-callers); I-18; hết 30 ngày SHADOW (D8) | 2026-09-26 Claude |
+| P1 | DEPLOYED 2026-09-26 11:40 | `rbac/p1` → main @ 912c104 | — | 2026-09-26 Chủ dự án (Claude ghi) |
+| P2.0 | READY | `rbac/p2` (tạo từ `main`) | — (làm song song trong lúc SHADOW) | 2026-09-26 Claude |
+| P2 ENFORCE | BLOCKED | — | P2.0 DEPLOYED; I-18; **SHADOW tới 2026-10-26 11:40** (D8); checklist P2.2 ký | 2026-09-26 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
 | P4 | DESIGN_ONLY | — | Chủ dự án giao phần nghiệp vụ | 2026-09-24 Claude |
 | P5 | BLOCKED | `rbac/p5` | P3 DEPLOYED | 2026-09-24 Claude |
@@ -37,6 +38,7 @@ _(chưa có)_
 
 ## Nhật ký
 
+- 2026-09-26 · Claude · Chủ dự án xác nhận "P1 deployed OK" lúc 2026-09-26 11:40 → P1 DEPLOYED. Cửa sổ SHADOW (D8): 2026-09-26 11:40 → 2026-10-26 11:40. Tách P2 thành P2.0 (code, READY ngay) và P2 ENFORCE (sau SHADOW).
 - 2026-09-26 · Claude · Theo lệnh Chủ dự án: merge --no-ff rbac/p1 vào main (912c104), push origin main. Ghi D8 = SHADOW 30 ngày; D9 = theo dõi log rồi quyết.
 - 2026-09-26 · Claude · Audit P1 vòng 2: AUDIT_PASS. Chạy lại trên DB copy vừa reset: B1, M2, D6b, D12, E4 đều đạt với 7 user thật (tạo đợt đánh giá 360 thật để test E4). Metadata 630 route, 154/154 cặp decorator cũ/mới khớp. Quét bề mặt ẩn danh phát hiện E5 (watermark B2B) và E6 (NPL portal NCC), đều do matrix của Claude; không hỏng khi deploy P1, đã đưa vào P2.0 bắt buộc trước ENFORCE.
 - 2026-09-26 · Antigravity · Đã hoàn thành sửa toàn bộ R0–R7 theo AUDIT_P1.md mục 4 theo đúng thứ tự 8 commit riêng biệt (R0-wip, R1-B1 leave whitelist, R2-M2 designs RequirePermission, R3-D6b products PRODUCT:view, R4-D12 HR RequirePermission, R5-E4 reviews self-service, R6-m1..m4 scripts & 49 routes in matrix & transition pairs check-rbac, R7-M3 acceptance suite). Reset DB bằng pgenv.sh reset trước khi chạy, 12/12 ACCEPTANCE P1 + 9/9 PUB PASS trên user thật (cattuong, sales01, lou, admin). Nộp lại REPORT_P1.md (vòng 2), chuyển trạng thái P1 sang SUBMITTED.

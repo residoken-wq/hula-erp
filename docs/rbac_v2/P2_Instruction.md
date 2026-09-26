@@ -7,6 +7,11 @@
 
 ## P2.0 Việc code bắt buộc trước khi được bật ENFORCE (Antigravity, nhánh `rbac/p2`)
 
+**Trạng thái:** READY từ 2026-09-26. Làm **song song** trong lúc SHADOW chạy. Tạo nhánh `rbac/p2` từ `main`.
+- Không được gỡ chặn ENFORCE trong `RbacModeService` ở P2.0. Việc đó là P2.3, chỉ làm sau khi checklist P2.2 đã ký.
+- Test trên `test-env` (reset trước khi test). Nộp `REPORT_P2.0.md`, điền dòng `P2-00a..c` trong ACCEPTANCE.
+- Mọi đổi quyền ở P2.0 chỉ ảnh hưởng tới SHADOW. Sau khi deploy P2.0, không có ai bị chặn thêm.
+
 | # | Việc | Chi tiết | Nghiệm thu |
 |---|---|---|---|
 | P2.0-a | E5: watermark B2B | `GET /upload/watermark/b2b/config`: bỏ `@Perm('CMS','view')`, gắn `@Public()`. Chỉ route GET này; các route POST watermark giữ `CMS` | Không token → 200; `rbac_access_logs` không còn `DENY_NO_AUTH` cho route này |
