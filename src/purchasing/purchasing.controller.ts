@@ -1,6 +1,6 @@
 import { Perm } from '../auth/permissions.decorator';
 import { Public } from '../auth/public.decorator';
-import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
 import { PurchasingService } from './purchasing.service';
 
 @Controller('purchasing')
@@ -85,7 +85,7 @@ export class PurchasingController {
   @Get('supplier-portal/:uuid/outsourcing-materials/:poId')
   getSupplierPortalOutsourcingMaterials(
     @Param('uuid') uuid: string,
-    @Param('poId') poId: number,
+    @Param('poId', ParseIntPipe) poId: number,
   ) {
     return this.s.getSupplierPortalOutsourcingMaterials(uuid, poId);
   }
