@@ -59,12 +59,38 @@ export class ChatbotAdminConfigController {
       seedV1At = null;
     }
 
+    let schemaOk = false;
+    try {
+      const expectedObjects = [
+        'chatbot_conversations',
+        'chatbot_sessions',
+        'chatbot_messages',
+        'chatbot_briefs',
+        'chatbot_consents',
+        'chatbot_attachments',
+        'chatbot_requests',
+        'chatbot_tickets',
+        'chatbot_outbox',
+        'chatbot_audit_events',
+        'chatbot_request_seq',
+        'chatbot_ticket_seq',
+      ];
+      const res = await this.dataSource.query(
+        `SELECT count(*)::int as cnt FROM pg_class WHERE relname = ANY($1) AND relkind IN ('r', 'p', 'S')`,
+        [expectedObjects],
+      );
+      const count = Number(res[0]?.cnt || 0);
+      schemaOk = count === expectedObjects.length;
+    } catch {
+      schemaOk = false;
+    }
+
     return {
       llm_provider: provider,
       llm_key_configured: keyConfigured,
       llm_calls_today: callsToday,
       seed_v1_at: seedV1At,
-      schema_ok: true,
+      schema_ok: schemaOk,
     };
   }
 }
