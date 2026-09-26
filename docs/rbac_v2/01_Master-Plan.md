@@ -104,6 +104,7 @@ Khoá `RBAC_MODE` trong bảng `system_configs`: `OFF` | `SHADOW` | `ENFORCE`.
 | I-17 ⚠ | P2 ENFORCE | Nhân sự **không phải admin** đang làm lương, chấm công hộ, duyệt phép | Theo D7 chỉ Admin thao tác hồ sơ người khác. Nhóm nào đang có quyền HR mà Chủ dự án bỏ đi thì mất các thao tác này | CAO nếu có | REPORT P1 liệt kê nhóm đang có HR; Chủ dự án quyết bỏ hay giữ trước ENFORCE |
 | I-18 ⚠ | P2 ENFORCE | Kế toán (nhóm Accounting_manager: FINANCE=xem, PURCHASE=không) | Hiện vẫn ghi thanh toán được vì route chỉ kiểm đăng nhập. Sau P1 cần FINANCE:create + PURCHASE:view. Không tick thêm thì mất quy trình thanh toán công nợ NCC | CAO | Chủ dự án tick quyền trước ENFORCE (P1 Phụ lục B) |
 | I-19 ⚠ | **P1 deploy** (chặn thật, không qua SHADOW — D12) | Người không có quyền HR gọi API HR cũ (hồ sơ, chấm công, nghỉ phép, lương, tài sản, đánh giá) | 403 ngay khi deploy P1. Chỉ nhóm Admin (admin, thuhang) dùng được; nhân viên dùng /hr/me | THẤP (không ai đang dùng hợp lệ) | Ai đang mở ERP bản cũ cần F5 |
+| I-20 ⚠ | P2 ENFORCE | Nhà cung cấp dùng portal PO (xem danh sách NPL gia công) và khách xem cấu hình B2B trên website | Hai route ẩn danh bị matrix gán nhầm (E5, E6): nếu bật ENFORCE trước khi sửa, NCC không xem được NPL và watermark B2B mất | CAO | P2.0-a, P2.0-b bắt buộc trước ENFORCE |
 
 ## 6. Quyết định cần chủ dự án chốt
 

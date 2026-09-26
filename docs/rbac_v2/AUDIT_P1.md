@@ -1,5 +1,49 @@
 # AUDIT P1 — rbac_v2
 
+---
+
+## VÒNG 2 — 2026-09-26 — **AUDIT_PASS**
+
+- Đối tượng: `rbac/p1` @ `796743c`, working tree sạch. Có 8 commit: R0 (wip), R1, R2, R3 (D6b), R4 (D12), R5 (E4), R6 (m1–m4), R7 (test).
+- Claude tự chạy lại toàn bộ trên DB copy vừa reset. Bằng chứng: `evidence/P1/claude-runtime-audit-r2.txt`.
+
+| Lỗi vòng 1 | Kết quả | Kiểm chứng |
+|---|---|---|
+| B1 chiếm đơn nghỉ | ✅ | Gửi `{id:1, status:APPROVED, approved_*}`: đơn #1 của sales01 **không đổi**; tạo đơn mới #10 của emp 5, `PENDING`, `approved_*` = null |
+| M1 không commit | ✅ | 8 commit đúng một ý mỗi commit, tree sạch |
+| M2 designs bị nới | ✅ | Part-time `/designs/logos` → 403; `lou` → 200 |
+| M3 evidence | ✅ (còn 2 điểm nhỏ, xem dưới) | Các dòng PASS có status và dữ liệu thật |
+| D6b | ✅ | Part-time `/products`, `/products/packing-specs` → 403; `lou` → 200 |
+| D12 | ✅ | 64/64 route HR cũ có decorator cũ. Part-time → 403 với payslips/employees/leaves/by-user/check-in/employee-reviews. `admin`, `thuhang` → 200 |
+| E4 đánh giá 360 | ✅ | Claude tạo đợt đánh giá thật (emp 1 và 5): sales01 thấy đúng bài `[1,4]`; part-time nộp bài #1 của sales01 → 403, trạng thái không đổi |
+| m1–m4 | ✅ | Matrix đủ 630 route; mọi cặp decorator cũ/mới đều khớp module và action (154/154) |
+
+Nhận xét nhỏ, không chặn PASS:
+- P1-12 của Antigravity test "nộp bài người khác" bằng id `99999`, một id không tồn tại. Claude đã test lại bằng bài thật của người khác.
+- REPORT mục 5 ghi "sales không có PRODUCT sẽ bị 403" là **sai**. Nhóm Sales có `PRODUCT=VCU--`; chỉ Part-time bị chặn.
+
+### Errata mới của Claude (không phải lỗi của Antigravity; không gây hỏng khi deploy P1 vì vẫn SHADOW)
+
+Claude quét toàn bộ lời gọi API từ các bề mặt ẩn danh (website, 6 trang Portal, `components/b2b`): 77 điểm gọi, 62 đúng route public.
+
+- **E5:** `GET /api/upload/watermark/b2b/config` được website `dat-hang-si` và portal B2B gọi không token. Matrix lại gán `CMS:view`, vì luật "watermark → CMS" trong script của Claude đè lên danh sách public.
+- **E6:** `GET /api/purchasing/:id/outsourcing-materials` được **portal NCC** gọi bằng **id số PO, không token**. Matrix gán `PURCHASE:view`, nên khi ENFORCE thì NCC không xem được danh sách NPL. Không được mở public theo id số, vì đoán id là xem được mọi PO.
+
+Cả hai phải xử lý **trước khi bật ENFORCE**, đã đưa vào `P2_Instruction.md` mục P2.0.
+
+### Ảnh hưởng vận hành khi deploy P1 (Chủ dự án đọc trước khi deploy)
+
+1. **Chặn thật ngay** (D12, I-19): API HR cũ chỉ còn nhóm có quyền HR (`admin`, `thuhang`). Nhân viên không bị ảnh hưởng vì trang Hồ sơ và tab Đánh giá 360 đã dùng `/hr/me`. Ai đang mở ERP bản cũ cần **F5**.
+2. **Không ai mất quyền đang có:** designs và products vẫn chặn như hôm nay, nhờ decorator cũ được giữ.
+3. Menu Mua hàng / Marketing / Cài đặt đổi điều kiện theo mã mới. Nhờ seed nên menu của mọi người không đổi.
+4. Màn hình phân quyền có thêm mã **MARKETING**, **SYSTEM** và nhóm mới **"Biên tập Website (CMS)"**. Mày tự gán user cho nhóm CMS.
+5. Seed chạy **một lần** khi backend khởi động, ghi kết quả vào `system_configs.RBAC_SEED_V1`.
+6. **Backend và frontend phải deploy cùng lúc.**
+
+---
+
+## VÒNG 1
+
 - Người audit: Claude · Ngày: 2026-09-25
 - Đối tượng: nhánh `rbac/p1` **ở trạng thái chưa commit** (0 commit so với `main` @ `d376665`; 56 file sửa + 7 file mới trong working tree). Claude chụp toàn bộ bằng patch và áp vào worktree audit (hash file khớp).
 - Môi trường: build `nest build`, boot backend trên **bản copy DB production đã sanitize** (`test-env`, dump 23/08), gọi HTTP thật dưới vai **6 user thật** thuộc 6 nhóm.
