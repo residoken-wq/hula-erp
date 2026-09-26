@@ -449,6 +449,7 @@ Khi cần `position: sticky`, phải reset `overflow` trên **tất cả parent 
 - [ ] Trả về default values khi không có data
 - [ ] Cập nhật `public.controller.ts` nếu field mới cần hiển thị trên website
 - [ ] Thêm key mới vào `cmsKeys` array trong `getSettings()`
+- [ ] **Route mới hoặc route đổi quyền → cập nhật `docs/rbac_v2/route-matrix.csv` trong CÙNG commit** (xem mục "RBAC v2" bên dưới). Chạy `node scripts/check-rbac.js` phải exit 0
 
 ### Deploy:
 - [ ] Commit và push code
@@ -482,6 +483,24 @@ Khi thêm trường upload ảnh mới, luôn thêm ghi chú kích thước tron
 ```
 
 ---
+
+## 🔒 RBAC v2 — Route matrix là spec bắt buộc (từ 2026-09-26)
+
+> Chủ dự án duyệt ngày 2026-09-26. Mục này **ưu tiên hơn** phần "Permission & Authorization Convention" bên dưới nếu hai phần mâu thuẫn. Chi tiết: `docs/rbac_v2/`.
+
+1. **Mọi route API phải có một dòng trong `docs/rbac_v2/route-matrix.csv`**, và dòng đó phải khớp decorator trong code (cả hạng lẫn quyền). `npm run qa` (qua `scripts/check-rbac.js`) sẽ **FAIL** khi:
+   - route không có decorator phân hạng (`UNCLASSIFIED`);
+   - route có hai hạng không phải cặp chuyển tiếp hợp lệ (`MULTI`);
+   - code và matrix lệch hạng (`TIER_MISMATCH`) hoặc lệch quyền (`PERM_MISMATCH`);
+   - route có trong code mà không có trong matrix, hoặc ngược lại.
+2. **Sửa code và matrix trong cùng một commit.** Không được sửa matrix cho "khớp" để qua QA nếu chưa hiểu vì sao lệch. Gặp chỗ không rõ thì dừng và hỏi.
+3. Route mới gắn **một** decorator ở method:
+   - `@Public()`: không cần đăng nhập (website, portal, webhook). Phải được Chủ dự án/Claude duyệt.
+   - `@AuthOnly()`: chỉ cần đăng nhập.
+   - `@Perm('MODULE', 'view'|'create'|'update'|'delete')` hoặc `@AnyPerm([...], [...])`: cần quyền module.
+   - **Không** dùng `@RequirePermission` cho route mới. Chỉ giữ nó ở những route đang có (cặp chuyển tiếp).
+4. API được **website hoặc portal** (khách, NCC, ứng viên) gọi không kèm token phải là `@Public()`. `node scripts/rbac/check-public-callers.js` phải exit 0.
+5. Mã module hợp lệ lấy từ `src/auth/permission-catalog.ts` (có thêm PURCHASE, MARKETING, SYSTEM, CMS so với bảng cũ bên dưới).
 
 ## 🔒 Permission & Authorization Convention
 
