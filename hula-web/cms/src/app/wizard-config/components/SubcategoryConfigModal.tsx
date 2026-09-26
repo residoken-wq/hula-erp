@@ -370,7 +370,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
 
     // Get frames list for step's required_frame_id dropdown
     const frameOptions = baseImages.map(f => ({
-        label: `${f.label || f.id} (Layer: ${f.layer ?? 0})`,
+        label: `${f.label || f.id} (Layer: ${(f as any).layer ?? 0})`,
         value: f.id,
     }));
 
@@ -481,7 +481,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                         {
                             key: '0',
                             label: (
-                                <Space orientation="horizontal" size={6}>
+                                <Space direction="horizontal" size={6}>
                                     <span>🖼️ Image Base & Layers</span>
                                     <Badge count={baseImages.length} style={{ backgroundColor: '#0284c7' }} />
                                 </Space>
@@ -513,7 +513,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                         {
                             key: '1',
                             label: (
-                                <Space orientation="horizontal" size={6}>
+                                <Space direction="horizontal" size={6}>
                                     <span>🌐 Frame Dựng 360° (Đổi Màu HEX)</span>
                                     <Badge
                                         count={frames360.length}
@@ -533,7 +533,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                         {
                             key: '2',
                             label: (
-                                <Space orientation="horizontal" size={6}>
+                                <Space direction="horizontal" size={6}>
                                     <span>⚙️ Các Bước Tùy Biến (B1-B6)</span>
                                     <Badge
                                         count={(form.getFieldValue('customization_steps') || data.customization_steps || []).length}
@@ -815,7 +815,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                         {
                             key: '3',
                             label: (
-                                <Space orientation="horizontal" size={6}>
+                                <Space direction="horizontal" size={6}>
                                     <span>💰 Bảng Giá Bậc Thang (Tiers)</span>
                                     <Badge
                                         count={(form.getFieldValue('price_tiers') || data.price_tiers || []).length}

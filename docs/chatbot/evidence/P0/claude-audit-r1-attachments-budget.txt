@@ -1,0 +1,8 @@
+[CB0-18] input JPEG has exif: true bytes 326
+[CB0-18] store(photo.jpg) THREW: (0 , sharp_1.default) is not a function
+[CB0-18] evil.png (html body): ATTACHMENT_TYPE_NOT_ALLOWED
+[CB0-18] photo.png (jpeg body): ATTACHMENT_TYPE_MISMATCH
+[CB0-18] big.pdf (11MB): ATTACHMENT_TOO_LARGE
+[CB0-18] x.svg: ATTACHMENT_TYPE_NOT_ALLOWED
+[CB0-18] pdf stored identical: true | name x.pdf
+[CB0-20] real DB parallel results [true,true,false,true] final value 3

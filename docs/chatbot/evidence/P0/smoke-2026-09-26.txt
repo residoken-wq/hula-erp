@@ -1,0 +1,205 @@
+================================================================
+CỪU HULA (CHATBOT) P0 SMOKE TEST — 2026-09-26T11:05:04.159Z
+================================================================
+
+--- [CB0-01] Checking database schema & sequences ---
+Found 10 chatbot tables: chatbot_attachments, chatbot_audit_events, chatbot_briefs, chatbot_consents, chatbot_conversations, chatbot_messages, chatbot_outbox, chatbot_requests, chatbot_sessions, chatbot_tickets
+Found 4 chatbot sequences: chatbot_audit_events_id_seq, chatbot_outbox_id_seq, chatbot_request_seq, chatbot_ticket_seq
+CB0-01 Result: PASS
+
+--- [CB0-02] Testing public endpoints with enabled=false ---
+GET /api/public/chat/config -> HTTP 200 {"enabled":false}
+POST /api/public/chat/sessions -> HTTP 503 {"code":"CHATBOT_DISABLED"}
+GET /api/public/chat/ping -> HTTP 503 {"code":"CHATBOT_DISABLED"}
+CB0-02 Result: PASS
+
+--- [CB0-03] Checking permission seed & group_permissions ---
+CHATBOT_SEED_V1 record: {"at":"2026-09-26T10:51:42.546Z","changes":[{"group_id":1,"group_name":"Sales","flags":"VCU--"},{"group_id":2,"group_name":"Admin","flags":"VCUD$"},{"group_id":3,"group_name":"Planning Manager","flags":"VCUD-"},{"group_id":4,"group_name":"Accounting_manager","flags":"V----"},{"group_id":5,"group_name":"Marketing_Design","flags":"-----"},{"group_id":6,"group_name":"Partime theo giờ","flags":"-----"}]}
+Found 6 group_permissions for CHATBOT:
+  Group 1 (Sales): VCU--
+  Group 2 (Admin): VCUD$
+  Group 3 (Planning Manager): VCUD-
+  Group 4 (Accounting_manager): V----
+  Group 5 (Marketing_Design): -----
+  Group 6 (Partime theo giờ): -----
+CB0-03 Result: PASS
+
+--- [CB0-08] Testing admin route anonymous protection ---
+Anonymous GET /api/chatbot/admin/config -> HTTP 401
+Anonymous GET /api/chatbot/admin/status -> HTTP 401
+CB0-08 Result: PASS
+
+--- [CB0-09] Testing admin authorization (Sales/Lou 403 vs Admin 200) ---
+sales01 login -> HTTP 201
+Sales GET /api/chatbot/admin/config -> HTTP 403
+Sales PUT /api/chatbot/admin/config -> HTTP 403
+Lou GET /api/chatbot/admin/config -> HTTP 403
+admin login -> HTTP 201
+Admin GET /api/chatbot/admin/config -> HTTP 200
+CB0-09 Result: PASS
+
+--- [CB0-10] Testing config validation on PUT /api/chatbot/admin/config ---
+PUT with unknown field llm_api_key -> HTTP 400 {"message":"Unknown field: llm_api_key","error":"Bad Request","statusCode":400}
+PUT with greeting={abc} -> HTTP 400 {"message":"greeting must be <= 300 chars and only contain placeholders {short_name} or {display_name}","error":"Bad Request","statusCode":400}
+PUT with display_name=A -> HTTP 400 {"message":"display_name must be longer than or equal to 2 characters","error":"Bad Request","statusCode":400}
+PUT with bad hotline -> HTTP 400 {"message":"Validation failed","error":"Bad Request","statusCode":400}
+PUT with bad email -> HTTP 400 {"message":"each value in notify_emails must be an email","error":"Bad Request","statusCode":400}
+PUT with avatar=//evil.example -> HTTP 400 {"message":"avatar_url must start with / (not //) or https://","error":"Bad Request","statusCode":400}
+PUT with features.price_estimate=true -> HTTP 200 features={"price_estimate":false,"order_lookup":false,"attachments":false,"sample_request":false}
+CB0-10 Result: PASS
+
+--- [CB0-04] Testing session creation & token hashing ---
+POST /api/public/chat/sessions -> HTTP 201 public_code=NV9DFXQP
+DB session verification: token_hash length=64, ip_hash length=64, public_code=NV9DFXQP
+CB0-04 Result: PASS
+
+--- [CB0-05] Testing ping with valid/missing/invalid/revoked token ---
+Ping with valid token -> HTTP 200 {"ok":true,"public_code":"NV9DFXQP"}
+Ping with missing token -> HTTP 401 {"code":"CHAT_SESSION_INVALID"}
+Ping with invalid token -> HTTP 401 {"code":"CHAT_SESSION_INVALID"}
+Ping with revoked token -> HTTP 401 {"code":"CHAT_SESSION_INVALID"}
+CB0-05 Result: PASS
+
+--- [CB0-06] Testing rate limit: 21 calls in 5 minutes ---
+Call 21 received HTTP 429: {"code":"RATE_LIMITED","retry_after_s":300}
+CB0-06 Result: PASS
+
+--- [CB0-07] Testing shared IP rate limit with 2 different sessions ---
+CB0-07 Result: PASS
+
+--- [CB0-11] Testing public config view whitelist ---
+Public config keys: enabled, display_name, short_name, avatar_url, greeting, contact_channels, working_hours, is_open_now, response_sla_text, features
+CB0-11 Result: PASS
+
+--- [CB0-12] Testing updating assistant name & audit event ---
+PUT updated name -> HTTP 200
+Public config after update -> short_name=Cừu Hula Test, greeting="Dạ em là Cừu Hula Test, trợ lý AI của HULA. Anh/chị cần hỗ trợ gì ạ?"
+Audit event recorded: {"op":"config.update","object_type":"system_config","object_id":"CHATBOT_CONFIG","after_ref":{"changed_fields":["short_name","greeting"]}}
+CB0-12 Result: PASS
+
+--- [CB0-13] Running check-no-hardcoded-name script ---
+✅ check-no-hardcoded-name: Scanned 31 files. No hardcoded name outside defaults.
+CB0-13 Result: PASS
+
+--- [CB0-14] Testing corrupted config fallback & resilience (waiting 32s for cache expiry) ---
+Corrupted DB record written. Waiting 32s for 30s cache TTL to expire...
+Public config when DB config is corrupted -> HTTP 200 enabled=false (fallback from defaults means enabled=false)
+CB0-14 Result: PASS
+
+--- [CB0-15] Testing contact channels fallback to website settings ---
+DB contact_phone in system_configs: "0983882210 - 0983796654"
+Public config hotline fallback: "0983882210 - 0983796654"
+CB0-15 Result: PASS
+
+--- [CB0-16] Testing working hours & notify user ids persistence ---
+Saved custom working hours -> HTTP 200
+CB0-16 Result: PASS
+
+--- [CB0-17] Running working-hours Jest unit test suite ---
+
+CB0-17 Result: PASS
+
+--- [CB0-18] Running attachments Jest unit test suite (13 real store() tests) ---
+
+CB0-18 Result: PASS
+
+--- [CB0-19] Running llm-provider Jest unit test suite ---
+
+CB0-19 Result: PASS
+
+--- [CB0-20] Running llm-budget Jest unit test suite ---
+
+CB0-20 Result: PASS
+
+--- [CB0-21] Testing GET /api/chatbot/admin/status ---
+Status response -> HTTP 200 {"llm_provider":"fake","llm_key_configured":false,"llm_calls_today":0,"seed_v1_at":"2026-09-26T10:51:42.546Z","schema_ok":true}
+CB0-21 Result: PASS
+
+--- [CB0-22] Running check-no-secrets script ---
+✅ check-no-secrets: Scanned 38 files. No secrets or real emails detected.
+CB0-22 Result: PASS
+
+--- [CB0-23] Checking backend and smoke output for secret patterns ---
+Logs contain detected raw secrets/tokens: false
+CB0-23 Result: PASS
+
+--- [CB0-24] Testing hostile config anonymous write & on-read sanitization (M1, m1) ---
+Anonymous POST /api/system/config CHATBOT_CONFIG -> HTTP 201
+Waiting 32s for 30s cache TTL to expire...
+Public view after hostile write: HTTP 200
+  avatar_url: "/images/chatbot/cuu-hula-192.webp"
+  hotline: "0983882210 - 0983796654"
+  zalo_url: ""
+  messenger_url: "https://facebook.com/nemmamnon"
+  response_sla_text length: 0
+  mon: {"off":false,"from":"08:00","to":"17:30"}
+  tue: {"off":false,"from":"08:00","to":"17:30"}
+CB0-24 Result: PASS
+
+--- [CB0-25] Real store() execution: JPEG EXIF stripping & PNG 3000px downscaling ---
+PNG before resize: width=3000, height=100, size=6219 bytes
+PNG after store() resize: width=2560, height=85, size=4564 bytes
+JPEG before store(): format=jpeg, hasExif=true, exifLength=208
+JPEG after store(): format=jpeg, hasExif=false
+CB0-25 Result: PASS
+
+--- [CB0-26] Verifying pg_indexes stability & zero duplicate column indexes (m4) ---
+Total chatbot indexes in PostgreSQL: 25
+  [chatbot_attachments] PK_c2f8aad1de1f49a7176a7399fa1 -> CREATE UNIQUE INDEX "PK_c2f8aad1de1f49a7176a7399fa1" ON public.chatbot_attachments USING btree (id)
+  [chatbot_attachments] idx_chatbot_attachments_conversation_id -> CREATE INDEX idx_chatbot_attachments_conversation_id ON public.chatbot_attachments USING btree (conversation_id)
+  [chatbot_audit_events] PK_72f82b1c9e358398d405d8750cb -> CREATE UNIQUE INDEX "PK_72f82b1c9e358398d405d8750cb" ON public.chatbot_audit_events USING btree (id)
+  [chatbot_audit_events] idx_chatbot_audit_events_object -> CREATE INDEX idx_chatbot_audit_events_object ON public.chatbot_audit_events USING btree (object_type, object_id)
+  [chatbot_briefs] PK_0d9282f3066b5f734a2fb119795 -> CREATE UNIQUE INDEX "PK_0d9282f3066b5f734a2fb119795" ON public.chatbot_briefs USING btree (id)
+  [chatbot_briefs] uq_chatbot_briefs_conv_revision -> CREATE UNIQUE INDEX uq_chatbot_briefs_conv_revision ON public.chatbot_briefs USING btree (conversation_id, revision)
+  [chatbot_consents] PK_41b2714415841d57f03391a6e13 -> CREATE UNIQUE INDEX "PK_41b2714415841d57f03391a6e13" ON public.chatbot_consents USING btree (id)
+  [chatbot_consents] idx_chatbot_consents_conversation_id -> CREATE INDEX idx_chatbot_consents_conversation_id ON public.chatbot_consents USING btree (conversation_id)
+  [chatbot_conversations] PK_b0b9e3727249e6c93ac30c14bca -> CREATE UNIQUE INDEX "PK_b0b9e3727249e6c93ac30c14bca" ON public.chatbot_conversations USING btree (id)
+  [chatbot_conversations] idx_chatbot_conversations_last_message_at -> CREATE INDEX idx_chatbot_conversations_last_message_at ON public.chatbot_conversations USING btree (last_message_at)
+  [chatbot_conversations] uq_chatbot_conversations_public_code -> CREATE UNIQUE INDEX uq_chatbot_conversations_public_code ON public.chatbot_conversations USING btree (public_code)
+  [chatbot_messages] PK_fa71cffb10870b351cfad908cfc -> CREATE UNIQUE INDEX "PK_fa71cffb10870b351cfad908cfc" ON public.chatbot_messages USING btree (id)
+  [chatbot_messages] idx_chatbot_messages_conv_created -> CREATE INDEX idx_chatbot_messages_conv_created ON public.chatbot_messages USING btree (conversation_id, created_at)
+  [chatbot_messages] uq_chatbot_messages_conv_client_msg -> CREATE UNIQUE INDEX uq_chatbot_messages_conv_client_msg ON public.chatbot_messages USING btree (conversation_id, client_msg_id)
+  [chatbot_outbox] PK_8b9dd853e40b60f6c87f8fa6037 -> CREATE UNIQUE INDEX "PK_8b9dd853e40b60f6c87f8fa6037" ON public.chatbot_outbox USING btree (id)
+  [chatbot_outbox] idx_chatbot_outbox_status_next -> CREATE INDEX idx_chatbot_outbox_status_next ON public.chatbot_outbox USING btree (status, next_attempt_at)
+  [chatbot_requests] PK_21528d788bca4c66f0c612ade53 -> CREATE UNIQUE INDEX "PK_21528d788bca4c66f0c612ade53" ON public.chatbot_requests USING btree (id)
+  [chatbot_requests] uq_chatbot_requests_code -> CREATE UNIQUE INDEX uq_chatbot_requests_code ON public.chatbot_requests USING btree (code)
+  [chatbot_requests] uq_chatbot_requests_idempotency_key -> CREATE UNIQUE INDEX uq_chatbot_requests_idempotency_key ON public.chatbot_requests USING btree (idempotency_key)
+  [chatbot_sessions] PK_cceaa5ac7326e15858987f9dde9 -> CREATE UNIQUE INDEX "PK_cceaa5ac7326e15858987f9dde9" ON public.chatbot_sessions USING btree (id)
+  [chatbot_sessions] idx_chatbot_sessions_conversation_id -> CREATE INDEX idx_chatbot_sessions_conversation_id ON public.chatbot_sessions USING btree (conversation_id)
+  [chatbot_sessions] uq_chatbot_sessions_token_hash -> CREATE UNIQUE INDEX uq_chatbot_sessions_token_hash ON public.chatbot_sessions USING btree (token_hash)
+  [chatbot_tickets] PK_d2d2da36402686de1b30db7d3a2 -> CREATE UNIQUE INDEX "PK_d2d2da36402686de1b30db7d3a2" ON public.chatbot_tickets USING btree (id)
+  [chatbot_tickets] uq_chatbot_tickets_code -> CREATE UNIQUE INDEX uq_chatbot_tickets_code ON public.chatbot_tickets USING btree (code)
+  [chatbot_tickets] uq_chatbot_tickets_idempotency_key -> CREATE UNIQUE INDEX uq_chatbot_tickets_idempotency_key ON public.chatbot_tickets USING btree (idempotency_key)
+CB0-26 Result: PASS
+
+================================================================
+SMOKE TEST SUMMARY (CB0-01 .. CB0-26)
+================================================================
+  CB0-01: PASS
+  CB0-02: PASS
+  CB0-03: PASS
+  CB0-08: PASS
+  CB0-09: PASS
+  CB0-10: PASS
+  CB0-04: PASS
+  CB0-05: PASS
+  CB0-06: PASS
+  CB0-07: PASS
+  CB0-11: PASS
+  CB0-12: PASS
+  CB0-13: PASS
+  CB0-14: PASS
+  CB0-15: PASS
+  CB0-16: PASS
+  CB0-17: PASS
+  CB0-18: PASS
+  CB0-19: PASS
+  CB0-20: PASS
+  CB0-21: PASS
+  CB0-22: PASS
+  CB0-23: PASS
+  CB0-24: PASS
+  CB0-25: PASS
+  CB0-26: PASS
+
+OVERALL SMOKE RESULT: ALL 26 PASS ✅ (26/26)

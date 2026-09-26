@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * Check if user has CMS permission.
      * Looks into user.group.permissions for "CMS" module and "can_view" = true
      */
-    const checkCmsPermission = (u: User) => {
+    const checkCmsPermission = (u: User | null) => {
         if (!u || !u.group || !u.group.permissions) return false;
 
         // Find CMS module permission

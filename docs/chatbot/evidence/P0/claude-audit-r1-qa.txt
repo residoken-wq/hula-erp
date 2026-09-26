@@ -1,0 +1,19 @@
+======================================================
+✅ RBAC CHECK PASSED: 100% routes strictly conform to route-matrix spec.
+======================================================
+
+======================================================
+
+
+✅ check-no-secrets: Scanned 37 files. No secrets or real emails detected.
+
+✅ check-no-hardcoded-name: Scanned 30 files. No hardcoded name outside defaults.
+PASS src/chatbot/__tests__/attachments.spec.ts (20.163 s)
+PASS src/chatbot/__tests__/chatbot-config.spec.ts (20.169 s)
+
+Test Suites: 6 passed, 6 total
+Tests:       33 passed, 33 total
+Snapshots:   0 total
+Time:        21.749 s
+Ran all test suites matching /src\\chatbot/i.
+tsc_exit=0

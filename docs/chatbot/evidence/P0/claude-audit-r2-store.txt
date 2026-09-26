@@ -1,0 +1,5 @@
+[CB0-25] input exif true
+[CB0-25] stored JPEG exif present: false
+[CB0-25] PNG 3000x1000 -> 2560x853 png
+[CB0-25] p.png (jpeg body) ATTACHMENT_TYPE_MISMATCH
+[CB0-25] big.pdf 11MB ATTACHMENT_TOO_LARGE
