@@ -1,0 +1,23 @@
+=== EVIDENCE P2-00c: Quét bề mặt ẩn danh (check-public-callers.js) ===
+Timestamp: 2026-09-26T07:11:42.158Z
+Command: node scripts/rbac/check-public-callers.js
+Exit Code: 0
+Output:
+======================================================
+           RBAC V2 PUBLIC CALLERS CHECKER             
+======================================================
+
+Scanning 126 files across public callers:
+  - hula-web/website/src
+  - frontend/src/pages/Portal*.tsx
+  - frontend/src/components/b2b
+
+Found 61 public/anonymous API calls.
+
+======================================================
+✅ CHECK-PUBLIC-CALLERS PASSED: 0 mismatched calls across all 61 endpoints.
+======================================================
+
+
+
+Conclusion: PASS

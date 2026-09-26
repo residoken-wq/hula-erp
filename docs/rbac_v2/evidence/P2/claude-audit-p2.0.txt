@@ -1,0 +1,19 @@
+=== CLAUDE AUDIT P2.0 — round 1 (2026-09-26) ===
+Target: rbac/p2 @ 41f644b; nest build; test-env reset (dump 23/08 + sanitize); backend :3999 NODE_ENV=development
+
+--- runtime ---
+E5 anon GET  /api/upload/watermark/b2b/config                       -> 200 (no DENY log)
+E5 anon POST /api/upload/watermark/b2b/config                       -> 201, logged DENY_NO_AUTH (blocked at ENFORCE)
+E6 supplier #17 (uuid 01d122d7…) own PO #596                        -> 200
+E6 supplier #17 -> PO #589 of supplier #5                           -> 404
+E6 unknown uuid                                                     -> 404
+E6 poId "abc"                                                       -> 500   (F2)
+E6 old GET /api/purchasing/:id/outsourcing-materials anon (SHADOW)  -> 200, logged DENY_NO_AUTH
+supplier portal dashboard #17                                       -> 200
+rbac_access_logs after run: DENY_NO_AUTH POST /api/upload/watermark/b2b/config; DENY_NO_AUTH GET /api/purchasing/:id/outsourcing-materials
+
+--- checker mutation tests ---
+M1 matrix R540 -> PERM CMS:view                  : check-public-callers "FAILED: 2 mismatched call(s)", exit 1   OK
+M2 PortalSupplierDashboard back to old route      : check-public-callers "FAILED: 1 mismatched call(s)"            OK
+M3 code @Public -> @Perm('CMS','view'), matrix kept: check-rbac "[TIER_MISMATCH] R540 ..." + "RBAC CHECK PASSED", exit 0;
+                                                    check-public-callers exit 0  -> QA stays green             GAP (F1)

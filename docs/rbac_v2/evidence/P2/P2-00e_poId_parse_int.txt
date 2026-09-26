@@ -1,0 +1,12 @@
+=== EVIDENCE P2-00e: poId không hợp lệ (F2: ParseIntPipe) ===
+Timestamp: 2026-09-26T07:56:00.162Z
+Target URL: GET /api/purchasing/supplier-portal/01d122d7-b9a2-42aa-b964-d64ce66f0cfc/outsourcing-materials/abc
+HTTP Status: 400 (Expected: 400)
+Response Body:
+{
+  "message": "Validation failed (numeric string is expected)",
+  "error": "Bad Request",
+  "statusCode": 400
+}
+
+Evaluation: PASS — NestJS ParseIntPipe properly rejected non-numeric poId with HTTP 400 Bad Request instead of internal server error (500).

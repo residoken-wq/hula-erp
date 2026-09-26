@@ -20,7 +20,7 @@ R018,GET,/api/announcements/user/unread,src/announcements/announcements.controll
 R019,GET,/api/announcements/user/unread-count,src/announcements/announcements.controller.ts:72,getUnreadCount,JWT,AUTH,,NO_CHANGE,THẤP,,Mọi nhân viên đọc thông báo
 R020,POST,/api/announcements/:id/read,src/announcements/announcements.controller.ts:81,markAsRead,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,Soạn thông báo — menu hiện gate USERS
 R021,POST,/api/announcements/user/read-all,src/announcements/announcements.controller.ts:89,markAllAsRead,JWT,PERM,USERS:create,ADD_PERM,TRUNG BÌNH,,Soạn thông báo — menu hiện gate USERS
-R022,GET,/api/test,src/app.controller.ts:6,test,NONE,AUTH,,ADD_LOGIN,CAO,Y,Chưa có mapping
+R022,GET,/api/test,src/app.controller.ts:6,test,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
 R023,POST,/api/auth/login,src/auth/auth.controller.ts:9,login,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
 R024,GET,/api/blogs/categories,src/blogs/blogs.controller.ts:10,getCategories,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,
 R025,POST,/api/blogs/categories,src/blogs/blogs.controller.ts:15,saveCategories,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,
@@ -44,27 +44,27 @@ R042,GET,/api/customers/:id/credits,src/customers/customers.controller.ts:64,get
 R043,POST,/api/customers/:id/credits,src/customers/customers.controller.ts:69,addCredit,JWT,PERM,SALES:create,ADD_PERM,TRUNG BÌNH,,
 R044,GET,/api/customers/:id/portrait-360,src/customers/customers.controller.ts:75,getPortrait360,JWT,PERM,SALES:view,ADD_PERM,TRUNG BÌNH,,
 R045,PUT,/api/customers/:id/portrait-notes,src/customers/customers.controller.ts:80,updatePortraitNotes,JWT,PERM,SALES:update,ADD_PERM,TRUNG BÌNH,,
-R046,GET,/api/designs/logos,src/designs/designs.controller.ts:15,getLogos,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R047,POST,/api/designs/logos,src/designs/designs.controller.ts:21,createLogo,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R048,PUT,/api/designs/logos/:id,src/designs/designs.controller.ts:27,updateLogo,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R049,DELETE,/api/designs/logos/:id,src/designs/designs.controller.ts:33,deleteLogo,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R050,GET,/api/designs/print-designs,src/designs/designs.controller.ts:40,getPrintDesigns,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R051,GET,/api/designs/print-designs/:id,src/designs/designs.controller.ts:46,getPrintDesignById,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R052,POST,/api/designs/print-designs,src/designs/designs.controller.ts:52,createPrintDesign,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R053,PUT,/api/designs/print-designs/:id,src/designs/designs.controller.ts:58,updatePrintDesign,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R054,DELETE,/api/designs/print-designs/:id,src/designs/designs.controller.ts:64,deletePrintDesign,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R055,GET,/api/designs/print-samples,src/designs/designs.controller.ts:71,getPrintSamples,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R056,POST,/api/designs/print-samples,src/designs/designs.controller.ts:77,createPrintSample,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R057,PUT,/api/designs/print-samples/:id/status,src/designs/designs.controller.ts:83,updatePrintSampleStatus,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R058,GET,/api/designs/orders,src/designs/designs.controller.ts:90,getDesignOrders,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R059,GET,/api/designs/orders/:id,src/designs/designs.controller.ts:96,getDesignOrderById,"PERM PRODUCT,can_view",PERM,PRODUCT:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R060,POST,/api/designs/orders,src/designs/designs.controller.ts:102,createDesignOrder,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R061,PUT,/api/designs/orders/:id,src/designs/designs.controller.ts:108,updateDesignOrder,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R062,PUT,/api/designs/orders/:id/status,src/designs/designs.controller.ts:114,updateDesignOrderStatus,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R063,DELETE,/api/designs/orders/:id,src/designs/designs.controller.ts:120,deleteDesignOrder,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R064,POST,/api/designs/orders/:id/items,src/designs/designs.controller.ts:127,addDesignOrderItem,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R065,PUT,/api/designs/order-items/:itemId,src/designs/designs.controller.ts:133,updateDesignOrderItem,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R066,DELETE,/api/designs/order-items/:itemId,src/designs/designs.controller.ts:139,deleteDesignOrderItem,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R046,GET,/api/designs/logos,src/designs/designs.controller.ts:15,getLogos,"PERM PRODUCT,can_view",PERM,PRODUCT:view | PRODUCTION:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R047,POST,/api/designs/logos,src/designs/designs.controller.ts:21,createLogo,"PERM PRODUCT,can_create",PERM,PRODUCT:create | PRODUCTION:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R048,PUT,/api/designs/logos/:id,src/designs/designs.controller.ts:27,updateLogo,"PERM PRODUCT,can_update",PERM,PRODUCT:update | PRODUCTION:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R049,DELETE,/api/designs/logos/:id,src/designs/designs.controller.ts:33,deleteLogo,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete | PRODUCTION:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R050,GET,/api/designs/print-designs,src/designs/designs.controller.ts:40,getPrintDesigns,"PERM PRODUCT,can_view",PERM,PRODUCT:view | PRODUCTION:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R051,GET,/api/designs/print-designs/:id,src/designs/designs.controller.ts:46,getPrintDesignById,"PERM PRODUCT,can_view",PERM,PRODUCT:view | PRODUCTION:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R052,POST,/api/designs/print-designs,src/designs/designs.controller.ts:52,createPrintDesign,"PERM PRODUCT,can_create",PERM,PRODUCT:create | PRODUCTION:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R053,PUT,/api/designs/print-designs/:id,src/designs/designs.controller.ts:58,updatePrintDesign,"PERM PRODUCT,can_update",PERM,PRODUCT:update | PRODUCTION:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R054,DELETE,/api/designs/print-designs/:id,src/designs/designs.controller.ts:64,deletePrintDesign,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete | PRODUCTION:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R055,GET,/api/designs/print-samples,src/designs/designs.controller.ts:71,getPrintSamples,"PERM PRODUCT,can_view",PERM,PRODUCT:view | PRODUCTION:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R056,POST,/api/designs/print-samples,src/designs/designs.controller.ts:77,createPrintSample,"PERM PRODUCT,can_create",PERM,PRODUCT:create | PRODUCTION:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R057,PUT,/api/designs/print-samples/:id/status,src/designs/designs.controller.ts:83,updatePrintSampleStatus,"PERM PRODUCT,can_update",PERM,PRODUCT:update | PRODUCTION:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R058,GET,/api/designs/orders,src/designs/designs.controller.ts:90,getDesignOrders,"PERM PRODUCT,can_view",PERM,PRODUCT:view | PRODUCTION:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R059,GET,/api/designs/orders/:id,src/designs/designs.controller.ts:96,getDesignOrderById,"PERM PRODUCT,can_view",PERM,PRODUCT:view | PRODUCTION:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R060,POST,/api/designs/orders,src/designs/designs.controller.ts:102,createDesignOrder,"PERM PRODUCT,can_create",PERM,PRODUCT:create | PRODUCTION:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R061,PUT,/api/designs/orders/:id,src/designs/designs.controller.ts:108,updateDesignOrder,"PERM PRODUCT,can_update",PERM,PRODUCT:update | PRODUCTION:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R062,PUT,/api/designs/orders/:id/status,src/designs/designs.controller.ts:114,updateDesignOrderStatus,"PERM PRODUCT,can_update",PERM,PRODUCT:update | PRODUCTION:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R063,DELETE,/api/designs/orders/:id,src/designs/designs.controller.ts:120,deleteDesignOrder,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete | PRODUCTION:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R064,POST,/api/designs/orders/:id/items,src/designs/designs.controller.ts:127,addDesignOrderItem,"PERM PRODUCT,can_create",PERM,PRODUCT:create | PRODUCTION:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R065,PUT,/api/designs/order-items/:itemId,src/designs/designs.controller.ts:133,updateDesignOrderItem,"PERM PRODUCT,can_update",PERM,PRODUCT:update | PRODUCTION:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R066,DELETE,/api/designs/order-items/:itemId,src/designs/designs.controller.ts:139,deleteDesignOrderItem,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete | PRODUCTION:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R067,GET,/api/discussions,src/discussions/discussions.controller.ts:9,findAll,NONE,AUTH,,ADD_LOGIN,CAO,,
 R068,GET,/api/discussions/:id,src/discussions/discussions.controller.ts:14,findOne,NONE,AUTH,,ADD_LOGIN,CAO,,
 R069,POST,/api/discussions,src/discussions/discussions.controller.ts:19,create,NONE,AUTH,,ADD_LOGIN,CAO,,
@@ -102,8 +102,8 @@ R100,POST,/api/hr/employees,src/hr/hr.controller.ts:52,createEmployee,JWT,PERM,H
 R101,PUT,/api/hr/employees/:id,src/hr/hr.controller.ts:57,updateEmployee,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
 R102,DELETE,/api/hr/employees/:id,src/hr/hr.controller.ts:62,deleteEmployee,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
 R103,GET,/api/hr/attendances,src/hr/hr.controller.ts:68,findAttendances,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,,
-R104,POST,/api/hr/check-in,src/hr/hr.controller.ts:81,checkIn,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán; Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
-R105,POST,/api/hr/check-out,src/hr/hr.controller.ts:86,checkOut,JWT,PERM,HR:view,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán; Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R104,POST,/api/hr/check-in,src/hr/hr.controller.ts:81,checkIn,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán; Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
+R105,POST,/api/hr/check-out,src/hr/hr.controller.ts:86,checkOut,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,Y,POST nhưng bản chất là đọc/tính toán; Có thể là tự phục vụ của nhân viên (chấm công/nghỉ phép/phiếu lương của mình)
 R106,POST,/api/hr/attendances,src/hr/hr.controller.ts:91,createAttendance,JWT,PERM,HR:create,ADD_PERM,TRUNG BÌNH,,
 R107,PUT,/api/hr/attendances/:id,src/hr/hr.controller.ts:96,updateAttendance,JWT,PERM,HR:update,ADD_PERM,TRUNG BÌNH,,
 R108,DELETE,/api/hr/attendances/:id,src/hr/hr.controller.ts:101,deleteAttendance,JWT,PERM,HR:delete,ADD_PERM,TRUNG BÌNH,,
@@ -538,7 +538,7 @@ R536,POST,/api/upload/watermark/image,src/upload/upload.controller.ts:216,upload
 R537,GET,/api/upload/watermark/config,src/upload/upload.controller.ts:222,getWatermarkConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Watermark website
 R538,POST,/api/upload/watermark/config,src/upload/upload.controller.ts:227,saveWatermarkConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
 R539,POST,/api/upload/watermark/b2b/image,src/upload/upload.controller.ts:234,uploadWatermarkB2BImage,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
-R540,GET,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:240,getWatermarkB2BConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Watermark website
+R540,GET,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:240,getWatermarkB2BConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,E5: Watermark website B2B public config
 R541,POST,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:245,saveWatermarkB2BConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
 R542,POST,/api/upload/watermark/regenerate,src/upload/upload.controller.ts:250,regenerateWatermarks,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
 R543,GET,/api/upload/files/original/:filename,src/upload/upload.controller.ts:256,serveOriginalFile,PUBLIC(@Public),PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
@@ -629,3 +629,4 @@ R627,GET,/api/purchasing/pooled/:id/aggregate,src/purchasing/purchasing.controll
 R628,POST,/api/sales/portal/:uuid/action,src/sales/sales.controller.ts:226,customerAction,JWT,PERM,SALES:update,ADDED_P1,TRUNG BÌNH,,Khách thao tác trên portal bán hàng
 R629,PUT,/api/tasks/:id,src/tasks/tasks.controller.ts:23,update,JWT,AUTH,,ADDED_P1,THẤP,,Cập nhật task cá nhân
 R630,DELETE,/api/tasks/:id,src/tasks/tasks.controller.ts:25,remove,JWT,AUTH,,ADDED_P1,THẤP,,Xóa task cá nhân
+R631,GET,/api/purchasing/supplier-portal/:uuid/outsourcing-materials/:poId,src/purchasing/purchasing.controller.ts:85,getSupplierPortalOutsourcingMaterials,NONE,PUBLIC,,ADDED_P2,THẤP,,E6: NPL trên portal NCC theo uuid

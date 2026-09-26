@@ -77,6 +77,21 @@ function extractStringArg(decoratorText) {
   return match ? match[1] : '';
 }
 
+function legacyActionToModern(act) {
+  if (act && act.startsWith('can_')) return act.slice(4);
+  return act || '';
+}
+
+function normalizePerm(permStr) {
+  if (!permStr) return '';
+  return permStr
+    .split('|')
+    .map(p => p.trim())
+    .filter(Boolean)
+    .sort()
+    .join(' | ');
+}
+
 function runCheck() {
   console.log('======================================================');
   console.log('               RBAC V2 ROUTE CHECKER                  ');
@@ -143,6 +158,9 @@ function runCheck() {
                 rbacDecs.push({ type: 'APIKEY', raw: 'ApiKeyGuard(class)' });
               }
 
+              let modernPerm = null;
+              let legacyPerm = null;
+
               for (const d of decs) {
                 const text = d.expression.getText(sf);
                 if (text.startsWith('Public(') || text === 'Public') {
@@ -150,14 +168,27 @@ function runCheck() {
                 } else if (text.startsWith('AuthOnly(') || text === 'AuthOnly') {
                   rbacDecs.push({ type: 'AUTH', raw: text });
                 } else if (text.startsWith('Perm(')) {
-                  const m = text.match(/Perm\(\s*['"]([^'"]+)['"]/);
-                  rbacDecs.push({ type: 'PERM', raw: text, modules: m ? [m[1]] : [] });
+                  const m = text.match(/Perm\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/);
+                  const mod = m ? m[1] : '';
+                  const act = m ? m[2] : '';
+                  if (mod && act) {
+                    modernPerm = `${mod}:${act}`;
+                  }
+                  rbacDecs.push({ type: 'PERM', raw: text, modules: mod ? [mod] : [] });
                 } else if (text.startsWith('AnyPerm(')) {
-                  const mods = [...text.matchAll(/\['([A-Z_]+)'/g)].map(m => m[1]);
-                  rbacDecs.push({ type: 'PERM', raw: text, modules: mods });
+                  const pairs = [...text.matchAll(/\['([A-Z_]+)'\s*,\s*'([a-z_]+)'\]/g)];
+                  if (pairs.length > 0) {
+                    modernPerm = pairs.map(p => `${p[1]}:${p[2]}`).join(' | ');
+                    rbacDecs.push({ type: 'PERM', raw: text, modules: pairs.map(p => p[1]) });
+                  }
                 } else if (text.startsWith('RequirePermission(')) {
-                  const m = text.match(/RequirePermission\(\s*['"]([^'"]+)['"]/);
-                  rbacDecs.push({ type: 'PERM', raw: text, legacy: true, module: m ? m[1] : null });
+                  const m = text.match(/RequirePermission\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/);
+                  const mod = m ? m[1] : '';
+                  const act = m ? legacyActionToModern(m[2]) : '';
+                  if (mod && act) {
+                    legacyPerm = `${mod}:${act}`;
+                  }
+                  rbacDecs.push({ type: 'PERM', raw: text, legacy: true, module: mod });
                 }
               }
 
@@ -171,13 +202,28 @@ function runCheck() {
                 }
               }
 
+              let effectiveCodeTier = null;
+              if (rbacDecs.length === 0) {
+                effectiveCodeTier = null;
+              } else if (rbacDecs.length === 1) {
+                effectiveCodeTier = rbacDecs[0].type;
+              } else if (isTransitionPair) {
+                effectiveCodeTier = 'PERM';
+              } else {
+                effectiveCodeTier = 'MULTI';
+              }
+
+              const effectiveCodePerm = modernPerm || legacyPerm || '';
+
               const routeInfo = {
                 key,
                 method: httpMethod,
                 route: fullRoute,
                 file: relFile,
                 methodName,
-                rbacDecs
+                rbacDecs,
+                effectiveCodeTier,
+                effectiveCodePerm
               };
 
               scannedRoutes.push(routeInfo);
@@ -188,13 +234,11 @@ function runCheck() {
                 // If it has multiple and not a valid transition pair, flag error
                 multipleDecorated.push(routeInfo);
               } else {
-                const tier = isTransitionPair ? 'PERM' : rbacDecs[0].type;
-                tierCounts[tier] = (tierCounts[tier] || 0) + 1;
+                tierCounts[effectiveCodeTier] = (tierCounts[effectiveCodeTier] || 0) + 1;
               }
 
               // Compare with matrix
               const matrixEntry = matrixMap.get(key);
-              const effectiveCodeTier = isTransitionPair ? 'PERM' : rbacDecs[0]?.type;
               if (!matrixEntry) {
                 diffs.push({
                   key,
@@ -205,17 +249,30 @@ function runCheck() {
                   methodName
                 });
               } else {
-                const codeTier = effectiveCodeTier;
-                if (codeTier && codeTier !== matrixEntry.tier) {
+                if (effectiveCodeTier && effectiveCodeTier !== matrixEntry.tier) {
                   diffs.push({
                     key,
                     type: 'TIER_MISMATCH',
-                    codeTier,
+                    codeTier: effectiveCodeTier,
                     matrixTier: matrixEntry.tier,
                     id: matrixEntry.id,
                     file: relFile,
                     note: matrixEntry.note
                   });
+                } else if (matrixEntry.tier === 'PERM') {
+                  const normCode = normalizePerm(effectiveCodePerm);
+                  const normMatrix = normalizePerm(matrixEntry.perm);
+                  if (normCode !== normMatrix) {
+                    diffs.push({
+                      key,
+                      type: 'PERM_MISMATCH',
+                      codePerm: effectiveCodePerm,
+                      matrixPerm: matrixEntry.perm,
+                      id: matrixEntry.id,
+                      file: relFile,
+                      note: matrixEntry.note
+                    });
+                  }
                 }
               }
             }
@@ -223,6 +280,21 @@ function runCheck() {
         });
       }
     });
+  }
+
+  // Check if any matrix entries missing from code
+  const scannedKeys = new Set(scannedRoutes.map(r => r.key));
+  for (const [key, mEntry] of matrixMap.entries()) {
+    if (!scannedKeys.has(key)) {
+      diffs.push({
+        key,
+        type: 'NOT_IN_CODE',
+        codeTier: null,
+        matrixTier: mEntry.tier,
+        id: mEntry.id,
+        note: mEntry.note
+      });
+    }
   }
 
   // Print summary
@@ -249,23 +321,27 @@ function runCheck() {
   }
 
   if (diffs.length > 0) {
-    console.log(`\n[INFO] Matrix differences detected (${diffs.length} differences - informational):`);
+    console.error(`\n[ERROR] Matrix differences detected (${diffs.length} differences):`);
     diffs.forEach(d => {
       if (d.type === 'NOT_IN_MATRIX') {
-        console.log(`  * [NOT_IN_MATRIX] ${d.key} -> Code: ${d.codeTier} (${d.file})`);
+        console.error(`  * [NOT_IN_MATRIX] ${d.key} -> Code: ${d.codeTier} (${d.file})`);
+      } else if (d.type === 'NOT_IN_CODE') {
+        console.error(`  * [NOT_IN_CODE] ${d.id} ${d.key} -> Matrix: ${d.matrixTier}`);
       } else if (d.type === 'TIER_MISMATCH') {
-        console.log(`  * [TIER_MISMATCH] ${d.id} ${d.key} -> Code: ${d.codeTier} vs Matrix: ${d.matrixTier} (${d.note || 'no note'})`);
+        console.error(`  * [TIER_MISMATCH] ${d.id} ${d.key} -> Code: ${d.codeTier} vs Matrix: ${d.matrixTier} (${d.note || 'no note'})`);
+      } else if (d.type === 'PERM_MISMATCH') {
+        console.error(`  * [PERM_MISMATCH] ${d.id} ${d.key} -> Code: "${d.codePerm}" vs Matrix: "${d.matrixPerm}" (${d.note || 'no note'})`);
       }
     });
   }
 
   console.log('\n======================================================');
-  if (unclassified.length === 0 && multipleDecorated.length === 0) {
-    console.log('✅ RBAC CHECK PASSED: 100% routes classified with single decorator.');
+  if (unclassified.length === 0 && multipleDecorated.length === 0 && diffs.length === 0) {
+    console.log('✅ RBAC CHECK PASSED: 100% routes strictly conform to route-matrix spec.');
     console.log('======================================================\n');
     return 0;
   } else {
-    console.error('❌ RBAC CHECK FAILED: Found unclassified or ambiguous routes.');
+    console.error('❌ RBAC CHECK FAILED: Found unclassified routes or spec mismatches with route-matrix.csv.');
     console.log('======================================================\n');
     return 1;
   }

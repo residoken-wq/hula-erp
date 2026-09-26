@@ -1,0 +1,18 @@
+=== EVIDENCE P2-00a: Watermark B2B public (E5) ===
+Timestamp: 2026-09-26T07:11:41.164Z
+Request: GET /api/upload/watermark/b2b/config (No Authorization header)
+HTTP Status: 200
+Response Payload:
+{
+  "enabled": true,
+  "position": "center",
+  "opacity": 0.4,
+  "sizeRatio": 1,
+  "imageFile": "_watermark_b2b.png"
+}
+
+Database Check: rbac_access_logs WHERE route = '/api/upload/watermark/b2b/config'
+Log rows found: 0
+DENY_NO_AUTH present: NO (PASS)
+
+Conclusion: PASS

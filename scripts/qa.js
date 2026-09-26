@@ -88,6 +88,16 @@ async function runQA() {
     }
     console.log('-----------------------------------');
 
+    // 2.6 RBAC Public Callers Check
+    console.log(`${colors.bold}👉 Running RBAC Public Callers Check...${colors.reset}`);
+    try {
+        await runCommand('node', ['scripts/rbac/check-public-callers.js'], projectRoot, 'RBAC Public Callers Check');
+    } catch (error) {
+        console.error(error.message);
+        failed = true;
+    }
+    console.log('-----------------------------------');
+
     // 3. Backend Tests
     console.log(`${colors.bold}👉 Running Backend Tests...${colors.reset}`);
     try {
