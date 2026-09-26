@@ -38,7 +38,7 @@ Không báo doanh thu nếu chưa nối được với đơn thật.
 
 ## P5.4 Runbook `docs/chatbot/RUNBOOK.md`
 - Biến môi trường cần có, cách kiểm tra key hợp lệ không in key.
-- Bật/tắt: `CHATBOT_CONFIG.enabled` trong `/chatbot/settings`. Tắt cờ là tắt ngay trên mọi trang, không cần deploy (**đây là rollback chính**).
+- Bật/tắt: `CHATBOT_CONFIG.enabled` trong Cấu hình hệ thống → tab "Trợ lý AI website". Tắt cờ là tắt ngay trên mọi trang, không cần deploy (**đây là rollback chính**).
 - Backup: `pg_dump` trước deploy (ghi lệnh). Bảng `chatbot_*` độc lập, rollback code không cần xoá bảng.
 - Rollback code: deploy lại image tag trước. Bảng mới không ảnh hưởng bản cũ.
 - Sự cố thường gặp: LLM 429/timeout, budget hết, outbox `failed`, spam lead. Mỗi loại ghi cách xử lý.

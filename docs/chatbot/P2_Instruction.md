@@ -40,7 +40,7 @@ LEAD (Q-06):
 - `request.created` / `ticket.created` / `human.requested`:
   - `NotificationsService.create` cho từng user trong `notify_user_ids`. Nếu danh sách rỗng thì gửi cho mọi user thuộc nhóm có `CHATBOT` can_update.
   - `EmailService.sendMail` tới **mọi** địa chỉ trong `CHATBOT_CONFIG.notify_emails`, theo template ở dưới.
-  - Địa chỉ nhận do Chủ dự án chốt (STATUS Q-08) và được **nhập qua `/chatbot/settings`** khi cấu hình. **Không** hard-code trong code, seed hay test (code sync sang repo public). Test-env dùng địa chỉ test; SMTP ở test-env đã bị sanitize xoá, nên kiểm bằng cách render template ra file evidence.
+  - Địa chỉ nhận do Chủ dự án chốt (STATUS Q-08) và được **nhập qua **Cấu hình hệ thống → tab "Trợ lý AI website"**** khi cấu hình. **Không** hard-code trong code, seed hay test (code sync sang repo public). Test-env dùng địa chỉ test; SMTP ở test-env đã bị sanitize xoá, nên kiểm bằng cách render template ra file evidence.
 - **Email template** (`src/chatbot/templates/request-created.html` + bản text), tiếng Việt, HTML đơn giản, **escape** mọi giá trị khách nhập:
   - Subject: `[Cừu Hula] Yêu cầu mới {code} — {loại} — {hạng mục} x {số lượng}` (thiếu thì ghi "chưa xác định")
   - Thân email:

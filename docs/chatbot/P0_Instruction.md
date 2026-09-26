@@ -3,7 +3,10 @@
 **Điều kiện bắt đầu:** Chủ dự án đã chốt Q-04, Q-05, Q-07. `STATUS.md` ghi P0 = `READY`.
 **Nhánh:** `chatbot/p0` từ `main` mới nhất.
 **Sau deploy:** không có thay đổi với khách và nhân viên (I-01). Màn Phân quyền thêm 2 mã (I-02).
-**Phạm vi:** chỉ backend `src/chatbot/**`, `src/auth/permission-catalog.ts` (thêm mã), `src/app.module.ts` (đăng ký), `route-matrix.csv`, `activity.subscriber.ts` (loại trừ log), script trong `scripts/chatbot/`.
+**Phạm vi:**
+- Backend: `src/chatbot/**`, `src/auth/permission-catalog.ts` (thêm mã), `src/app.module.ts` (đăng ký), `activity.subscriber.ts` (loại trừ log).
+- Docs và script: `route-matrix.csv`, script trong `scripts/chatbot/`.
+- Frontend: tab cấu hình trong `SystemSettingsPage.tsx` + `frontend/src/components/system/ChatbotConfigTab.tsx` (P0.10).
 
 ---
 
@@ -93,13 +96,14 @@
    @Controller('chatbot/admin/config')
    @UseGuards(JwtAuthGuard, PermissionsGuard)
    export class ChatbotAdminConfigController {
-     @RequirePermission('CHATBOT', 'can_view') @Perm('CHATBOT', 'view')
+     @RequirePermission('SYSTEM', 'can_view') @Perm('SYSTEM', 'view')
      @Get() get() {...}
-     @RequirePermission('CHATBOT', 'can_update') @Perm('CHATBOT', 'update')
+     @RequirePermission('SYSTEM', 'can_update') @Perm('SYSTEM', 'update')
      @Put() save(@Body() dto: ChatbotConfigDto, @Req() req) {...}
    }
    ```
-   P0 chỉ làm controller config (`GET/PUT chatbot/admin/config`) để kiểm chứng mẫu. Ghi config cũng ghi audit.
+   Cấu hình dùng quyền `SYSTEM` vì nằm trong trang Cấu hình hệ thống (Q-08, P0.10). Các controller hộp thư, yêu cầu, ticket ở phase sau dùng `CHATBOT`, còn tri thức và giá dùng `CHATBOT_KB`. P0 chỉ làm controller config (`GET/PUT chatbot/admin/config`), vừa để kiểm chứng mẫu vừa để phục vụ P0.10. Ghi config cũng ghi audit.
+   - `CHATBOT_CONFIG` **chỉ** được ghi qua API này (có validate). Route chung `POST /system/config` chặn `CHATBOT_*` sau khi RBAC E7 deploy.
 3. `route-matrix.csv`: thêm dòng `CB-001…` cho mọi route mới. Tier `PUBLIC` cho `public/chat/*`, tier `PERM` + quyền tương ứng cho `chatbot/admin/*`. Cột `change=NEW`.
 
 ## P0.9 Script kiểm tra
@@ -111,8 +115,26 @@
 
 Thêm bước `node scripts/chatbot/check-no-secrets.js` vào `scripts/qa.js`: quét `src/chatbot/**`, `hula-web/website/src/components/chat/**` tìm pattern `AIza[0-9A-Za-z_-]{20,}`, `sk-[A-Za-z0-9]{20,}`, `CHATBOT_LLM_API_KEY=`. Có kết quả thì fail.
 
+## P0.10 Tab "Trợ lý AI website" trong Cấu hình hệ thống (Q-08)
+
+Chủ dự án chốt 2026-09-26: hotline, giờ làm việc, người nhận thông báo cấu hình trong **Cấu hình hệ thống** (`/system/settings`, `frontend/src/pages/SystemSettingsPage.tsx`, route và menu đang gate `hasPerm('SYSTEM')`).
+
+1. Thêm một item vào `Tabs` (đặt trước `api_keys`), `key: 'chatbot'`, nhãn "Trợ lý AI website" + icon `RobotOutlined`. Nội dung là component mới `frontend/src/components/system/ChatbotConfigTab.tsx`. Không sửa các tab khác.
+2. Tab gọi `GET/PUT /chatbot/admin/config` qua `utils/api`. Form antd, chia 4 khối:
+
+   | Khối | Trường | Ghi chú |
+   |---|---|---|
+   | Hiển thị | `enabled` (Switch, có Popconfirm "Bật cho khách trên website?"), `display_name`, `avatar_url` (upload ảnh dùng `uploadApi` có sẵn hoặc nhập URL), `greeting` | `enabled` chỉ có tác dụng khi các phase sau đã deploy; P0 để switch hoạt động nhưng hiển thị ghi chú "Chưa có widget" |
+   | Liên hệ | `contact_channels.hotline`, `contact_channels.zalo_url`, `contact_channels.email_public`, `contact_channels.messenger_url` | Để trống thì widget dùng `contact_phone`/`zalo_url`/`facebook_url` từ `/public/settings` hiện có. Hiển thị giá trị dự phòng dạng placeholder |
+   | Giờ làm việc | `working_hours`: 7 dòng Thứ 2–CN, mỗi dòng có checkbox "Nghỉ" + `from`/`to` (TimePicker, bước 15 phút, giờ VN); `holiday_note` (text); `response_sla_text` (vd "Sales phản hồi trong giờ làm việc") | Backend có helper `isWithinWorkingHours(now)` dùng cho cảnh báo request chưa có owner (P2.2) và câu ngoài giờ trên widget |
+   | Thông báo | `notify_emails` (Select mode tags, validate email, tối đa 10), `notify_user_ids` (Select nhiều user ERP, lấy từ API danh sách user đang có), `limits.unassigned_alert_min` (InputNumber, mặc định 30) | Để trống `notify_user_ids` thì gửi cho nhóm có `CHATBOT` update (P2.2). Địa chỉ `notify_emails` do Chủ dự án nhập khi cấu hình (xem STATUS Q-08), **không** đưa vào code/seed |
+
+3. Khối "Nâng cao" (Collapse, mặc định đóng): `features.*` hiển thị **chỉ đọc** ở P0, kèm ghi chú "bật theo phase". `retention_days`, `llm.daily_call_budget`, `llm.timeout_ms` sửa được, có min/max.
+4. Không có ô nào nhập API key/bí mật. Tab hiển thị trạng thái "Khóa LLM: đã cấu hình / chưa cấu hình" (backend trả boolean, không trả key).
+5. Lưu thành công: toast + ghi audit. Lỗi validate: hiện đúng trường lỗi.
+
 ## Không làm ở P0
-- Không UI website, không UI ERP.
+- Không UI website. UI ERP chỉ có tab P0.10.
 - Không gọi LLM trong hội thoại.
 - Không sửa `src/ai`, `src/public/public.controller.ts`, `src/upload/**`, `main.ts`, body-parser, docker.
 - Không vá `/system/config/:key` (Q-14 làm ở RBAC).

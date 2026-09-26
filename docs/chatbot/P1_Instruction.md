@@ -65,7 +65,6 @@ Trong `frontend/src/pages/chatbot/`, dùng `utils/api` và antd, theo mẫu tran
 | `/chatbot/products` | Facts theo SKU, bộ | `hasPerm('CHATBOT_KB')` |
 | `/chatbot/prices` | Rule giá; cảnh báo xung đột; nhãn FIXTURE đỏ | `hasPerm('CHATBOT_KB')` |
 | `/chatbot/conflicts` | D01–D16, người phụ trách, giải quyết (ghi resolution, không tự đổi dữ liệu khác) | `hasPerm('CHATBOT_KB')` |
-| `/chatbot/settings` | Sửa `CHATBOT_CONFIG` (không có ô bí mật) | `hasPerm('CHATBOT')` + update |
 
 - Menu nhóm "Trợ lý AI" đặt cạnh CMS/Website trong `App.tsx`.
 - Backend controller `chatbot/admin/knowledge|facts|bundles|prices|conflicts|eval-cases` theo mẫu P0.8, mọi route có dòng `CB-NNN` trong matrix.
