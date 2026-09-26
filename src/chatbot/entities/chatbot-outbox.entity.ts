@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('chatbot_outbox')
-@Index(['status', 'next_attempt_at'])
+@Index('idx_chatbot_outbox_status_next', ['status', 'next_attempt_at'])
 export class ChatbotOutbox {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;

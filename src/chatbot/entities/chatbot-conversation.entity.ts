@@ -1,14 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, Unique, OneToMany } from 'typeorm';
 import { ChatbotSession } from './chatbot-session.entity';
 import { ChatbotMessage } from './chatbot-message.entity';
 
 @Entity('chatbot_conversations')
+@Unique('uq_chatbot_conversations_public_code', ['public_code'])
 export class ChatbotConversation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 8, unique: true })
+  @Column({ type: 'varchar', length: 8 })
   public_code: string;
 
   @Column({ type: 'varchar', length: 24, default: 'new' })
@@ -32,7 +32,7 @@ export class ChatbotConversation {
   @Column({ type: 'int', default: 0 })
   unread_staff: number;
 
-  @Index()
+  @Index('idx_chatbot_conversations_last_message_at')
   @Column({ type: 'timestamptz', nullable: true })
   last_message_at: Date | null;
 

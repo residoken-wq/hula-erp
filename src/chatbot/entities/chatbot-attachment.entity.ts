@@ -5,7 +5,7 @@ export class ChatbotAttachment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index()
+  @Index('idx_chatbot_attachments_conversation_id')
   @Column({ type: 'uuid' })
   conversation_id: string;
 

@@ -1,9 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index, Unique, ManyToOne, JoinColumn } from 'typeorm';
 import { ChatbotConversation } from './chatbot-conversation.entity';
 
 @Entity('chatbot_messages')
-@Index(['conversation_id', 'created_at'])
-@Index(['conversation_id', 'client_msg_id'], { unique: true })
+@Index('idx_chatbot_messages_conv_created', ['conversation_id', 'created_at'])
+@Unique('uq_chatbot_messages_conv_client_msg', ['conversation_id', 'client_msg_id'])
 export class ChatbotMessage {
   @PrimaryGeneratedColumn('uuid')
   id: string;

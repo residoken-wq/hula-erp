@@ -1,18 +1,18 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Unique } from 'typeorm';
 
 @Entity('chatbot_requests')
+@Unique('uq_chatbot_requests_code', ['code'])
+@Unique('uq_chatbot_requests_idempotency_key', ['idempotency_key'])
 export class ChatbotRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 20, unique: true })
+  @Column({ type: 'varchar', length: 20 })
   code: string;
 
   @Column({ type: 'varchar', length: 20 })
   type: string;
 
-  @Index()
   @Column({ type: 'uuid' })
   conversation_id: string;
 
@@ -34,8 +34,7 @@ export class ChatbotRequest {
   @Column({ type: 'int', nullable: true })
   customer_id: number | null;
 
-  @Index({ unique: true })
-  @Column({ type: 'uuid', unique: true })
+  @Column({ type: 'uuid' })
   idempotency_key: string;
 
   @Column({ type: 'date', nullable: true })

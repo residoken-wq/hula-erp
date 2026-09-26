@@ -5,7 +5,7 @@ export class ChatbotConsent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index()
+  @Index('idx_chatbot_consents_conversation_id')
   @Column({ type: 'uuid' })
   conversation_id: string;
 

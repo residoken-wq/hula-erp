@@ -1,7 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Unique } from 'typeorm';
 
 @Entity('chatbot_briefs')
-@Index(['conversation_id', 'revision'], { unique: true })
+@Unique('uq_chatbot_briefs_conv_revision', ['conversation_id', 'revision'])
 export class ChatbotBrief {
   @PrimaryGeneratedColumn('uuid')
   id: string;

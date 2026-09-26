@@ -1,12 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Unique } from 'typeorm';
 
 @Entity('chatbot_tickets')
+@Unique('uq_chatbot_tickets_code', ['code'])
+@Unique('uq_chatbot_tickets_idempotency_key', ['idempotency_key'])
 export class ChatbotTicket {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 20, unique: true })
+  @Column({ type: 'varchar', length: 20 })
   code: string;
 
   @Column({ type: 'varchar', length: 32 })
@@ -18,7 +19,6 @@ export class ChatbotTicket {
   @Column({ type: 'varchar', length: 20, default: 'received' })
   status: string;
 
-  @Index()
   @Column({ type: 'uuid' })
   conversation_id: string;
 
@@ -40,8 +40,7 @@ export class ChatbotTicket {
   @Column({ type: 'text', nullable: true })
   internal_note: string | null;
 
-  @Index({ unique: true })
-  @Column({ type: 'uuid', unique: true })
+  @Column({ type: 'uuid' })
   idempotency_key: string;
 
   @CreateDateColumn({ type: 'timestamptz' })

@@ -1,16 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index, Unique, ManyToOne, JoinColumn } from 'typeorm';
 import { ChatbotConversation } from './chatbot-conversation.entity';
 
 @Entity('chatbot_sessions')
+@Unique('uq_chatbot_sessions_token_hash', ['token_hash'])
 export class ChatbotSession {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'char', length: 64, unique: true })
+  @Column({ type: 'char', length: 64 })
   token_hash: string;
 
-  @Index()
+  @Index('idx_chatbot_sessions_conversation_id')
   @Column({ type: 'uuid' })
   conversation_id: string;
 
