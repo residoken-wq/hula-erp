@@ -1,0 +1,26 @@
+# Claude audit r1 — schema: DDL (NODE_ENV=production) vs sau synchronize (NODE_ENV=development), cùng DB
+## Cột (diff rỗng = khớp)
+(khớp 105/105 cột)
+## Index
+0a1,17
+> IDX_237116ca90a61426047b556069 CREATE UNIQUE INDEX "IDX_237116ca90a61426047b556069" ON public.chatbot_requests USING btree (idempotency_key)
+> IDX_3a4e8be551e83acb852051ac97 CREATE UNIQUE INDEX "IDX_3a4e8be551e83acb852051ac97" ON public.chatbot_messages USING btree (conversation_id, client_msg_id)
+> IDX_3f91a5ec04b18d2174da0b895c CREATE INDEX "IDX_3f91a5ec04b18d2174da0b895c" ON public.chatbot_requests USING btree (conversation_id)
+> IDX_47107ff310febcbc0450aa0dd4 CREATE INDEX "IDX_47107ff310febcbc0450aa0dd4" ON public.chatbot_tickets USING btree (conversation_id)
+> IDX_55a66c13d5879f2e404eaac0ac CREATE INDEX "IDX_55a66c13d5879f2e404eaac0ac" ON public.chatbot_sessions USING btree (conversation_id)
+> IDX_586c79c6420d8af8efe41e73f7 CREATE UNIQUE INDEX "IDX_586c79c6420d8af8efe41e73f7" ON public.chatbot_requests USING btree (code)
+> IDX_83b7e01d872494f9b9815239b2 CREATE INDEX "IDX_83b7e01d872494f9b9815239b2" ON public.chatbot_audit_events USING btree (object_type, object_id)
+> IDX_a7e7cc15f5697ecf109a688b4c CREATE INDEX "IDX_a7e7cc15f5697ecf109a688b4c" ON public.chatbot_consents USING btree (conversation_id)
+> IDX_a895c270c5b1a48fe47500cc6c CREATE UNIQUE INDEX "IDX_a895c270c5b1a48fe47500cc6c" ON public.chatbot_tickets USING btree (code)
+> IDX_b1ab3884c631c5feb8083916dc CREATE UNIQUE INDEX "IDX_b1ab3884c631c5feb8083916dc" ON public.chatbot_briefs USING btree (conversation_id, revision)
+> IDX_b22ddd4ff0fe787ca00080544b CREATE UNIQUE INDEX "IDX_b22ddd4ff0fe787ca00080544b" ON public.chatbot_conversations USING btree (public_code)
+> IDX_b72e74b90bf9793de7b10e5f8c CREATE INDEX "IDX_b72e74b90bf9793de7b10e5f8c" ON public.chatbot_conversations USING btree (last_message_at)
+> IDX_c8c02f1cdbbe4ebc24d24a93d2 CREATE UNIQUE INDEX "IDX_c8c02f1cdbbe4ebc24d24a93d2" ON public.chatbot_sessions USING btree (token_hash)
+> IDX_e1c63c5f5ab826aef28a5133cb CREATE INDEX "IDX_e1c63c5f5ab826aef28a5133cb" ON public.chatbot_outbox USING btree (status, next_attempt_at)
+> IDX_e9000445c9bcafdbe55b7810df CREATE UNIQUE INDEX "IDX_e9000445c9bcafdbe55b7810df" ON public.chatbot_tickets USING btree (idempotency_key)
+> IDX_f4887f40655fe3635c0700682d CREATE INDEX "IDX_f4887f40655fe3635c0700682d" ON public.chatbot_messages USING btree (conversation_id, created_at)
+> IDX_f7d28fadc55257a861b4c145a4 CREATE INDEX "IDX_f7d28fadc55257a861b4c145a4" ON public.chatbot_attachments USING btree (conversation_id)
+18d34
+< uq_chatbot_briefs_conv_revision CREATE UNIQUE INDEX uq_chatbot_briefs_conv_revision ON public.chatbot_briefs USING btree (conversation_id, revision)
+20d35
+< uq_chatbot_messages_conv_client_msg CREATE UNIQUE INDEX uq_chatbot_messages_conv_client_msg ON public.chatbot_messages USING btree (conversation_id, client_msg_id)

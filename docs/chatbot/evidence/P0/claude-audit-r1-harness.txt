@@ -1,0 +1,47 @@
+=== Claude audit harness chatbot P0 — 2026-09-26T10:16:12.699Z
+[CB0-02] config 200 {"enabled":false} | sessions 503 {"code":"CHATBOT_DISABLED"} | ping 503 {"code":"CHATBOT_DISABLED"}
+>> CB0-02: PASS 
+[CB0-08] anon GET config 401 | status 401 | PUT 401
+>> CB0-08: PASS 
+[CB0-09] GET config by user: sales01=403 lou=403 maiuyen=403 thuhang=200 admin=200
+[CB0-09] sales01 PUT 403 | DB CHATBOT_CONFIG exists? 0
+>> CB0-09: PASS 
+[setup] admin enable 200 
+[CB0-10] unknown llm_api_key -> 400 {"message":"Unknown field: llm_api_key","error":"Bad Request","statusCode":400}
+[CB0-10] greeting {abc} -> 400 {"message":"greeting must be <= 300 chars and only contain placeholders {short_name} or {display_name}","error":"Bad Request","statusCode":4
+[CB0-10] display_name 1 char -> 400 {"message":"display_name must be longer than or equal to 2 characters","error":"Bad Request","statusCode":400}
+[CB0-10] hotline letters -> 400 {"message":"Validation failed","error":"Bad Request","statusCode":400}
+[CB0-10] bad notify email -> 400 {"message":"each value in notify_emails must be an email","error":"Bad Request","statusCode":400}
+[CB0-10] EXTRA avatar //evil.com -> 200 {"enabled":true,"display_name":"Cừu Hula — Trợ lý AI","short_name":"Cừu Hula","avatar_url":"//evil.example/x.png","greeting":"Dạ em là {shor
+[CB0-10] EXTRA zalo javascript: -> 400 {"message":"Validation failed","error":"Bad Request","statusCode":400}
+[CB0-10] EXTRA nested unknown field -> 400 {"message":"Validation failed","error":"Bad Request","statusCode":400}
+[CB0-10] EXTRA secret in greeting AIza -> 400 {"message":"greeting contains prohibited secret-like content","error":"Bad Request","statusCode":400}
+[CB0-10] EXTRA notify_user_ids 9999 -> 400 {"message":"One or more notify_user_ids do not exist","error":"Bad Request","statusCode":400}
+[CB0-10] EXTRA working hours from>to -> 400 {"message":"working_hours.mon: 'from' (18:00) must be earlier than 'to' (08:00)","error":"Bad Request","statusCode":400}
+[CB0-10] EXTRA missing display_name (partial PUT) -> 400 {"message":"display_name cannot contain <, >, {, }, display_name must be longer than or equal to 2 characters, display_name must be a string
+[CB0-10] features.price_estimate=true -> 200 {"price_estimate":false,"order_lookup":false,"attachments":false,"sample_request":false}
+>> CB0-10: PASS (spec cases)
+   extra: avatar //evil -> 200 (expect 400) | zalo javascript: -> 400 | nested unknown -> 400 | AIza -> 400 | user 9999 -> 400 | from>to -> 400 | partial -> 400
+[CB0-04] session 201 code TMUL47QJ | DB: 64|<iphash64>|abc_123|TMUL47QJ
+>> CB0-04: PASS 
+[CB0-05] valid 200 {"ok":true,"public_code":"TMUL47QJ"} | missing 401 | garbage 401 | revoked 401 | 31d 401 {"code":"CHAT_SESSION_INVALID"}
+>> CB0-05: PASS 
+[CB0-06] ping 429 at call 20 {"code":"RATE_LIMITED","retry_after_s":300}
+[CB0-06] session create 429 at # 31 (limit 30/h, includes CB0-05 sessions)
+>> CB0-06: PASS (ping first429 in loop=20; expected 20 since CB0-05 already used 1)
+[CB0-11] keys enabled,display_name,short_name,avatar_url,greeting,contact_channels,working_hours,is_open_now,response_sla_text,features | hotline 0983882210 - 0983796654
+>> CB0-11: PASS 
+[CB0-12] rename 200 | public short_name= Cừu Hula Test | greeting= Dạ em là Cừu Hula Test, trợ lý AI của HULA. Anh/chị đang chọn sản phẩm cho bé, đặt cho trường hay cần hỗ trợ đơn đã mua ạ? | audit: config.update {"changed_fields": ["display_name", "short_name"]}
+>> CB0-12: PASS 
+[CB0-14] wrote non-JSON; waiting 32s for cache
+[CB0-14a] non-JSON -> 200 {"enabled":false}
+[CB0-14b] wrong types -> 200 short_name Typed | mon= {"off":"x","from":"99:99","to":"aa"}
+>> CB0-14: PASS (non-JSON → defaults means enabled=false)
+[EXTRA-R1] anonymous POST /system/config CHATBOT_CONFIG -> 201
+[EXTRA-R1] public view after hostile write: 200 enabled true | avatar //evil.example/a.png | zalo javascript:alert(1) | hotline <img src=x onerror=alert(1)> | messenger http://phish.example | sla len 5000 | mon {"off":"yes","from":"99:99","to":"00:00"}
+[EXTRA-R1] anonymous GET /system/config/CHATBOT_CONFIG -> 200 (contains notify_emails if set)
+[CB0-15] DB contact_phone = 0983882210 - 0983796654 | public hotline shown earlier = 0983882210 - 0983796654
+>> CB0-15: PASS 
+[CB0-21] status 200 {"llm_provider":"fake","llm_key_configured":false,"llm_calls_today":0,"seed_v1_at":"2026-09-26T10:13:43.127Z","schema_ok":true}
+>> CB0-21: PASS 
+=== SUMMARY {"CB0-02":"PASS","CB0-08":"PASS","CB0-09":"PASS","CB0-10":"PASS","CB0-04":"PASS","CB0-05":"PASS","CB0-06":"PASS","CB0-11":"PASS","CB0-12":"PASS","CB0-14":"PASS","CB0-15":"PASS","CB0-21":"PASS"}

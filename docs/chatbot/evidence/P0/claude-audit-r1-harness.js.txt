@@ -1,0 +1,154 @@
+// Claude audit harness for chatbot P0 — runs against http://localhost:3999 on test-env
+const { execFileSync } = require('child_process');
+const BASE = 'http://localhost:3999/api';
+const PSQL = 'C:/pg15/pgsql/bin/psql.exe';
+const out = [];
+const log = (...a) => { const s = a.join(' '); out.push(s); console.log(s); };
+const sql = (q) => execFileSync(PSQL, ['-h', '127.0.0.1', '-U', 'hula_user', '-d', 'hula_db', '-At', '-c', q], { env: { ...process.env, PGPASSWORD: 'hula_password' } }).toString().trim();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function req(method, path, { token, body, headers = {} } = {}) {
+  const h = { 'Content-Type': 'application/json', ...headers };
+  if (token) h.Authorization = `Bearer ${token}`;
+  const r = await fetch(BASE + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+  let t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; }
+  return { s: r.status, b: j };
+}
+const short = (b) => JSON.stringify(b).slice(0, 220);
+async function login(u) { const r = await req('POST', '/auth/login', { body: { username: u, password: 'test-local' } }); return r.b.access_token; }
+const results = {};
+const verdict = (id, ok, note) => { results[id] = ok ? 'PASS' : 'FAIL'; log(`>> ${id}: ${ok ? 'PASS' : 'FAIL'} ${note || ''}`); };
+
+(async () => {
+  log('=== Claude audit harness chatbot P0 —', new Date().toISOString());
+  // CB0-02 disabled
+  let a = await req('GET', '/public/chat/config'); let b = await req('POST', '/public/chat/sessions', { body: {} }); let c = await req('GET', '/public/chat/ping');
+  log('[CB0-02] config', a.s, short(a.b), '| sessions', b.s, short(b.b), '| ping', c.s, short(c.b));
+  verdict('CB0-02', a.s === 200 && a.b.enabled === false && b.s === 503 && c.s === 503);
+
+  const admin = await login('admin'), thuhang = await login('thuhang'), sales = await login('sales01'), lou = await login('lou'), maiuyen = await login('maiuyen');
+  // CB0-08
+  a = await req('GET', '/chatbot/admin/config'); b = await req('GET', '/chatbot/admin/status'); c = await req('PUT', '/chatbot/admin/config', { body: { enabled: true } });
+  log('[CB0-08] anon GET config', a.s, '| status', b.s, '| PUT', c.s);
+  verdict('CB0-08', a.s === 401 && b.s === 401 && c.s === 401);
+  // CB0-09
+  const rs = [];
+  for (const [n, t] of [['sales01', sales], ['lou', lou], ['maiuyen', maiuyen], ['thuhang', thuhang], ['admin', admin]]) {
+    const g = await req('GET', '/chatbot/admin/config', { token: t }); rs.push([n, g.s]);
+  }
+  log('[CB0-09] GET config by user:', rs.map((x) => x.join('=')).join(' '));
+  const cfg0 = (await req('GET', '/chatbot/admin/config', { token: admin })).b;
+  const putSales = await req('PUT', '/chatbot/admin/config', { token: sales, body: { ...cfg0, enabled: true } });
+  log('[CB0-09] sales01 PUT', putSales.s, '| DB CHATBOT_CONFIG exists?', sql("select count(*) from system_configs where key='CHATBOT_CONFIG'"));
+  verdict('CB0-09', rs[0][1] === 403 && rs[1][1] === 403 && rs[2][1] === 403 && rs[3][1] === 200 && rs[4][1] === 200 && putSales.s === 403);
+
+  // enable
+  let en = await req('PUT', '/chatbot/admin/config', { token: admin, body: { ...cfg0, enabled: true } });
+  log('[setup] admin enable', en.s, en.s !== 200 ? short(en.b) : '');
+
+  // CB0-10 validation + extra
+  const cases = [
+    ['unknown llm_api_key', { ...cfg0, enabled: true, llm_api_key: 'x' }],
+    ['greeting {abc}', { ...cfg0, enabled: true, greeting: 'hi {abc}' }],
+    ['display_name 1 char', { ...cfg0, enabled: true, display_name: 'A' }],
+    ['hotline letters', { ...cfg0, enabled: true, contact_channels: { ...cfg0.contact_channels, hotline: 'abcdefghij' } }],
+    ['bad notify email', { ...cfg0, enabled: true, notify_emails: ['nope'] }],
+    ['EXTRA avatar //evil.com', { ...cfg0, enabled: true, avatar_url: '//evil.example/x.png' }],
+    ['EXTRA zalo javascript:', { ...cfg0, enabled: true, contact_channels: { ...cfg0.contact_channels, zalo_url: 'javascript:alert(1)' } }],
+    ['EXTRA nested unknown field', { ...cfg0, enabled: true, limits: { ...cfg0.limits, evil: 1 } }],
+    ['EXTRA secret in greeting AIza', { ...cfg0, enabled: true, greeting: 'AIzaSyA1234567890abcdefghijklmnop' }],
+    ['EXTRA notify_user_ids 9999', { ...cfg0, enabled: true, notify_user_ids: [9999] }],
+    ['EXTRA working hours from>to', { ...cfg0, enabled: true, working_hours: { ...cfg0.working_hours, days: { ...cfg0.working_hours.days, mon: { off: false, from: '18:00', to: '08:00' } } } }],
+    ['EXTRA missing display_name (partial PUT)', { enabled: true }],
+  ];
+  const r10 = [];
+  for (const [n, body] of cases) { const r = await req('PUT', '/chatbot/admin/config', { token: admin, body }); r10.push([n, r.s]); log(`[CB0-10] ${n} -> ${r.s} ${short(r.b).slice(0, 140)}`); }
+  const fe = await req('PUT', '/chatbot/admin/config', { token: admin, body: { ...cfg0, enabled: true, features: { price_estimate: true } } });
+  log('[CB0-10] features.price_estimate=true ->', fe.s, short(fe.b.features));
+  verdict('CB0-10', r10.slice(0, 5).every((x) => x[1] === 400) && fe.s === 200 && fe.b.features.price_estimate === false, '(spec cases)');
+  log('   extra: avatar //evil ->', r10[5][1], '(expect 400) | zalo javascript: ->', r10[6][1], '| nested unknown ->', r10[7][1], '| AIza ->', r10[8][1], '| user 9999 ->', r10[9][1], '| from>to ->', r10[10][1], '| partial ->', r10[11][1]);
+  // restore valid enabled config
+  await req('PUT', '/chatbot/admin/config', { token: admin, body: { ...cfg0, enabled: true } });
+
+  // CB0-04 session
+  const s1 = await req('POST', '/public/chat/sessions', { body: { analytics_session_id: 'abc_123' } });
+  const tok = s1.b.session_token;
+  const row = sql(`select length(s.token_hash), s.ip_hash, s.analytics_session_id, c.public_code from chatbot_sessions s join chatbot_conversations c on c.id=s.conversation_id order by s.created_at desc limit 1`);
+  log('[CB0-04] session', s1.s, 'code', s1.b.conversation && s1.b.conversation.public_code, '| DB:', row.replace(/\|[0-9a-f]{64}\|/, '|<iphash64>|'));
+  const ipRaw = sql(`select count(*) from chatbot_sessions where ip_hash like '%127.0.0.1%' or ip_hash like '%::1%' or user_agent like '%127.0.0.1%'`);
+  const tokenInDb = sql(`select count(*) from chatbot_sessions where token_hash='${tok.replace(/'/g, '')}'`);
+  verdict('CB0-04', s1.s === 201 && /^64\|[0-9a-f]{64}\|abc_123\|[A-HJ-NP-Z2-9]{8}$/.test(row) && ipRaw === '0' && tokenInDb === '0');
+
+  // CB0-05
+  const p1 = await req('GET', '/public/chat/ping', { headers: { 'X-Chat-Session': tok } });
+  const p2 = await req('GET', '/public/chat/ping');
+  const p3 = await req('GET', '/public/chat/ping', { headers: { 'X-Chat-Session': 'garbage' } });
+  const s2 = await req('POST', '/public/chat/sessions', { body: {} }); const tok2 = s2.b.session_token;
+  sql(`update chatbot_sessions set revoked_at=now() where created_at=(select max(created_at) from chatbot_sessions)`);
+  const p4 = await req('GET', '/public/chat/ping', { headers: { 'X-Chat-Session': tok2 } });
+  const s3 = await req('POST', '/public/chat/sessions', { body: {} }); const tok3 = s3.b.session_token;
+  sql(`update chatbot_sessions set last_seen_at=now()-interval '31 days' where created_at=(select max(created_at) from chatbot_sessions)`);
+  const p5 = await req('GET', '/public/chat/ping', { headers: { 'X-Chat-Session': tok3 } });
+  log('[CB0-05] valid', p1.s, short(p1.b), '| missing', p2.s, '| garbage', p3.s, '| revoked', p4.s, '| 31d', p5.s, short(p5.b));
+  verdict('CB0-05', p1.s === 200 && p1.b.ok && [p2, p3, p4, p5].every((x) => x.s === 401 && x.b.code === 'CHAT_SESSION_INVALID'));
+
+  // CB0-06
+  let first429 = 0;
+  for (let i = 1; i <= 21; i++) { const r = await req('GET', '/public/chat/ping', { headers: { 'X-Chat-Session': tok } }); if (r.s === 429 && !first429) { first429 = i; log('[CB0-06] ping 429 at call', i, short(r.b)); } }
+  // sessions per IP: already created 3 sessions; create until 429
+  let sess429 = 0, created = 3;
+  for (let i = 0; i < 40 && !sess429; i++) { const r = await req('POST', '/public/chat/sessions', { body: {} }); if (r.s === 429) sess429 = created + 1; else created++; }
+  log('[CB0-06] session create 429 at #', sess429, '(limit 30/h, includes CB0-05 sessions)');
+  // note: ping total counts p1 + 21 = 22 calls on tok → 429 expected at call 20 of loop (20th overall = p1 + 19)
+  verdict('CB0-06', first429 > 0 && sess429 === 31, `(ping first429 in loop=${first429}; expected 20 since CB0-05 already used 1)`);
+
+  // CB0-11 whitelist
+  const pc = await req('GET', '/public/chat/config');
+  log('[CB0-11] keys', Object.keys(pc.b).join(','), '| hotline', pc.b.contact_channels && pc.b.contact_channels.hotline);
+  const allowed = ['enabled', 'display_name', 'short_name', 'avatar_url', 'greeting', 'contact_channels', 'working_hours', 'is_open_now', 'response_sla_text', 'features'];
+  verdict('CB0-11', Object.keys(pc.b).every((k) => allowed.includes(k)) && !/\{short_name\}/.test(pc.b.greeting));
+
+  // CB0-12 rename
+  const cfgNow = (await req('GET', '/chatbot/admin/config', { token: admin })).b;
+  const rn = await req('PUT', '/chatbot/admin/config', { token: admin, body: { ...cfgNow, short_name: 'Cừu Hula Test', display_name: 'Cừu Hula Test — AI' } });
+  const pc2 = await req('GET', '/public/chat/config');
+  const aud = sql(`select op||' '||after_ref::text from chatbot_audit_events order by id desc limit 1`);
+  log('[CB0-12] rename', rn.s, '| public short_name=', pc2.b.short_name, '| greeting=', pc2.b.greeting, '| audit:', aud);
+  verdict('CB0-12', rn.s === 200 && pc2.b.short_name === 'Cừu Hula Test' && pc2.b.greeting.includes('Cừu Hula Test') && !/0983|@/.test(aud));
+
+  // CB0-14 corrupted config — must wait past 30s cache
+  sql(`update system_configs set value='{not json' where key='CHATBOT_CONFIG'`);
+  log('[CB0-14] wrote non-JSON; waiting 32s for cache');
+  await sleep(32000);
+  const c14a = await req('GET', '/public/chat/config');
+  log('[CB0-14a] non-JSON ->', c14a.s, short(c14a.b));
+  sql(`update system_configs set value='{"enabled":true,"short_name":"Typed","limits":{"msg_per_session_5m":"abc"},"working_hours":{"days":{"mon":{"off":"x","from":"99:99","to":"aa"}}}}' where key='CHATBOT_CONFIG'`);
+  await sleep(32000);
+  const c14b = await req('GET', '/public/chat/config');
+  log('[CB0-14b] wrong types ->', c14b.s, 'short_name', c14b.b.short_name, '| mon=', JSON.stringify(c14b.b.working_hours && c14b.b.working_hours.days.mon));
+  verdict('CB0-14', c14a.s === 200 && c14a.b.enabled === false && c14b.s === 200, '(non-JSON → defaults means enabled=false)');
+
+  // EXTRA R1: write CHATBOT_CONFIG through anonymous generic route (SHADOW), with hostile values
+  const hostile = { enabled: true, short_name: 'Hula', display_name: 'Hula AI', avatar_url: '//evil.example/a.png', greeting: 'Xin chào', contact_channels: { hotline: '<img src=x onerror=alert(1)>', zalo_url: 'javascript:alert(1)', email_public: 'x', messenger_url: 'http://phish.example' }, response_sla_text: 'A'.repeat(5000), working_hours: { days: { mon: { off: 'yes', from: '99:99', to: '00:00' } } } };
+  const w = await req('POST', '/system/config', { body: { key: 'CHATBOT_CONFIG', value: JSON.stringify(hostile) } });
+  log('[EXTRA-R1] anonymous POST /system/config CHATBOT_CONFIG ->', w.s);
+  await sleep(32000);
+  const hv = await req('GET', '/public/chat/config');
+  log('[EXTRA-R1] public view after hostile write:', hv.s, 'enabled', hv.b.enabled, '| avatar', hv.b.avatar_url, '| zalo', hv.b.contact_channels && hv.b.contact_channels.zalo_url, '| hotline', hv.b.contact_channels && hv.b.contact_channels.hotline, '| messenger', hv.b.contact_channels && hv.b.contact_channels.messenger_url, '| sla len', (hv.b.response_sla_text || '').length, '| mon', JSON.stringify(hv.b.working_hours && hv.b.working_hours.days.mon));
+  const anonRead = await req('GET', '/system/config/CHATBOT_CONFIG');
+  log('[EXTRA-R1] anonymous GET /system/config/CHATBOT_CONFIG ->', anonRead.s, '(contains notify_emails if set)');
+
+  // restore
+  await req('PUT', '/chatbot/admin/config', { token: admin, body: { ...cfg0, enabled: false } });
+
+  // CB0-15 fallback
+  log('[CB0-15] DB contact_phone =', sql(`select value from system_configs where key='contact_phone'`), '| public hotline shown earlier =', pc.b.contact_channels && pc.b.contact_channels.hotline);
+  verdict('CB0-15', pc.b.contact_channels && pc.b.contact_channels.hotline === sql(`select value from system_configs where key='contact_phone'`));
+
+  // CB0-21 status
+  const st = await req('GET', '/chatbot/admin/status', { token: admin });
+  log('[CB0-21] status', st.s, short(st.b));
+  verdict('CB0-21', st.s === 200 && typeof st.b.llm_key_configured === 'boolean');
+
+  log('=== SUMMARY', JSON.stringify(results));
+  require('fs').writeFileSync(process.argv[2] || 'harness-out.txt', out.join('\n'));
+})().catch((e) => { console.error('HARNESS ERROR', e); require('fs').writeFileSync(process.argv[2] || 'harness-out.txt', out.join('\n') + '\nERROR ' + e.stack); });
