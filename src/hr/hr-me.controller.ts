@@ -11,7 +11,7 @@ import {
 import { HrService } from './hr.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthOnly } from '../auth/permissions.decorator';
-import { LeaveStatus } from './entities/leave-request.entity';
+import { LeaveStatus, LeaveType } from './entities/leave-request.entity';
 
 @Controller('hr/me')
 @UseGuards(JwtAuthGuard)
@@ -113,10 +113,14 @@ export class HrMeController {
   @AuthOnly()
   async createMyLeave(@Request() req: any, @Body() body: any) {
     const employee = await this.resolveMyEmployee(req);
-    const { status, employee_id, ...rest } = body || {};
+    const { type, leave_type, start_date, end_date, days, reason } = body || {};
     return this.hrService.createLeave({
-      ...rest,
       employee_id: employee.id,
+      leave_type: (leave_type || type || LeaveType.ANNUAL) as LeaveType,
+      start_date,
+      end_date,
+      days,
+      reason,
       status: LeaveStatus.PENDING,
     });
   }
