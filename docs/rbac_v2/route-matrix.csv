@@ -538,7 +538,7 @@ R536,POST,/api/upload/watermark/image,src/upload/upload.controller.ts:216,upload
 R537,GET,/api/upload/watermark/config,src/upload/upload.controller.ts:222,getWatermarkConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Watermark website
 R538,POST,/api/upload/watermark/config,src/upload/upload.controller.ts:227,saveWatermarkConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
 R539,POST,/api/upload/watermark/b2b/image,src/upload/upload.controller.ts:234,uploadWatermarkB2BImage,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
-R540,GET,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:240,getWatermarkB2BConfig,NONE,PERM,CMS:view,ADD_LOGIN+PERM,CAO,,Watermark website
+R540,GET,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:240,getWatermarkB2BConfig,NONE,PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,E5: Watermark website B2B public config
 R541,POST,/api/upload/watermark/b2b/config,src/upload/upload.controller.ts:245,saveWatermarkB2BConfig,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
 R542,POST,/api/upload/watermark/regenerate,src/upload/upload.controller.ts:250,regenerateWatermarks,NONE,PERM,CMS:create,ADD_LOGIN+PERM,CAO,,Watermark website
 R543,GET,/api/upload/files/original/:filename,src/upload/upload.controller.ts:256,serveOriginalFile,PUBLIC(@Public),PUBLIC,,KEEP_PUBLIC(@Public),THẤP,,
@@ -629,3 +629,4 @@ R627,GET,/api/purchasing/pooled/:id/aggregate,src/purchasing/purchasing.controll
 R628,POST,/api/sales/portal/:uuid/action,src/sales/sales.controller.ts:226,customerAction,JWT,PERM,SALES:update,ADDED_P1,TRUNG BÌNH,,Khách thao tác trên portal bán hàng
 R629,PUT,/api/tasks/:id,src/tasks/tasks.controller.ts:23,update,JWT,AUTH,,ADDED_P1,THẤP,,Cập nhật task cá nhân
 R630,DELETE,/api/tasks/:id,src/tasks/tasks.controller.ts:25,remove,JWT,AUTH,,ADDED_P1,THẤP,,Xóa task cá nhân
+R631,GET,/api/purchasing/supplier-portal/:uuid/outsourcing-materials/:poId,src/purchasing/purchasing.controller.ts:85,getSupplierPortalOutsourcingMaterials,NONE,PUBLIC,,ADDED_P2,THẤP,,E6: NPL trên portal NCC theo uuid
