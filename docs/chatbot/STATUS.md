@@ -6,7 +6,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | AUDIT_FAIL (vòng 1/3) | `chatbot/p0` @ e83312c | Sửa R1–R5 trong AUDIT_P0.md (M1 config độc hại, M2 sharp crash, M3 evidence) | 2026-09-26 Claude |
+| P0 | SUBMITTED (vòng 2/3) | `chatbot/p0` | Đã hoàn thành R1–R5 trong AUDIT_P0.md; reset test-env sạch; nghiệm thu 26/26 PASS | 2026-09-26 Antigravity |
 | P1 | BLOCKED | `chatbot/p1` | P0 AUDIT_PASS, Q-02 | 2026-09-26 Claude |
 | P2 | BLOCKED | `chatbot/p2` | P1 AUDIT_PASS, Q-03 | 2026-09-26 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
@@ -42,6 +42,7 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 
 ## Nhật ký
 
+- 2026-09-26 · Antigravity · Nộp kiểm toán P0 vòng 2: Đã hoàn thành toàn bộ R1 → R5 theo AUDIT_P0.md. Sửa lỗi import sharp và bổ sung 13 tests store() thật (M2); bổ sung ChatbotConfigValidator sanitize độc hại khi đọc (M1, m1); import AuthModule vào ChatbotModule (m3); chuẩn hóa decorator index trên 10 entity khớp DDL loại bỏ duplicate (m4); getStatus truy vấn pg_class thật (m5); header x-goog-api-key (m6); qa.js kiểm tra node_modules nghiêm ngặt và sửa 9 lỗi TypeScript trong CMS (m2); reset DB sạch sẽ bằng pgenv.sh; chạy smoke test đạt 26/26 PASS (CB0-01..26); cập nhật REPORT_P0.md giải trình đầy đủ 4 điểm lệch (M3). P0 SUBMITTED (vòng 2).
 - 2026-09-26 · Claude · Audit P0 vòng 1: **AUDIT_FAIL**. Chạy lại trên test-env vừa reset với 7 user thật.
   - Đạt: DDL khi tắt synchronize (105/105 cột khớp); seed; chặn quyền thật lúc SHADOW; session; rate limit; đổi tên; budget nguyên tử trên DB thật.
   - Lỗi:
