@@ -52,9 +52,10 @@ async function runQA() {
     for (const workspace of workspaces) {
         console.log(`${colors.bold}👉 Checking ${workspace.name}...${colors.reset}`);
 
-        if (!fs.existsSync(path.join(workspace.path, 'node_modules')) && workspace.type !== 'nest') {
-            console.log(`${colors.yellow}[${workspace.name}] Skipping: node_modules not installed.${colors.reset}`);
+        if (!fs.existsSync(path.join(workspace.path, 'node_modules'))) {
+            console.error(`${colors.red}[${workspace.name}] ✗ Failed: node_modules not installed. Please run npm install in ${workspace.path}.${colors.reset}`);
             console.log('-----------------------------------');
+            failed = true;
             continue;
         }
 
