@@ -44,6 +44,12 @@ P2-00b,P2,NPL portal NCC theo uuid (E6),Portal NCC A xem NPL PO của mình; đ�
 P2-00c,P2,Quét bề mặt ẩn danh,node scripts/rbac/check-public-callers.js,0 lời gọi tới route không PUBLIC; exit 0,PASS,"0 lời gọi tới route không PUBLIC; kết hợp check-rbac.js chặn tuyệt đối code lệch matrix",evidence/P2/claude-audit-p2.0.txt; evidence/P2/P2-00c_check-public-callers.txt
 P2-00d,P2,Lưới an toàn bắt code lệch (F1),Đổi @Public() của GET /upload/watermark/b2b/config thành @Perm(CMS;view) trong code; không sửa matrix; chạy npm run qa; hoàn tác rồi chạy lại,Lần 1 QA FAIL; lần 2 QA PASS,PASS,"Mutation 3: code lệch matrix làm check-rbac exit 1 (QA FAIL); hoàn tác QA PASS (exit 0)",evidence/P2/P2-00d_mutation3_fail_and_pass.txt
 P2-00e,P2,poId không hợp lệ (F2),GET /purchasing/supplier-portal/<uuid>/outsourcing-materials/abc,400,PASS,"NestJS ParseIntPipe trả về HTTP 400 Bad Request cho poId không hợp lệ",evidence/P2/P2-00e_poId_parse_int.txt
+P2-00f,P2,E7-a config public,Không token GET /api/system/config/SITE_MODE; /SMTP_PASS; /QUOTE_DEFAULT_TERMS (RBAC_MODE=SHADOW),200; 403; 401,NOT_RUN,,
+P2-00g,P2,E7-a config có token,User thường có token GET QUOTE_DEFAULT_TERMS và SMTP_PASS; admin GET SMTP_PASS,200; 403; 403,NOT_RUN,,
+P2-00h,P2,E7-b/c SMTP,Không token GET/POST /api/system/smtp; admin GET /api/system/smtp,401; 401; 200 không chứa mật khẩu (SMTP_PASS_SET=true),NOT_RUN,,
+P2-00i,P2,E7-c giữ mật khẩu,Admin lưu form SMTP để trống ô mật khẩu; đọc DB; gửi mail test,SMTP_PASS trong DB không đổi; mail test chạy (hoặc lỗi SMTP như trước ở test-env),NOT_RUN,,
+P2-00j,P2,E7-d ghi config,Không token POST /api/system/config SITE_MODE; user không CMS/SYSTEM ghi SITE_MODE; user CMS ghi section_hero_text; user CMS ghi QUOTE_DEFAULT_TERMS; admin ghi RBAC_MODE,401; 403; 200; 403; 403 (RBAC_MODE trong DB không đổi),NOT_RUN,,
+P2-00k,P2,E7-e caller,Bảng caller /system/config* và /system/smtp*; chạy website (SITE_MODE) + trang Cấu hình hệ thống + CMS appearance bằng user thật,0 caller hợp lệ bị chặn; website mở bình thường,NOT_RUN,,
 P2-01,P2,Go-live,Checklist P2.2 đủ chữ ký,Đã ký,NOT_RUN,,
 P2-02,P2,ENFORCE,Không token gọi GET /api/purchasing,401,NOT_RUN,,
 P2-03,P2,ENFORCE,User không PURCHASE gọi GET /api/purchasing,403 message có mã PURCHASE:view,NOT_RUN,,
