@@ -7,7 +7,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
-| P1 | BLOCKED | `chatbot/p1` | Q-02 (màn quản trị ở ERP hay CMS) | 2026-09-26 Claude |
+| P1 | **READY** | `chatbot/p1` (Claude tạo từ main @ 4210b60, có instruction + `accept-p1.js`) | — | 2026-09-26 Claude |
 | P2 | BLOCKED | `chatbot/p2` | P1 AUDIT_PASS, Q-03 | 2026-09-26 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
@@ -20,7 +20,7 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | ID | Trạng thái | Kết quả |
 |---|---|---|
 | Q-01 | OPEN | |
-| Q-02 | OPEN | |
+| Q-02 | CHỐT 2026-09-26 | Màn quản trị tri thức, facts, giá, conflict đặt trong **CMS** (`hula-web/cms`, menu "Trợ lý AI") |
 | Q-03 | OPEN | |
 | Q-04 | CHỐT 2026-09-26 | Route quản trị chatbot chặn thật ngay (cặp `@RequirePermission`+`@Perm`, `JwtAuthGuard`+`PermissionsGuard`) |
 | Q-05 | CHỐT 2026-09-26 | `CHATBOT` seed chép từ `SALES`; `CHATBOT_KB` không seed, `delete` = duyệt/xuất bản |
@@ -41,6 +41,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-26 · Claude · Chốt Q-02 = CMS. Tạo nhánh `chatbot/p1` từ main, viết lại P1_Instruction (hợp đồng API CB-101..113, CMS) và script nghiệm thu `scripts/chatbot/accept-p1.js` (16 kiểm tra; đã chạy thử trên bản P0: không crash, 0/16 như dự kiến). Thêm "Quy trình nhanh" vào 00_START-HERE. P1 READY.
 
 - 2026-09-26 · Claude · Theo lệnh Chủ dự án: merge --no-ff chatbot/p0 vào main và push để test trên prod.
 - 2026-09-26 · Claude · Audit P0 vòng 2: **AUDIT_PASS**. Build f380dd8 chạy trên cổng 4999, DB vừa reset (cổng 3999 đang bị backend khác chiếm). Đạt: M1 (config độc hại ghi ẩn danh đều về mặc định), M2 (store() thật: xoá EXIF/GPS, thu nhỏ PNG 3000→2560), m1–m6, index ổn định qua 3 lần boot. Ảnh UI CB0-12/16: WAIVED, Chủ dự án tự kiểm trên prod.

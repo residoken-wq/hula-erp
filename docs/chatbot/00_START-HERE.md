@@ -31,6 +31,17 @@ Mục tiêu: có một trợ lý AI trên `nemmamnon.com`. Trợ lý tư vấn t
 12. **Không ghi PASS cho thứ chưa chạy thật.** Evidence phải là output thật (HTTP status + body, query DB, ảnh chụp). Tính năng chưa bật thì ghi `NOT_ENABLED` kèm bằng chứng fallback, không ghi PASS.
 13. **Tên trợ lý sửa được:** "Cừu Hula" chỉ là mặc định trong `src/chatbot/chatbot.defaults.ts`. Mọi nơi hiển thị tên (widget, lời chào, email, prompt, tin hệ thống) đọc `display_name`/`short_name` từ `CHATBOT_CONFIG`. QA fail nếu hard-code ở chỗ khác (P0.4).
 
+## Quy trình nhanh (từ P1, Chủ dự án yêu cầu 2026-09-26)
+
+P0 mất khoảng 4 giờ vì Antigravity tự viết smoke, tự chấm, Claude lại dò từ đầu và phát hiện evidence sai. Từ P1:
+
+1. **Claude giao script nghiệm thu chạy được** (`scripts/chatbot/accept-p<n>.js`) cùng instruction trên nhánh `chatbot/p<n>`. Script là hợp đồng: code phải làm script xanh, **không sửa script**. Nghi script sai thì ghi REPORT mục 4 và làm tiếp phần khác.
+2. **Evidence gồm:** output script + `npm run qa` + ảnh UI (số lượng ghi trong instruction). Không cần smoke tự viết, không cần bảng dài.
+3. **REPORT ngắn:** file đã đổi (1 dòng/mục), lệch so với instruction, câu hỏi. Không chép lại kết quả script vào REPORT.
+4. **Cổng:** Antigravity dùng cổng 3999 và **tắt backend khi xong**. Claude audit ở cổng 4999.
+5. **Claude audit:** chạy lại đúng script trên DB vừa reset, đọc diff. **MINOR không chặn PASS**: ghi thành việc tồn của phase sau (collaboration-rules §6).
+6. Trong lúc Antigravity code phase n, Claude soạn instruction + script cho phase n+1, để không bên nào phải chờ.
+
 ## Kết thúc mỗi phase phải nộp
 
 - `REPORT_P<n>.md` theo template collaboration-rules §5
