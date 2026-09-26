@@ -5,7 +5,7 @@ import { SystemConfig } from '../system/system-config.entity';
 import { User } from '../users/entities/user.entity';
 import { UserGroup } from '../users/entities/user-group.entity';
 import { GroupPermission } from '../users/entities/group-permission.entity';
-import { PermissionCacheService } from '../auth/permission-cache.service';
+import { AuthModule } from '../auth/auth.module';
 
 import { ChatbotSchemaService } from './schema/chatbot-schema.service';
 import { ChatbotSeedService } from './seed/chatbot-seed.service';
@@ -25,6 +25,7 @@ import { ChatbotAdminConfigController } from './controllers/chatbot-admin-config
 
 @Module({
   imports: [
+    AuthModule,
     TypeOrmModule.forFeature([
       ...CHATBOT_ENTITIES,
       SystemConfig,
@@ -50,7 +51,6 @@ import { ChatbotAdminConfigController } from './controllers/chatbot-admin-config
     ChatbotAuditService,
     FakeProvider,
     GeminiProvider,
-    PermissionCacheService,
     {
       provide: LLM_PROVIDER,
       useFactory: () => {
