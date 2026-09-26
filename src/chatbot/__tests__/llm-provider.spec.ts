@@ -92,6 +92,9 @@ describe('LLM Providers (CB0-19)', () => {
       expect(res.data).toEqual({ reply: 'Dạ chào bạn!', intent: 'greeting' });
       expect(res.usage?.input).toBe(15);
       expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [calledUrl, calledInit] = mockFetch.mock.calls[0];
+      expect(calledUrl).not.toContain('key=');
+      expect(calledInit.headers['x-goog-api-key']).toBe('fake-test-key');
     });
 
     it('retries once upon 429 and succeeds on second attempt', async () => {

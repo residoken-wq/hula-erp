@@ -26,7 +26,7 @@ export class GeminiProvider implements LlmProvider {
 
   async generateJson<T>(req: LlmGenerateRequest): Promise<LlmGenerateResult<T>> {
     const startTime = Date.now();
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
 
     const payload: any = {
       contents: req.messages.map((m) => ({
@@ -52,7 +52,10 @@ export class GeminiProvider implements LlmProvider {
       try {
         const response = await this.fetchFn(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': this.apiKey,
+          },
           body: JSON.stringify(payload),
           signal: controller.signal,
         });
