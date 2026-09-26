@@ -16,9 +16,9 @@
 Chủ dự án (không cần code), **trước ngày bật ENFORCE**:
 - **I-18:** tick `FINANCE: create` + `PURCHASE: view` cho nhóm **Accounting_manager**, nếu kế toán tiếp tục ghi nhận thanh toán.
 - Gán user vào nhóm **"Biên tập Website (CMS)"** cho ai sửa website. Sau ENFORCE, CMS chặn người không có quyền CMS.
-- Trả lời **D8** (thời gian SHADOW) và **D9** (thiết bị/script gọi API không đăng nhập).
+- **D9:** chưa rõ; Claude lọc log `DENY_NO_AUTH` theo IP/user-agent không phải trình duyệt trong 30 ngày để Chủ dự án quyết (xem P2.1 loại C/D).
 
-## P2.1 Giai đoạn quan sát (SHADOW, ≥ 10 ngày làm việc, có một kỳ cuối tháng)
+## P2.1 Giai đoạn quan sát (SHADOW **30 ngày** từ ngày deploy P1 — D8, chốt 2026-09-26)
 
 Người làm: Claude (phân tích) + chủ dự án (quyết).
 

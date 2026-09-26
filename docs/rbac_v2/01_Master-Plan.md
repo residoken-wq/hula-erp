@@ -119,8 +119,8 @@ Khoá `RBAC_MODE` trong bảng `system_configs`: `OFF` | `SHADOW` | `ENFORCE`.
 | D7 | Chấm công, nghỉ phép, phiếu lương **của chính mình**: mọi nhân viên tự làm được? | Có (AUTH + kiểm tra đúng chủ hồ sơ) — **Chốt 2026-09-25: Chỉ hồ sơ của mình; hồ sơ người khác chỉ Admin** | P1 |
 | D6b | API sản phẩm có mở cho mọi user (kèm giá vốn)? | Không — giữ PRODUCT:view — **Chốt 2026-09-25** | P1 |
 | D12 | Vá ngay lỗ xem lương/HR người khác ở P1 hay chờ P2? | Vá ngay — **Chốt 2026-09-25** | P1 |
-| D8 | SHADOW chạy bao lâu? | ≥ 10 ngày làm việc, có một kỳ cuối tháng (lương, công nợ) | P2 |
-| D9 | Có thiết bị/script/hệ thống nào gọi API ERP **không đăng nhập** không? | Liệt kê giúp tao; nếu không rõ thì để log SHADOW tìm | P2 |
+| D8 | SHADOW chạy bao lâu? | ≥ 10 ngày làm việc, có một kỳ cuối tháng (lương, công nợ) — **Chốt 2026-09-26: 30 ngày** | P2 |
+| D9 | Có thiết bị/script/hệ thống nào gọi API ERP **không đăng nhập** không? | Liệt kê giúp tao; nếu không rõ thì để log SHADOW tìm — **2026-09-26: theo dõi log SHADOW rồi quyết** | P2 |
 | D10 | Ngoài `admin`, ai là super admin? | Chỉ `admin` + 1 tài khoản dự phòng | P3 |
 | D11 | Agent API (`/api/api/v1/agent`, dùng API key) đang được ai/hệ thống nào gọi? | Nếu không ai dùng thì tắt ở P3 | P3 |
 
