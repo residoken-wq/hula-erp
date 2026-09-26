@@ -11,7 +11,8 @@ export class ProductsController {
   constructor(private readonly service: ProductsService) { }
 
   // --- API PACKING SPECS (QUY CÁCH ĐÓNG GÓI) ---
-  @AuthOnly()
+  @RequirePermission('PRODUCT', 'can_view')
+  @Perm('PRODUCT', 'view')
   @Get('packing-specs')
   getPackingSpecs(@Query('category_id') categoryId?: string, @Query('product_id') productId?: string) {
     return this.service.getPackingSpecs({
@@ -39,9 +40,11 @@ export class ProductsController {
   }
   // ---------------------------------------------
 
-  @AuthOnly()
+  @RequirePermission('PRODUCT', 'can_view')
+  @Perm('PRODUCT', 'view')
   @Get() findAll() { return this.service.findAll(); }
-  @AuthOnly()
+  @RequirePermission('PRODUCT', 'can_view')
+  @Perm('PRODUCT', 'view')
   @Get(':id') findOne(@Param('id') id: number) { return this.service.findOne(Number(id)); }
 
   @Post() @RequirePermission('PRODUCT', 'can_create') create(@Body() b: any) { return this.service.create(b); }

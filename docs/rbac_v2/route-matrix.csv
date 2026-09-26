@@ -256,11 +256,11 @@ R254,GET,/api/production/assignments,src/production/production.controller.ts:59,
 R255,GET,/api/production/assignments/:id,src/production/production.controller.ts:72,getAssignmentDetail,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
 R256,PUT,/api/production/assignments/:id,src/production/production.controller.ts:77,updateAssignment,NONE,PERM,PRODUCTION:update,ADD_LOGIN+PERM,CAO,,
 R257,DELETE,/api/production/assignments/:id,src/production/production.controller.ts:82,deleteAssignment,NONE,PERM,PRODUCTION:delete,ADD_LOGIN+PERM,CAO,,
-R258,GET,/api/products/packing-specs,src/products/products.controller.ts:16,getPackingSpecs,"PERM PRODUCT,can_view",AUTH,,NO_CHANGE,THẤP,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R258,GET,/api/products/packing-specs,src/products/products.controller.ts:16,getPackingSpecs,"PERM PRODUCT,can_view",PERM,PRODUCT:view,ADD_PERM,THẤP,,D6b: giữ PRODUCT:view vì chứa thông tin sản phẩm
 R259,POST,/api/products/packing-specs,src/products/products.controller.ts:25,createPackingSpec,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R260,PUT,/api/products/packing-specs/:id,src/products/products.controller.ts:31,updatePackingSpec,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R261,DELETE,/api/products/packing-specs/:id,src/products/products.controller.ts:37,deletePackingSpec,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R262,GET,/api/products,src/products/products.controller.ts:44,undefined,JWT,AUTH,,NO_CHANGE,THẤP,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R262,GET,/api/products,src/products/products.controller.ts:44,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,THẤP,,D6b: giữ PRODUCT:view vì chứa giá vốn
 R263,POST,/api/products,src/products/products.controller.ts:48,undefined,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
 R264,POST,/api/products/create-variant,src/products/products.controller.ts:51,createVariant,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
 R265,GET,/api/products/:id/routings,src/products/products.controller.ts:57,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
