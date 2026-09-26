@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import * as path from 'path';
-import sharp from 'sharp';
+const sharp = require('sharp');
 import { ChatbotAttachment } from '../entities/chatbot-attachment.entity';
 import { ChatbotConfigService } from '../config/chatbot-config.service';
 
