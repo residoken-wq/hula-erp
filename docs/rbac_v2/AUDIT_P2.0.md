@@ -1,5 +1,39 @@
 # AUDIT P2.0 — rbac_v2
 
+---
+
+## VÒNG 2 — 2026-09-26 — **AUDIT_PASS**
+
+Đối tượng: `rbac/p2` @ `014711f`. So với vòng 1 có thêm 3 commit: F1 `89711c6`, F2 `2983de2`, F3 `014711f`.
+
+| Lỗi vòng 1 | Kết quả | Claude kiểm chứng |
+|---|---|---|
+| F1 lưới an toàn | ✅ | Matrix giờ là spec bắt buộc. Công cụ độc lập của Claude đọc metadata **sau build**: 631 route, **0 lệch** code↔matrix (cả tier lẫn perm), 0 trùng, 0 cặp cũ/mới mâu thuẫn |
+| F2 `poId` | ✅ | `ParseIntPipe`; evidence `abc` → 400 |
+| F3 REPORT | ✅ | Mục "Lệch" ghi đúng |
+
+Đột biến Claude tự chạy trên `014711f`. Mỗi lần xong đều hoàn tác và kiểm tree sạch:
+
+| Đột biến | `check-rbac` |
+|---|---|
+| M3: `@Public` → `@Perm('CMS','view')` trong code, giữ matrix | **exit 1** (`TIER_MISMATCH R540`) ✅ |
+| M4: đổi action `SALES:view` → `update` của route có decorator cũ | **exit 1** (`PERM_MISMATCH`) ✅ |
+| M5: thêm route mới không decorator | **exit 1** (`UNCLASSIFIED`) ✅ |
+| M6: gắn thêm `@Public()` lên route đang có guard (`/finance/summary`) | **exit 1** (`MULTI`) ✅ |
+| M1, M2 (vòng 1: đột biến matrix, đột biến lời gọi portal) | `check-public-callers` exit 1 ✅ |
+
+Ghi chú: lần chạy M3 đầu tiên của Claude báo exit 0 là **do regex của Claude không khớp CRLF**, nên đột biến không được áp vào file. Chạy lại đúng thì exit 1.
+
+### Ảnh hưởng vận hành khi deploy P2.0
+
+- **Không chặn thêm ai.** Có thêm 2 đường public an toàn: watermark B2B (chỉ GET) và NPL portal NCC theo `uuid` (kiểm đúng PO thuộc NCC).
+- Portal NCC chuyển sang route mới; nhà cung cấp không thấy khác gì.
+- Từ giờ `npm run qa` **fail** khi code và `route-matrix.csv` lệch nhau. Ai thêm hay sửa API phải sửa matrix cùng lúc (xem `technical-rules.md`, Claude sẽ đề xuất bổ sung).
+
+---
+
+## VÒNG 1
+
 - Người audit: Claude · Ngày: 2026-09-26
 - Đối tượng: `rbac/p2` @ `41f644b` (4 commit so với `main`, working tree sạch)
 - Môi trường: `nest build`; boot backend trên test-env vừa reset (dump 23/08 + sanitize); dữ liệu NCC thật
