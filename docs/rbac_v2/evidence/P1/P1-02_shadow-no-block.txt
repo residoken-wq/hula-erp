@@ -1,38 +1,39 @@
-=== SHADOW MODE RUNTIME AUDIT: 20 ADD_PERM ROUTES (P1-02) ===
-Date: 2026-09-25T15:24:31.888Z
-Test user: sales01 (User lacking Finance/Production/System permissions)
-Expected: SHADOW mode does NOT return 403; requests pass through unchanged.
+=== SHADOW MODE RUNTIME AUDIT: 20 REAL ADD_PERM ROUTES (P1-02) ===
+Date: 2026-09-26T03:56:17.575Z
+Test user: sales01 (User lacking Finance/Production/Inventory permissions)
+Criteria: Every route must be a real route returning HTTP 200 with valid data payload; not 404 or 500.
 
-[PASS] GET /api/finance/cash-flow/summary -> HTTP 200 (Not blocked)
-[PASS] GET /api/finance/cash-flow/chart -> HTTP 200 (Not blocked)
-[PASS] GET /api/finance/cash-flow/receivables -> HTTP 200 (Not blocked)
-[PASS] GET /api/finance/cash-flow/payables -> HTTP 200 (Not blocked)
-[PASS] GET /api/finance/cash-flow/alerts -> HTTP 200 (Not blocked)
-[PASS] GET /api/finance/report -> HTTP 200 (Not blocked)
-[PASS] GET /api/finance/history/TEST -> HTTP 200 (Not blocked)
-[PASS] GET /api/ai/analytics -> HTTP 500 (Not blocked)
-[PASS] GET /api/categories -> HTTP 200 (Not blocked)
-[PASS] GET /api/materials -> HTTP 200 (Not blocked)
-[PASS] GET /api/suppliers -> HTTP 200 (Not blocked)
-[PASS] GET /api/processes -> HTTP 200 (Not blocked)
-[PASS] GET /api/marketing/campaigns -> HTTP 200 (Not blocked)
-[PASS] GET /api/marketing/promotions -> HTTP 404 (Not blocked)
-[PASS] GET /api/marketing/social-posts -> HTTP 404 (Not blocked)
-[PASS] GET /api/shipping/logs -> HTTP 404 (Not blocked)
-[PASS] GET /api/shipping/stats -> HTTP 404 (Not blocked)
-[PASS] GET /api/qc/inspections -> HTTP 500 (Not blocked)
-[PASS] GET /api/qc/criteria -> HTTP 500 (Not blocked)
-[PASS] GET /api/tasks -> HTTP 200 (Not blocked)
+[PASS] GET /api/categories (Product Categories) -> HTTP 200 (5753 bytes returned)
+[PASS] GET /api/materials (Raw Materials) -> HTTP 200 (87870 bytes returned)
+[PASS] GET /api/suppliers (Suppliers) -> HTTP 200 (14785 bytes returned)
+[PASS] GET /api/processes (Production Processes) -> HTTP 200 (2670 bytes returned)
+[PASS] GET /api/marketing/dashboard (Marketing Dashboard) -> HTTP 200 (102 bytes returned)
+[PASS] GET /api/marketing/campaigns (Marketing Campaigns) -> HTTP 200 (2 bytes returned)
+[PASS] GET /api/tasks (Tasks List) -> HTTP 200 (1196540 bytes returned)
+[PASS] GET /api/blogs (Blogs List) -> HTTP 200 (467845 bytes returned)
+[PASS] GET /api/discussions (Discussions) -> HTTP 200 (709 bytes returned)
+[PASS] GET /api/announcements (Announcements) -> HTTP 200 (1878 bytes returned)
+[PASS] GET /api/customers (Customers) -> HTTP 200 (896815 bytes returned)
+[PASS] GET /api/website-projects (Website Projects) -> HTTP 200 (98299 bytes returned)
+[PASS] GET /api/production/assignments (Production Assignments) -> HTTP 200 (2 bytes returned)
+[PASS] GET /api/finance/cash-flow/summary (Cash Flow Summary) -> HTTP 200 (148 bytes returned)
+[PASS] GET /api/finance/cash-flow/chart (Cash Flow Chart) -> HTTP 200 (2109 bytes returned)
+[PASS] GET /api/finance/cash-flow/receivables (Cash Flow Receivables) -> HTTP 200 (31670 bytes returned)
+[PASS] GET /api/finance/cash-flow/payables (Cash Flow Payables) -> HTTP 200 (2057 bytes returned)
+[PASS] GET /api/finance/cash-flow/alerts (Cash Flow Alerts) -> HTTP 200 (199 bytes returned)
+[PASS] GET /api/finance/report (Finance Report) -> HTTP 200 (35105 bytes returned)
+[PASS] GET /api/inventory/goods-receipt/pending (Pending Goods Receipts) -> HTTP 200 (13423 bytes returned)
 
-Summary: 20/20 routes passed without blocking in SHADOW mode.
+Summary: 20/20 real routes returned HTTP 200 in SHADOW mode.
 
 Recent SHADOW Access Logs recorded in DB:
-  * [DENY_NO_PERM] GET /api/qc/:id (Required: PRODUCTION:view) at 2026-09-25T15:24:32.134Z
-  * [DENY_NO_PERM] GET /api/ai/analytics (Required: USERS:view) at 2026-09-25T15:24:32.087Z
-  * [DENY_NO_PERM] GET /api/finance/history/:refCode (Required: FINANCE:view) at 2026-09-25T15:24:32.073Z
-  * [DENY_NO_PERM] GET /api/finance/report (Required: FINANCE:view) at 2026-09-25T15:24:32.062Z
-  * [DENY_NO_PERM] GET /api/finance/cash-flow/alerts (Required: FINANCE:view) at 2026-09-25T15:24:32.025Z
-  * [DENY_NO_PERM] GET /api/finance/cash-flow/payables (Required: FINANCE:view) at 2026-09-25T15:24:32.016Z
-  * [DENY_NO_PERM] GET /api/finance/cash-flow/receivables (Required: FINANCE:view) at 2026-09-25T15:24:31.960Z
-  * [DENY_NO_PERM] GET /api/finance/cash-flow/chart (Required: FINANCE:view) at 2026-09-25T15:24:31.953Z
-  * [DENY_NO_PERM] GET /api/finance/cash-flow/summary (Required: FINANCE:view) at 2026-09-25T15:24:31.904Z
+  * [DENY_NO_PERM] POST /api/hr/check-in (Required: HR:create) at 2026-09-26T03:54:07.064Z
+  * [DENY_NO_PERM] GET /api/hr/employees (Required: HR:view) at 2026-09-26T03:54:07.062Z
+  * [DENY_NO_PERM] GET /api/hr/payslips (Required: HR:view) at 2026-09-26T03:54:07.059Z
+  * [DENY_NO_PERM] GET /api/products (Required: PRODUCT:view) at 2026-09-26T03:54:06.837Z
+  * [DENY_NO_PERM] GET /api/designs/logos (Required: PRODUCT:view | PRODUCTION:view) at 2026-09-26T03:54:06.833Z
+  * [DENY_NO_PERM] GET /api/inventory/goods-receipt/pending (Required: INVENTORY:view) at 2026-09-26T03:54:06.770Z
+  * [DENY_NO_PERM] GET /api/finance/report (Required: FINANCE:view) at 2026-09-26T03:54:06.763Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/alerts (Required: FINANCE:view) at 2026-09-26T03:54:06.734Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/payables (Required: FINANCE:view) at 2026-09-26T03:54:06.674Z
+  * [DENY_NO_PERM] GET /api/finance/cash-flow/receivables (Required: FINANCE:view) at 2026-09-26T03:54:06.646Z

@@ -1,0 +1,18 @@
+=== LEAVE HIJACKING PREVENTION AUDIT (P1-09 / AUDIT B1) ===
+Date: 2026-09-26T03:56:17.969Z
+User: cattuong (Employee #5, Part-time)
+Payload sent: { id: 1, approved_at: "2026-09-01", leave_type: "ANNUAL", days: 2, reason: "..." }
+
+Target Leave #1 (belongs to sales01, employee #1):
+  Before: employee_id=1, status=APPROVED, approved_at=Mon Jan 12 2026 23:42:16 GMT+0700 (Indochina Time)
+  After:  employee_id=1, status=APPROVED, approved_at=Mon Jan 12 2026 23:42:16 GMT+0700 (Indochina Time)
+  Leave #1 untouched: true
+
+Response from POST /api/hr/me/leaves:
+  HTTP Status: 201
+  Created Leave ID: 10 (New autoincrement ID, not 1)
+  Created For Employee: 5 (5 = cattuong)
+  Created Status: PENDING (PENDING)
+  Created approved_at: null (null)
+
+Result: PASS - Whitelist strictly enforced; leave hijacking impossible.

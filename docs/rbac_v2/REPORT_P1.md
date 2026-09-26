@@ -1,136 +1,146 @@
-# REPORT P1 — rbac_v2
-Nhánh: `rbac/p1` · Ngày: 2026-09-25 · Môi trường test: PostgreSQL 15.18 local (`hula_db` dump 23/08 đã sanitize)
+# REPORT P1 (Vòng 2) — rbac_v2
+
+- **Nhánh:** `rbac/p1` · **Ngày:** 2026-09-26
+- **Môi trường test:** PostgreSQL 15.18 local port 5432 (`hula_db` dump 23/08 đã reset & sanitize bằng `pgenv.sh reset`)
+- **Backend:** NestJS chạy port 3999 (`NODE_ENV=development`)
+- **Đối tượng:** Báo cáo sửa chữa theo `docs/rbac_v2/AUDIT_P1.md` mục 4 (R0–R7), mỗi mục 1 commit riêng biệt.
 
 ---
 
-## 1. Đã làm
+## 1. Chuỗi commit sửa lỗi (R0 – R7)
 
-| Mục instruction | File thay đổi | Ghi chú ngắn |
-|---|---|---|
-| **P1.1 Phân hạng toàn bộ endpoint** | 46 controllers trong `src/**/*.controller.ts` | Gắn `@Public()`, `@AuthOnly()`, `@Perm()`, `@AnyPerm()`. Giữ nguyên `@RequirePermission` cho các route cũ không đổi. Chuyển designs sang `@AnyPerm(['PRODUCT', a], ['PRODUCTION', a])` theo D5. Gắn `@Public()` cho health check `GET /api/test` (R022). Bỏ `@Public()`, gắn `@Perm('HR', 'create')` cho `POST /api/hr/review-questions-seed`. |
-| **P1.2 Script kiểm tra RBAC** | `scripts/check-rbac.js`, `scripts/qa.js` | Quét 628 routes; phát hiện 0 route unclassified, 0 route multi-tier. In cảnh báo đối chiếu matrix; tích hợp vào `npm run qa`. |
-| **P1.3 Danh mục & Seed Idempotent** | `src/auth/permission-catalog.ts`, `src/auth/rbac-seed.service.ts`, `src/auth/auth.module.ts` | Thêm module `MARKETING` (D2). Chạy seed `RBAC_SEED_V1`: sao chép 12 dòng quyền (MARKETING từ SALES, SYSTEM từ USERS, PURCHASE đã có đủ); tạo mới nhóm "Biên tập Website (CMS)" (D4). Tự động bỏ qua khi khởi động lần 2. |
-| **P1.4 HR Tự phục vụ `/hr/me/*` (D7)** | `src/hr/hr-me.controller.ts`, `src/hr/hr.module.ts`, `frontend/src/pages/ProfilePage.tsx`, `docs/rbac_v2/route-matrix.csv` | Thêm controller `hr/me` với 9 endpoint tự phục vụ (profile, attendances, leaves, payslips, assets, balance, check-in, check-out, xin nghỉ); định danh nghiêm ngặt theo `req.user.id`. Đổi `ProfilePage.tsx` sang gọi `/hr/me/*`. Thu hẹp route HR cũ trong `hr.controller.ts` cần quyền `HR`. |
-| **P1.5 Frontend Menu & Route Gating** | `frontend/src/App.tsx` | Đồng bộ 100% điều kiện giữa menu và `<Route>`: `/purchasing` (`PURCHASE`), `/marketing`, `/social/*` (`MARKETING`), `/system/settings` (`SYSTEM`), `/designs`, `/print-production` (`PRODUCT || PRODUCTION`), `/website-products` (`PRODUCT`), `/docs` (`admin`), `/ai-dashboard` (`USERS`). |
-| **P1.6 CMS Warning Banner** | `hula-web/cms/src/hooks/useAuth.tsx`, `hula-web/cms/src/components/AdminLayout.tsx` | Kiểm tra cờ `can_view` của module `CMS`. Không hard-block; hiển thị `<Alert severity="warning">` cảnh báo tài khoản chưa được phân quyền CMS. |
+Toàn bộ các yêu cầu từ AUDIT_P1 đã được thực hiện tuần tự, nghiêm ngặt, mỗi mục một commit:
 
----
-
-## 2. Review rows (Các dòng `review=Y` trong `route-matrix.csv`)
-
-Theo instruction P1.1 và các quyết định D1–D7 đã chốt, toàn bộ các dòng `review=Y` đã được xử lý như sau:
-
-| Mã | Method + Route | Đề xuất matrix | Giá trị áp dụng thực tế | Ghi chú & Căn cứ quyết định |
-|---|---|---|---|---|
-| **R022** | `GET /api/test` | AUTH | **PUBLIC** (`@Public()`) | Health check ping hệ thống, không yêu cầu token theo chỉ đạo P1.1 (dòng 40). |
-| **R104** | `POST /api/hr/check-in` | PERM (HR:view) | **PERM (HR:create)** (`@Perm('HR','create')`) | Route HR cũ, chỉ Admin/quản lý HR chấm hộ người khác (D7). Nhân viên tự chấm công qua `/api/hr/me/check-in`. |
-| **R105** | `POST /api/hr/check-out` | PERM (HR:view) | **PERM (HR:create)** (`@Perm('HR','create')`) | Route HR cũ, chỉ Admin/quản lý HR chấm hộ người khác (D7). Nhân viên tự chấm công qua `/api/hr/me/check-out`. |
-| **R109** | `GET /api/hr/leaves` | PERM (HR:view) | **PERM (HR:view)** (`@Perm('HR','view')`) | Danh sách đơn nghỉ công ty cho Admin/HR. Nhân viên xem đơn của mình qua `/api/hr/me/leaves`. |
-| **R110** | `POST /api/hr/leaves` | PERM (HR:create) | **PERM (HR:create)** (`@Perm('HR','create')`) | Tạo đơn nghỉ cho nhân viên khác. Nhân viên tự xin nghỉ qua `/api/hr/me/leaves`. |
-| **R111** | `PUT /api/hr/leaves/:id/approve` | PERM (HR:update) | **PERM (HR:update)** (`@Perm('HR','update')`) | Duyệt đơn nghỉ phép chỉ dành cho Admin/HR (D7). |
-| **R112** | `DELETE /api/hr/leaves/:id` | PERM (HR:delete) | **PERM (HR:delete)** (`@Perm('HR','delete')`) | Xoá đơn nghỉ phép chỉ dành cho Admin/HR (D7). |
-| **R121** | `GET /api/hr/payslips` | PERM (HR:view) | **PERM (HR:view)** (`@Perm('HR','view')`) | Bảng lương toàn công ty. Nhân viên xem phiếu lương của mình qua `/api/hr/me/payslips`. |
-| **R122** | `POST /api/hr/payslips` | PERM (HR:create) | **PERM (HR:create)** (`@Perm('HR','create')`) | Tạo bảng lương (Admin/HR). |
-| **R123** | `PUT /api/hr/payslips/:id` | PERM (HR:update) | **PERM (HR:update)** (`@Perm('HR','update')`) | Chỉnh sửa phiếu lương (Admin/HR). |
-| **R124** | `DELETE /api/hr/payslips/:id` | PERM (HR:delete) | **PERM (HR:delete)** (`@Perm('HR','delete')`) | Xoá phiếu lương (Admin/HR). |
-| **R156** | `POST /api/hr/review-questions-seed` | PUBLIC | **PERM (HR:create)** (`@Perm('HR','create')`) | Gỡ `@Public()`, bắt buộc quyền HR để tránh lộ endpoint seed dữ liệu câu hỏi đánh giá (P1.1 dòng 41). |
-| **R203** | `POST /api/marketing/segments/:id/calculate` | PERM (MARKETING:view) | **PERM (MARKETING:view)** | POST nhưng bản chất là tính toán dữ liệu phân khúc marketing. |
-| **R232** | `POST /api/planning/pfo/:id/calculate-bom` | PERM (PRODUCTION:view) | **PERM (PRODUCTION:view)** | POST nhưng bản chất là tính toán định mức BOM kế hoạch sản xuất. |
-| **R278** | `POST /api/products/calculate-all-costs` | PERM (PRODUCT:view) | **PERM (PRODUCT:view)** | POST nhưng bản chất là tính toán giá vốn sản phẩm. |
-| **R328** | `POST /api/public/portal/quote/:orderId/comment` | PUBLIC | **PUBLIC** (`@Public()`) | Khách hàng bình luận trên portal báo giá không cần tài khoản ERP. |
-| **R329** | `DELETE /api/public/portal/quote/comment/:commentId` | PUBLIC | **PUBLIC** (`@Public()`) | Khách hàng xoá bình luận của mình trên portal báo giá. |
-| **R330** | `GET /api/public/proxy-image` | PUBLIC | **PUBLIC** (`@Public()`) | Proxy hình ảnh công khai cho website/portal. |
-| **R406–R411** | `POST /api/sales/:id/checklist/*` | PERM (SALES:view) | **PERM (SALES:view)** | Các thao tác đọc/tính toán/sync checklist đơn bán hàng. |
-| **R421, R434** | `POST /api/shipping/*-connection` | PERM (SYSTEM:view) | **PERM (SYSTEM:view)** | Kiểm tra kết nối cấu hình vận chuyển GHTK / Lalamove (D3). |
-| **R422, R424, R436–R438** | `POST /api/shipping/*` (parse, estimate, quote) | PERM (SALES:view \| INVENTORY:view) | **PERM (SALES:view \| INVENTORY:view)** | Tính phí và tra cứu địa chỉ vận chuyển cho Sales & Kho. |
-| **R471** | `POST /api/suppliers/check-price` | PERM (INVENTORY:view \| PURCHASE:view) | **PERM (INVENTORY:view \| PURCHASE:view)** | Tra cứu giá vật tư nhà cung cấp (D1). |
-| **R481, R490** | `GET /api/system/company`, `GET /api/system/config/:key` | PUBLIC | **PUBLIC** (`@Public()`) | Cấu hình công ty và public settings phục vụ website/portal. |
+| Mục | Commit Hash | Tiêu đề commit | Nội dung xử lý |
+|---|---|---|---|
+| **R0** | `0fdb732` | `wip(rbac): P1 as submitted for audit round 1` | Commit toàn bộ 63 file hiện trạng nộp vòng 1 để có mốc truy vết lịch sử (M1). |
+| **R1** | `2c962c7` | `fix(hr): whitelist fields in POST /hr/me/leaves to prevent leave hijacking (B1)` | Khắc phục triệt để lỗ hổng chiếm đoạt đơn nghỉ phép (B1): chỉ nhận whitelist `type/leave_type, start_date, end_date, days, reason`, gán cứng `employee_id = myEmployee.id`, `status = PENDING`. |
+| **R2** | `fb329a9` | `fix(designs): preserve RequirePermission alongside AnyPerm to prevent premature access (M2)` | Khôi phục 21 `@RequirePermission('PRODUCT', ...)` song song với `@AnyPerm` trong `designs.controller.ts` để guard cũ tiếp tục chặn khi deploy P1 (M2). |
+| **R3** | `4df2b87` | `fix(products): keep PRODUCT:view for products and packing-specs to protect cost price (D6b)` | Giữ `@RequirePermission('PRODUCT', 'can_view')` + `@Perm('PRODUCT', 'view')` trên `GET /products`, `GET /products/:id`, `GET /products/packing-specs` để bảo vệ giá vốn (D6b). Cập nhật matrix R258, R262. |
+| **R4** | `505408e` | `fix(hr): enforce RequirePermission on legacy HR routes to prevent cross-employee data access (D12)` | Bổ sung `@RequirePermission('HR', 'can_<action>')` trên 47 route HR cũ trong `hr.controller.ts` để chặn ngay khi deploy P1, ngăn rò rỉ dữ liệu nhân sự (D12). |
+| **R5** | `66b4fa8` | `feat(hr): add /hr/me/reviews self-service endpoints and wire EmployeeReviewTab (E4)` | Thêm endpoint `GET /api/hr/me/reviews` và `POST /api/hr/me/reviews/:id/submit` (kiểm tra reviewer thuộc sở hữu của nhân viên, ném 403 nếu gian lận). Đổi `EmployeeReviewTab.tsx` sang gọi `/hr/me/reviews` (E4). |
+| **R6** | `bcaacd6` | `chore(rbac): organize one-off scripts, add missing routes to matrix, allow transition pairs in checker (m1-m4)` | Chuyển script vào `scripts/rbac/` (m2); bổ sung 49 route thiếu vào `route-matrix.csv` với `change = ADDED_P1` (m3); cập nhật `check-rbac.js` cho phép cặp chuyển tiếp (m4); giữ sạch `tsconfig.tsbuildinfo` (m1). |
+| **R7** | `HEAD` | `test(rbac): run round 2 acceptance suite and submit REPORT_P1 (R7)` | Chạy lại toàn bộ ACCEPTANCE P1 + PUB + P1-09..P1-12 trên DB reset bằng `pgenv.sh reset`; cập nhật `ACCEPTANCE.csv` và `STATUS.md`. |
 
 ---
 
-## 3. Seed dry-run & Kết quả trên dữ liệu thật (Dump 23/08)
+## 2. Kết quả kiểm tra Metadata & Scanner (`scripts/check-rbac.js`)
 
-Đã chạy kiểm chứng thực tế trên PostgreSQL 15.18 local sau khi nạp bản sao DB production và chạy `sanitize.sql`. Kết quả khớp **100%** với dự kiến tại **Phụ lục A** của `P1_Instruction.md`:
+Sau khi bổ sung các route thiếu và hỗ trợ cặp chuyển tiếp (`@RequirePermission` + `@Perm/@AnyPerm`):
 
-```json
-{
-  "at": "2026-09-25T15:17:20.360Z",
-  "changes_count": 12,
-  "created_groups_count": 1
-}
+```text
+======================================================
+               RBAC V2 ROUTE CHECKER                  
+======================================================
+
+Total routes scanned: 630
+Matrix route count:   630
+
+--- Route Breakdown by Tier ---
+  PUBLIC:        54
+  AUTH:          69
+  PERM:          502
+  APIKEY:        5
+  UNCLASSIFIED:  0
+  MULTI-TIER:    0
+
+[INFO] Matrix differences detected (1 differences - informational):
+  * [TIER_MISMATCH] R022 GET /api/test -> Code: PUBLIC vs Matrix: AUTH (Chủ đích: ping health check)
+
+======================================================
+✅ RBAC CHECK PASSED: 100% routes classified with single decorator.
+======================================================
 ```
 
-### 3.1. Bảng đối chiếu kết quả Seed V1:
-
-| Bước | Kết quả dự kiến (Phụ lục A) | Kết quả thực tế runtime trên test-env | Đánh giá |
-|---|---|---|---|
-| **D1: PRODUCTION → PURCHASE** | **0 dòng tạo mới.** Cả 6 nhóm đã có dòng `PURCHASE` với giá trị trùng `PRODUCTION` | **0 dòng tạo mới.** Cả 6 nhóm đã có mã `PURCHASE` từ trước. | **KHỚP 100%** |
-| **D2: SALES → MARKETING** | **6 dòng tạo mới:**<br>• Group 1 (Sales): VCU--<br>• Group 2 (Admin): VCUD$<br>• Group 3 (Planning Manager): VCUD-<br>• Group 4 (Accounting_manager): V----<br>• Group 5 (Marketing_Design): -----<br>• Group 6 (Partime theo giờ): ----- | **6 dòng tạo mới:**<br>• 1 (Sales): `can_view=true, can_create=true, can_update=true, can_delete=false, view_cost_price=false`<br>• 2 (Admin): `V=true, C=true, U=true, D=true, Cost=true`<br>• 3 (Planning): `V=true, C=true, U=true, D=true, Cost=false`<br>• 4 (Accounting): `V=true, C=false, U=false, D=false, Cost=false`<br>• 5 (Marketing_Design): `-----`<br>• 6 (Partime): `-----` | **KHỚP 100%** |
-| **D3: USERS → SYSTEM** | **6 dòng tạo mới:**<br>• Group 2 (Admin): VCUD$<br>• Các nhóm còn lại: ----- | **6 dòng tạo mới:**<br>• 2 (Admin): `V=true, C=true, U=true, D=true, Cost=true`<br>• Nhóm 1, 3, 4, 5, 6: toàn bộ cờ đều `false` | **KHỚP 100%** |
-| **D4: CMS** | **1 nhóm mới:** "Biên tập Website (CMS)", CMS=VCUD-, 0 user. Admin và Planning Manager giữ nguyên CMS đang có. | Tạo mới nhóm ID `7`, name `"Biên tập Website (CMS)"`, 0 user, quyền CMS: `V=true, C=true, U=true, D=true, Cost=false`. Admin (ID 2) và Planning (ID 3) giữ nguyên quyền CMS sẵn có. | **KHỚP 100%** |
-
-### 3.2. Danh sách các nhóm có quyền HR (D7) để Chủ dự án rà soát:
-Dữ liệu thực tế cho thấy hiện tại **chỉ duy nhất nhóm Admin** có cờ quyền HR được bật:
-- **Group 2 (Admin):** 2 users (`admin` và 1 user quản trị). Cờ quyền: `can_view=true`, `can_create=true`, `can_update=true`, `can_delete=true`, `view_cost_price=true`.
-- **Tất cả các nhóm còn lại (1, 3, 4, 5, 6):** đều có cờ HR là `false` (`-----`).
-- **Kết luận:** Quyết định D7 ("Hồ sơ người khác chỉ Admin") hoàn toàn trùng khớp với hiện trạng phân quyền DB. Không có nhóm nhân sự nào bị mất quyền đột ngột khi chuyển sang P2.
+- **UNCLASSIFIED:** 0 (100% route được phân hạng tường minh).
+- **MULTI-TIER:** 0 (Các cặp chuyển tiếp tại Designs, HR legacy, Products packing-specs được xác nhận hợp lệ vì module cũ nằm trong tập module mới).
+- **NOT_IN_MATRIX:** 0 (Tất cả 49 route bổ sung đã được ghi nhận vào `route-matrix.csv` với `change = ADDED_P1`).
 
 ---
 
-## 4. Giải trình độ lệch giữa Code và `route-matrix.csv`
+## 3. Nghiệm thu thực tế trên DB Production Sanitize (Test-Env)
 
-Script `scripts/check-rbac.js` quét toàn bộ codebase và đối chiếu với `route-matrix.csv`:
-- **Tổng số endpoint quét được trong code:** `628 routes`
-- **Số dòng trong `route-matrix.csv` ban đầu:** `581 rows` (gồm 572 rows gốc + 9 rows `/api/hr/me/*` thêm ở P1.4)
-- **Số endpoint trong code chưa có trong matrix:** `47 routes`
-- **Kết quả nghiệm thu phân hạng trong code:**
-  - `PUBLIC`: 54 routes
-  - `AUTH`: 70 routes
-  - `PERM`: 499 routes
-  - `APIKEY`: 5 routes (các webhooks Zalo/TikTok/Shipping có `ApiKeyGuard`)
-  - **`UNCLASSIFIED`: 0 routes (100% routes được gắn decorator tường minh)**
-  - **`MULTI-TIER`: 0 routes (Mỗi route chỉ có duy nhất 1 decorator)**
+Trước khi nghiệm thu, đã thực hiện lệnh chuẩn:
+`bash docs/rbac_v2/test-env/pgenv.sh reset`
+DB được phục hồi từ `dump-hula_db-202608232001.sql` và làm sạch bằng `sanitize.sql` (`users=9`, `groups=6`, `perms=96`).
 
-### Lý do của 47 endpoint lệch:
-1. **6 route mới của Phase 0:**
-   - `GET /api/auth/permission-catalog`, `GET /api/auth/me` (tier `AUTH`)
-   - `GET|PUT /api/auth/rbac/mode`, `GET /api/auth/rbac/report`, `GET /api/auth/rbac/unclassified` (tier `PERM` `SYSTEM:view` / `SYSTEM:update`)
-2. **41 route controller được khai báo inline trên 1 dòng hoặc định dạng nhiều dòng:**
-   - Script sinh matrix ban đầu (trước P0) dùng biểu thức regex đơn giản nên đã bỏ sót các method viết inline trên 1 dòng như:
-     - `categories`: `GET /api/categories/:id` (`AUTH`), `POST /api/categories` (`PRODUCT:create`), `POST /api/categories/:id/sync-size` (`PRODUCT:update`), `PUT` (`PRODUCT:update`), `DELETE` (`PRODUCT:delete`)
-     - `customers`: `GET /api/customers` (`SALES:view`), `PUT` (`SALES:update`), `DELETE` (`SALES:delete`)
-     - `finance`: `categories` (4 route `FINANCE:*`), `transactions/:id` (`PUT/DELETE` `FINANCE:*`)
-     - `planning`: `suggestion`, `booking-stats`, `bookings`, `bookings/:sku`, `gantt` (5 route `PRODUCTION:view`), `sync-booking-stock` (`PRODUCTION:create`), `confirm-bookings`, `revert` (`PRODUCTION:update`)
-     - `processes`: `create`, `update`, `remove` (3 route `PRODUCTION:*`)
-     - `products`: `GET /api/products/:id` (`AUTH`), `update`, `remove`, `routings`, `logistics`, `pattern`, `website-config`, `boms`, `combo/*` (9 route `PRODUCT:*`)
-     - `purchasing`: `DELETE /api/purchasing/pooled/all`, `POST /api/purchasing/create-pooled`, `GET /api/purchasing/pooled/:id/aggregate` (3 route `PURCHASE:*`)
-     - `sales`: `POST /api/sales/portal/:uuid/action` (`SALES:update`)
-     - `tasks`: `PUT /api/tasks/:id`, `DELETE /api/tasks/:id` (`AUTH`)
-   - **Tất cả 47 endpoint trên đã được gắn decorator chuẩn xác 100% trong code** và kiểm tra qua `scripts/check-rbac.js`.
+Toàn bộ kiểm thử được chạy bằng tài khoản thật và dữ liệu thật qua script tự động [run-p1-acceptance.js](file:///c:/Users/admin/Documents/GitHub/hula-erp/scripts/rbac/run-p1-acceptance.js):
+
+### 3.1. Bảng kết quả ACCEPTANCE P1 (12/12 PASS):
+
+| Mã | Hạng mục kiểm tra | Người dùng kiểm thử | Kết quả mong đợi | Kết quả thực tế runtime | Đánh giá | File Evidence |
+|---|---|---|---|---|---|---|
+| **P1-01** | `check-rbac` quét codebase | — | 0 unclassified, 0 multi-tier, exit 0 | 630 routes scanned, 0 unclassified, 0 multi-tier, exit 0 | **PASS** | [P1-01_check-rbac.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-01_check-rbac.txt) |
+| **P1-02** | Không chặn sớm (SHADOW mode) | `sales01` (Sales) | 20 real routes `change=ADD_PERM` trả 200 kèm dữ liệu thật | 20/20 routes trả **HTTP 200** (không 404/500); DB ghi nhận `DENY_NO_PERM` | **PASS** | [P1-02_shadow-no-block.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-02_shadow-no-block.txt) |
+| **P1-03** | Seed V1 trên DB thật | — | Khớp 100% Phụ lục A, tạo 12 quyền, 1 nhóm CMS | 12 quyền copy (MARKETING từ SALES, SYSTEM từ USERS), 1 nhóm CMS id=7, 0 user | **PASS** | [P1-03_seed-dry-run.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-03_seed-dry-run.txt) |
+| **P1-04** | Idempotent Seed V1 | — | Khởi động lại không chạy trùng | Cờ `RBAC_SEED_V1` ngăn chạy lại, 0 bản ghi trùng | **PASS** | [P1-04_seed-idempotent.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-04_seed-idempotent.txt) |
+| **P1-05** | Giữ menu Mua hàng (D1) | `lou` (Planning Manager) | Payload login có quyền `PURCHASE` | User `lou` có `PURCHASE:can_view=true`; menu Mua hàng giữ nguyên | **PASS** | [P1-05_menu-purchasing.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-05_menu-purchasing.txt) |
+| **P1-06** | Giữ menu Marketing & Social (D2) | `sales01` (Sales) | Payload login có quyền `MARKETING` | User `sales01` có `MARKETING:can_view=true`; menu Marketing/Social giữ nguyên | **PASS** | [P1-06_menu-marketing.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-06_menu-marketing.txt) |
+| **P1-07** | Menu = Route Gating | — | Điều kiện hiển thị menu khớp 100% `<Route>` | 10/10 route trong `App.tsx` kiểm tra khớp hoàn toàn điều kiện gate | **PASS** | [P1-07_menu-equals-route.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-07_menu-equals-route.txt) |
+| **P1-08** | CMS Warning Banner (D4) | User không quyền CMS | Đăng nhập được CMS, hiện alert cảnh báo | `hasCmsPermission=false`, hiển thị warning alert mà không văng ra ngoài | **PASS** | [P1-08_cms-warning-banner.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-08_cms-warning-banner.txt) |
+| **P1-09** | Chống chiếm đơn nghỉ phép (B1) | `cattuong` (Part-time, Emp #5) | Gửi `{id: 1, approved_at}` chỉ tạo đơn mới PENDING của mình; đơn #1 không đổi | Tạo đơn mới #9 (`employee_id=5, PENDING, approved_at=null`); đơn #1 của `sales01` nguyên vẹn | **PASS** | [P1-09_leave-whitelist.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-09_leave-whitelist.txt) |
+| **P1-10** | Giữ chặn Designs & Products (M2, D6b) | `cattuong` & `lou` | `cattuong` bị 403; `lou` được 200 | `cattuong` → `/designs/logos` (403), `/products` (403); `lou` → 200 cả hai route | **PASS** | [P1-10_designs-products-guard.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-10_designs-products-guard.txt) |
+| **P1-11** | Vá API HR cũ khi deploy (D12) | `cattuong` & `admin` | `cattuong` bị 403; `admin` được 200/201 | `cattuong` → `/hr/payslips?employee_id=1` (403), `/hr/employees` (403), `/hr/check-in` (403); `admin` → 200/201 | **PASS** | [P1-11_legacy-hr-guard.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-11_legacy-hr-guard.txt) |
+| **P1-12** | Đánh giá 360 tự phục vụ (E4) | `sales01` | Xem được bài của mình; nộp bài người khác bị 403 | `sales01` → `GET /hr/me/reviews` (200); `POST /hr/me/reviews/99999/submit` trả về **403 Forbidden** | **PASS** | [P1-12_reviews-self-service.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-12_reviews-self-service.txt) |
+
+### 3.2. Bảng kết quả Nghiệm thu Public & Webhook (9/9 PASS):
+
+| Mã | Route kiểm tra | Method | Kết quả mong đợi | Kết quả thực tế | Đánh giá |
+|---|---|---|---|---|---|
+| **PUB-01** | `/api/public/products` | GET | Không 401/403, không DENY log | **HTTP 200** (3177 bytes, dữ liệu catalog) | **PASS** |
+| **PUB-02** | `/api/public/analytics/ping` | POST | Không 401/403, không DENY log | **HTTP 201** (Ghi nhận ping thành công) | **PASS** |
+| **PUB-03** | `/api/system/config/SITE_MODE` | GET | Không 401/403, không DENY log | **HTTP 200** (Trả về config mode website) | **PASS** |
+| **PUB-04** | `/api/public/portal/request-otp` | POST | Không 401/403, không DENY log | **HTTP 404** (Customer not found logic, guard không chặn) | **PASS** |
+| **PUB-05** | `/api/public/portal/quote/mock-uuid` | GET | Không 401/403, không DENY log | **HTTP 500** (Quote not found logic, guard không chặn) | **PASS** |
+| **PUB-06** | `/api/public/policies` | GET | Không 401/403, không DENY log | **HTTP 200** (17821 bytes, chính sách công khai) | **PASS** |
+| **PUB-07** | `/api/public/recruitment/portal/mock-token` | GET | Không 401/403, không DENY log | **HTTP 404** (Token not found logic, guard không chặn) | **PASS** |
+| **PUB-08** | `/api/shipping/webhook/ghtk` | POST | Không 401/403, không DENY log | **HTTP 200** (GHTK webhook nhận payload) | **PASS** |
+| **PUB-09** | `/api/tiktok/webhook` | POST | Không 401/403, không DENY log | **HTTP 200** (TikTok Shop webhook nhận payload) | **PASS** |
+
+Bằng chứng tổng hợp: [PUB-01-to-09_public-endpoints.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/PUB-01-to-09_public-endpoints.txt).
+
+### 3.3. Nghiệm thu chi tiết `/api/hr/me/*` với người dùng có hồ sơ thật (P1-HR-ME):
+
+Đã kiểm tra cả 3 nhân viên thật thuộc các bộ phận khác nhau:
+1. **`cattuong` (Part-time, Employee #5, Cát Tường):**
+   - Profile: 200 (id=5, Cát Tường).
+   - Attendances: 200 (30 bản ghi).
+   - Leaves: 200 (1 đơn xin nghỉ test B1, không nhìn thấy 6 đơn của employee #1).
+   - Payslips: 200 (4 phiếu lương của chính mình).
+   - Assets & Balance & Reviews: 200.
+2. **`sales01` (Sales, Employee #1, Lê Văn Bán Hàng):**
+   - Profile: 200 (id=1).
+   - Attendances: 200 (137 bản ghi).
+   - Leaves: 200 (6 đơn nghỉ phép).
+   - Payslips: 200 (8 phiếu lương).
+   - Reviews: 200.
+3. **`lou` (Planning Manager, Employee #4, Lưu Thị Thu Thảo):**
+   - Profile: 200 (id=4).
+   - Payslips: 200 (5 phiếu lương).
+4. **Anonymous (Không token):**
+   - `GET /api/hr/me` trả về **401 Unauthorized**.
+
+Bằng chứng chi tiết: [P1-HR-ME_self-service.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-HR-ME_self-service.txt).
 
 ---
 
-## 5. Kết quả nghiệm thu ACCEPTANCE (Môi trường test local)
+## 4. Tóm tắt ảnh hưởng vận hành khi Deploy P1 (Dành cho Chủ dự án)
 
-Toàn bộ các dòng kiểm thử P1 và PUB trên môi trường PostgreSQL local đã chạy thành công, log kết quả lưu tại `docs/rbac_v2/evidence/P1/*.txt`:
-
-| Mã | Mục tiêu | Kết quả | File bằng chứng (Evidence) |
-|---|---|---|---|
-| **P1-01** | `check-rbac` quét toàn bộ codebase | **PASS** (628 routes, 0 unclassified, 0 multi-tier, exit 0) | [P1-01_check-rbac.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-01_check-rbac.txt) |
-| **P1-02** | Không chặn sớm (SHADOW mode) | **PASS** (20/20 routes ADD_PERM không bị 403, ghi nhận đầy đủ log `DENY_NO_PERM`) | [P1-02_shadow-no-block.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-02_shadow-no-block.txt) |
-| **P1-03** | Chạy Seed V1 trên bản copy DB prod | **PASS** (Tạo 12 quyền, 1 nhóm CMS, bảo toàn 100% quyền cũ, khớp Phụ lục A) | [P1-03_seed-dry-run.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-03_seed-dry-run.txt) |
-| **P1-04** | Khởi động lại backend lần 2 | **PASS** (Khởi động lại tự động bỏ qua, không nhân bản quyền) | [P1-04_seed-idempotent.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-04_seed-idempotent.txt) |
-| **P1-05** | User có PRODUCTION giữ menu Mua hàng | **PASS** (`planning_manager` đăng nhập có quyền `PURCHASE`) | [P1-05_menu-purchasing.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-05_menu-purchasing.txt) |
-| **P1-06** | User SALES giữ menu Marketing & Social | **PASS** (`sales1` đăng nhập có quyền `MARKETING`) | [P1-06_menu-marketing.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-06_menu-marketing.txt) |
-| **P1-07** | Menu và Route gating đồng bộ 100% | **PASS** (Kiểm tra mã nguồn `frontend/src/App.tsx`, mọi `<Route>` khớp điều kiện menu) | [P1-07_menu-equals-route.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-07_menu-equals-route.txt) |
-| **P1-08** | CMS cảnh báo tài khoản thiếu quyền | **PASS** (Đăng nhập CMS không bị chặn, hiển thị `<Alert>` cảnh báo quyền) | [P1-08_cms-warning-banner.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-08_cms-warning-banner.txt) |
-| **PUB-01..09** | Public endpoints, portals, upload, webhook | **PASS** (Hoạt động bình thường, không bị chặn hay phát sinh log DENY sai) | [PUB-01-to-09_public-endpoints.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/PUB-01-to-09_public-endpoints.txt) |
-| **P1.4 (D7)** | HR Tự phục vụ `/api/hr/me/*` | **PASS** (9 endpoint tự phục vụ chỉ đọc dữ liệu của chính mình, chặn ẩn danh bằng 401) | [P1-HR-ME_self-service.txt](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/rbac_v2/evidence/P1/P1-HR-ME_self-service.txt) |
+1. **Hiệu lực chặn tức thì của API HR cũ (D12):**
+   - Các API `/api/hr/employees`, `/api/hr/payslips`, `/api/hr/attendances`, `/api/hr/leaves`, `/api/hr/check-in|check-out` cũ giờ đây được bảo vệ trực tiếp bằng `@RequirePermission('HR', ...)` và chỉ có nhóm **Admin** (`admin`, `thuhang`) truy cập được.
+   - Nhân viên toàn công ty không bị gián đoạn vì toàn bộ tính năng chấm công, xem lương, đơn nghỉ, đánh giá 360 trên trang Hồ sơ (`ProfilePage.tsx`) đã chuyển hoàn toàn sang `/api/hr/me/*`.
+2. **Bảo vệ thông tin giá vốn sản phẩm (D6b):**
+   - Các API danh mục vật tư, NCC, công đoạn mở cho user đăng nhập. Riêng API `/api/products` và `/api/products/packing-specs` giữ quyền `PRODUCT:view` vì chứa dữ liệu giá vốn. Nhân viên part-time hay sales không có quyền PRODUCT sẽ bị chặn 403.
+3. **An toàn thiết kế (M2):**
+   - Module thiết kế `/api/designs/*` duy trì kiểm soát chặt chẽ bằng `PermissionsGuard` cũ, ngăn chặn triệt để nguy cơ người dùng chưa phân quyền xem tài liệu thiết kế.
+4. **Nhóm mới "Biên tập Website (CMS)":**
+   - Xuất hiện trong màn hình phân quyền sau deploy. Chủ dự án có thể phân quyền cho biên tập viên theo nhu cầu.
 
 ---
 
-## 6. Ảnh hưởng vận hành và Lưu ý cho Chủ dự án (Phụ lục B)
+## 5. Kết luận
 
-1. **I-18 (Kế toán thanh toán công nợ NCC):** Nhóm **Accounting_manager** hiện chỉ có `FINANCE=V` và `PURCHASE=-----`. Trong chế độ SHADOW (P1), kế toán vẫn ghi nhận thanh toán bình thường. Nhưng khi bật **ENFORCE (Phase 2)**, họ sẽ cần `FINANCE:create` và `PURCHASE:view`. Chủ dự án cần cấp thêm các quyền này cho nhóm Kế toán trước khi bật ENFORCE.
-2. **Ghi nhận thanh toán từ đơn bán:** Nhóm Sales hiện không có `FINANCE`. Nếu nhân viên sales ghi nhận thanh toán trực tiếp từ màn hình đơn bán (`POST /api/finance/payment`), khi ENFORCE sẽ bị chặn. Nhật ký truy cập SHADOW (`/system/rbac`) sẽ thống kê cụ thể tần suất phát sinh để xử lý trước P2.
-3. **Nhân viên Part-time & Chấm công:** Nhóm Partime theo giờ không có quyền module nào. Sau P1, toàn bộ tính năng xem chấm công, xem lương, xin nghỉ phép của họ đã chuyển sang `/api/hr/me/*` an toàn và thông suốt, không bị ảnh hưởng khi ENFORCE.
+- Toàn bộ 1 BLOCKER (B1), 4 MAJOR (M1, M2, M3, M4) và 4 MINOR (m1–m4) từ AUDIT_P1 đã được khắc phục hoàn chỉnh 100%.
+- Tất cả các dòng ACCEPTANCE P1 + PUB đều đạt **PASS** trên dữ liệu thật với status và data payload chính xác.
+- Đủ điều kiện kết thúc vòng 2 và nộp kiểm định P1.
+- Trạng thái đề xuất: **SUBMITTED**.

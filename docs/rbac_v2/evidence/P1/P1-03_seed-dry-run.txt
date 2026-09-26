@@ -1,10 +1,10 @@
 === RBAC V2 SEED V1 VERIFICATION EVIDENCE (P1-03) ===
-Date: 2026-09-25T15:24:31.055Z
+Date: 2026-09-26T03:56:17.528Z
 Database: hula_db on 127.0.0.1:5432 (Sanitized Production Dump 23/08)
 
 1. RBAC_SEED_V1 CONFIG RECORD:
 {
-  "at": "2026-09-25T15:17:20.360Z",
+  "at": "2026-09-26T03:53:56.765Z",
   "changes": [
     {
       "group_id": 1,

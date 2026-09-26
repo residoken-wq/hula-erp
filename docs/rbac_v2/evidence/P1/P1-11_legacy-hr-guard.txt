@@ -1,0 +1,14 @@
+=== LEGACY HR API GUARDING AUDIT (P1-11 / AUDIT D12) ===
+Date: 2026-09-26T03:56:18.225Z
+
+1. Part-time user (cattuong, no HR permission):
+  GET /api/hr/payslips?employee_id=1 -> HTTP 403 (Expected: 403 Forbidden)
+  GET /api/hr/employees              -> HTTP 403 (Expected: 403 Forbidden)
+  POST /api/hr/check-in              -> HTTP 403 (Expected: 403 Forbidden)
+
+2. Admin user (admin, has HR permission):
+  GET /api/hr/payslips?employee_id=1 -> HTTP 200 (Expected: 200 OK)
+  GET /api/hr/employees              -> HTTP 200 (Expected: 200 OK)
+  POST /api/hr/check-in              -> HTTP 201 (Expected: 200/201 OK)
+
+Result: PASS - Legacy HR API endpoints strictly guarded by RequirePermission('HR', ...).
