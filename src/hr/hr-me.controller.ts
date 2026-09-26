@@ -3,10 +3,12 @@ import {
   Get,
   Post,
   Body,
+  Param,
   Query,
   UseGuards,
   Request,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { HrService } from './hr.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -123,5 +125,28 @@ export class HrMeController {
       reason,
       status: LeaveStatus.PENDING,
     });
+  }
+
+  @Get('reviews')
+  @AuthOnly()
+  async getMyReviews(@Request() req: any) {
+    const employee = await this.resolveMyEmployee(req);
+    return this.hrService.findEmployeeReviews(employee.id);
+  }
+
+  @Post('reviews/:id/submit')
+  @AuthOnly()
+  async submitMyReview(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('answers') answers: any,
+  ) {
+    const employee = await this.resolveMyEmployee(req);
+    const myReviews = await this.hrService.findEmployeeReviews(employee.id);
+    const target = myReviews.find((r: any) => r.id === Number(id));
+    if (!target) {
+      throw new ForbiddenException('Review does not belong to you');
+    }
+    return this.hrService.submitEmployeeReview(Number(id), answers);
   }
 }
