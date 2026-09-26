@@ -1,0 +1,22 @@
+======================================================
+               RBAC V2 ROUTE CHECKER                  
+======================================================
+
+Total routes scanned: 630
+Matrix route count:   630
+
+--- Route Breakdown by Tier ---
+  PUBLIC:        54
+  AUTH:          69
+  PERM:          502
+  APIKEY:        5
+  UNCLASSIFIED:  0
+  MULTI-TIER:    0
+
+[INFO] Matrix differences detected (1 differences - informational):
+  * [TIER_MISMATCH] R022 GET /api/test -> Code: PUBLIC vs Matrix: AUTH (Chưa có mapping)
+
+======================================================
+✅ RBAC CHECK PASSED: 100% routes classified with single decorator.
+======================================================
+

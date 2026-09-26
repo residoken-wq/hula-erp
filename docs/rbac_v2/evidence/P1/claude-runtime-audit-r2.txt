@@ -1,0 +1,42 @@
+=== CLAUDE RUNTIME AUDIT P1 — round 2 (2026-09-26) ===
+Target: rbac/p1 @ 796743c (clean tree), nest build, NODE_ENV=development, port 3999
+DB: fresh `pgenv.sh reset` (dump 23/08 + sanitize.sql). Seed ran at boot: "Created 12 permission entries and 1 groups."
+
+--- metadata (Reflect on dist/) ---
+total 630 {AUTH:69, PERM:502, PUBLIC:54, APIKEY:5}; duplicates 0; unclassified 0; not-in-matrix 0; matrix-not-in-code 0
+mismatch vs matrix: 21 designs (AnyPerm, D5) + GET /api/test (PUBLIC) + POST /api/hr/check-in|check-out (HR:create) — all intended
+routes carrying legacy @RequirePermission: 154; legacy module/action NOT contained in new rule: 0
+old HR routes: 64/64 carry legacy HR decorator -> enforced at deploy (D12)
+GET /products, /products/:id, /products/packing-specs: legacy PRODUCT:view + @Perm PRODUCT:view (D6b)
+
+--- runtime (users: admin, thuhang, sales01, lou, ketoan, maiuyen, cattuong; password test-local) ---
+PASS | P1-03 seed on fresh DB | group_permissions=109; changes=12
+PASS | P1-09 leave#1 untouched | before={"employee_id":1,"status":"APPROVED","approved_at":"2026-01-12T16:42:16.455Z"} after=identical
+PASS | P1-09 new own PENDING leave | status=201 created=[{"id":10,"employee_id":5,"status":"PENDING","approved_by_id":null,"approved_at":null,"days":"2.0"}]
+PASS | P1-10 /designs/logos | part-time=403 lou=200
+PASS | P1-10 /products | part-time=403 lou=200
+PASS | P1-10 /products/packing-specs | part-time=403 lou=200
+PASS | P1-11 part-time GET /hr/payslips?employee_id=1 | 403
+PASS | P1-11 part-time GET /hr/employees | 403
+PASS | P1-11 part-time GET /hr/leaves | 403
+PASS | P1-11 part-time GET /hr/employees/by-user/1 | 403
+PASS | P1-11 part-time POST /hr/check-in | 403
+PASS | P1-11 part-time GET /hr/employee-reviews?reviewer_id=1 | 403
+PASS | P1-11 admin (HR group) still works | payslips=200 employees=200
+PASS | P1-11 thuhang (HR group) still works | payslips=200 employees=200
+PASS | HRME /hr/me, /leaves, /payslips, /attendances, /assets, /balance | 200 (part-time cattuong)
+PASS | HRME check-in own | 201, last attendance emp=5
+INFO | campaign create (admin, ACTIVE, participants [1,5]) | 201 id=3; reviews [1:1->1, 2:5->1, 3:5->5, 4:1->5]
+PASS | P1-12 sales01 sees exactly own reviewer tasks | got=[1,4] expected=[1,4]
+PASS | P1-12 cattuong cannot submit sales01 review | 403; review#1 PENDING -> PENDING
+INFO | cattuong submits own review #3 | 201
+PASS | legacy FINANCE still 403 | sales01 -> 403
+PASS | D6 materials for logged-in part-time | 200 ; anon 200 (SHADOW, logged)
+PASS | PUB /public/settings, /public/products, /system/config/SITE_MODE, webhook GHTK, webhook TikTok, /test | 200
+FAIL | PUB no DENY logs | [GET /api/upload/watermark/b2b/config] -> matrix error E5 (Claude); not breaking in SHADOW
+PASS | no UNCLASSIFIED at runtime
+
+--- static check: API calls from anonymous surfaces (website src, Portal*Page, components/b2b) ---
+files 126; distinct call sites 77; public OK 62; false positives (website baseURL=/public) 3; static assets 6
+NON-PUBLIC (real): GET /api/upload/watermark/b2b/config (website dat-hang-si + ERP portal B2B)  -> E5
+NON-PUBLIC (real): GET /api/purchasing/:id/outsourcing-materials (PortalSupplierDashboard, numeric id, no token) -> E6

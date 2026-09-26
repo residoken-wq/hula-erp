@@ -103,6 +103,8 @@ Khoá `RBAC_MODE` trong bảng `system_configs`: `OFF` | `SHADOW` | `ENFORCE`.
 | I-16 | P5 | Khách xem báo giá trên portal | Comment/xoá comment chuyển sang theo `uuid` báo giá, không theo id số | THẤP | Link đã gửi khách vẫn giữ nguyên |
 | I-17 ⚠ | P2 ENFORCE | Nhân sự **không phải admin** đang làm lương, chấm công hộ, duyệt phép | Theo D7 chỉ Admin thao tác hồ sơ người khác. Nhóm nào đang có quyền HR mà Chủ dự án bỏ đi thì mất các thao tác này | CAO nếu có | REPORT P1 liệt kê nhóm đang có HR; Chủ dự án quyết bỏ hay giữ trước ENFORCE |
 | I-18 ⚠ | P2 ENFORCE | Kế toán (nhóm Accounting_manager: FINANCE=xem, PURCHASE=không) | Hiện vẫn ghi thanh toán được vì route chỉ kiểm đăng nhập. Sau P1 cần FINANCE:create + PURCHASE:view. Không tick thêm thì mất quy trình thanh toán công nợ NCC | CAO | Chủ dự án tick quyền trước ENFORCE (P1 Phụ lục B) |
+| I-19 ⚠ | **P1 deploy** (chặn thật, không qua SHADOW — D12) | Người không có quyền HR gọi API HR cũ (hồ sơ, chấm công, nghỉ phép, lương, tài sản, đánh giá) | 403 ngay khi deploy P1. Chỉ nhóm Admin (admin, thuhang) dùng được; nhân viên dùng /hr/me | THẤP (không ai đang dùng hợp lệ) | Ai đang mở ERP bản cũ cần F5 |
+| I-20 ⚠ | P2 ENFORCE | Nhà cung cấp dùng portal PO (xem danh sách NPL gia công) và khách xem cấu hình B2B trên website | Hai route ẩn danh bị matrix gán nhầm (E5, E6): nếu bật ENFORCE trước khi sửa, NCC không xem được NPL và watermark B2B mất | CAO | P2.0-a, P2.0-b bắt buộc trước ENFORCE |
 
 ## 6. Quyết định cần chủ dự án chốt
 
@@ -115,6 +117,8 @@ Khoá `RBAC_MODE` trong bảng `system_configs`: `OFF` | `SHADOW` | `ENFORCE`.
 | D5 | Thiết kế in/thêu (`/designs`) thuộc PRODUCT (backend) hay PRODUCTION (menu)? | Tạm cho **một trong hai** (any-of), sau chốt một — **Chốt 2026-09-25: Tạm cả hai (PRODUCT hoặc PRODUCTION)** | P1 |
 | D6 | Tra cứu danh mục (sản phẩm, vật tư, NCC, công đoạn, danh mục) cho **mọi user đã đăng nhập** xem? | Có. Giá vốn xử lý ở P4 — **Chốt 2026-09-25: Mọi user đã đăng nhập xem** | P1 |
 | D7 | Chấm công, nghỉ phép, phiếu lương **của chính mình**: mọi nhân viên tự làm được? | Có (AUTH + kiểm tra đúng chủ hồ sơ) — **Chốt 2026-09-25: Chỉ hồ sơ của mình; hồ sơ người khác chỉ Admin** | P1 |
+| D6b | API sản phẩm có mở cho mọi user (kèm giá vốn)? | Không — giữ PRODUCT:view — **Chốt 2026-09-25** | P1 |
+| D12 | Vá ngay lỗ xem lương/HR người khác ở P1 hay chờ P2? | Vá ngay — **Chốt 2026-09-25** | P1 |
 | D8 | SHADOW chạy bao lâu? | ≥ 10 ngày làm việc, có một kỳ cuối tháng (lương, công nợ) | P2 |
 | D9 | Có thiết bị/script/hệ thống nào gọi API ERP **không đăng nhập** không? | Liệt kê giúp tao; nếu không rõ thì để log SHADOW tìm | P2 |
 | D10 | Ngoài `admin`, ai là super admin? | Chỉ `admin` + 1 tài khoản dự phòng | P3 |

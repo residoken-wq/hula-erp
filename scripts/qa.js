@@ -78,6 +78,16 @@ async function runQA() {
         console.log('-----------------------------------');
     }
 
+    // 2.5 RBAC Route Classification Check
+    console.log(`${colors.bold}👉 Running RBAC Route Classification Check...${colors.reset}`);
+    try {
+        await runCommand('node', ['scripts/check-rbac.js'], projectRoot, 'RBAC Route Check');
+    } catch (error) {
+        console.error(error.message);
+        failed = true;
+    }
+    console.log('-----------------------------------');
+
     // 3. Backend Tests
     console.log(`${colors.bold}👉 Running Backend Tests...${colors.reset}`);
     try {

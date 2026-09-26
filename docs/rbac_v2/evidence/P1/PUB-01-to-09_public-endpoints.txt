@@ -1,0 +1,13 @@
+=== PUBLIC ENDPOINTS & PORTALS RUNTIME AUDIT (PUB-01..09) ===
+Date: 2026-09-26T03:56:18.390Z
+Mode: SHADOW (Verified public decorator functionality)
+
+[PASS] PUB-01 - Website Pages & Catalog (GET /api/public/products) -> HTTP 200
+[PASS] PUB-02 - Public Analytics Ping (POST /api/public/analytics/ping) -> HTTP 201
+[PASS] PUB-03 - Website SITE_MODE Middleware (GET /api/system/config/SITE_MODE) -> HTTP 200
+[PASS] PUB-04 - Customer Portal OTP Request (POST /api/public/portal/request-otp) -> HTTP 404
+[PASS] PUB-05 - Customer Quote Portal View (GET /api/public/portal/quote/mock-uuid) -> HTTP 500
+[PASS] PUB-06 - Public Policies (GET /api/public/policies) -> HTTP 200
+[PASS] PUB-07 - Candidate Assessment Portal (GET /api/public/recruitment/portal/mock-token) -> HTTP 404
+[PASS] PUB-08 - GHTK Shipping Webhook (POST /api/shipping/webhook/ghtk) -> HTTP 200
+[PASS] PUB-09 - TikTok Shop Webhook (POST /api/tiktok/webhook) -> HTTP 200

@@ -26,6 +26,7 @@ interface AuthContextType {
     login: (values: any) => Promise<void>;
     logout: () => void;
     hasPermission: (moduleCode: string, action?: 'view' | 'create' | 'update' | 'delete') => boolean;
+    hasCmsPermission: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -34,6 +35,7 @@ const AuthContext = createContext<AuthContextType>({
     login: async () => { },
     logout: () => { },
     hasPermission: () => false,
+    hasCmsPermission: false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -122,7 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, hasPermission }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, hasPermission, hasCmsPermission: !!checkCmsPermission(user) }}>
             {children}
         </AuthContext.Provider>
     );

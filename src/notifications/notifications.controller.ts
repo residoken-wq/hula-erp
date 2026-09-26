@@ -1,3 +1,4 @@
+import { AuthOnly } from '../auth/permissions.decorator';
 import { Controller, Get, Post, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -7,16 +8,19 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class NotificationsController {
     constructor(private readonly service: NotificationsService) { }
 
+    @AuthOnly()
     @Get()
     findAll(@Request() req: any) {
         return this.service.findByUser(req.user.id); // <--- Use ID from Token
     }
 
+    @AuthOnly()
     @Post(':id/read')
     read(@Param('id') id: number) {
         return this.service.markAsRead(id);
     }
 
+    @AuthOnly()
     @Post('read-all')
     readAll(@Request() req: any) {
         return this.service.markAllRead(req.user.id);

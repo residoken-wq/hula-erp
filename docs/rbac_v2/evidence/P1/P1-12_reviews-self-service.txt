@@ -1,0 +1,12 @@
+=== 360 REVIEWS SELF-SERVICE AUDIT (P1-12 / AUDIT E4) ===
+Date: 2026-09-26T03:56:18.243Z
+
+1. GET /api/hr/me/reviews by sales01:
+  HTTP Status: 200 (Expected: 200 OK)
+  Reviews returned: 0
+
+2. POST /api/hr/me/reviews/99999/submit (Unowned review):
+  HTTP Status: 403 (Expected: 403 Forbidden)
+  Error response: {"message":"Review does not belong to you","error":"Forbidden","statusCode":403}
+
+Result: PASS - Self-service reviews accessible only to reviewer; submission strictly verified.

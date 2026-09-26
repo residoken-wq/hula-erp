@@ -1,0 +1,29 @@
+=== MENU & PERMISSION VERIFICATION: PURCHASE (P1-05) ===
+Date: 2026-09-26T03:56:17.949Z
+Account: lou
+User Group: Planning Manager (Group 3)
+Has PURCHASE permission: true
+Permission details:
+[
+  {
+    "id": 300,
+    "module_code": "PURCHASE",
+    "can_view": true,
+    "can_create": true,
+    "can_update": true,
+    "can_delete": true,
+    "view_cost_price": false,
+    "group_id": 3
+  },
+  {
+    "id": 301,
+    "module_code": "PRODUCTION",
+    "can_view": true,
+    "can_create": true,
+    "can_update": true,
+    "can_delete": true,
+    "view_cost_price": false,
+    "group_id": 3
+  }
+]
+Result: PASS - User retains /purchasing menu access seamlessly via PURCHASE permission.

@@ -1,0 +1,30 @@
+=== CLAUDE RUNTIME AUDIT P1 — round 1 (2026-09-25) ===
+Target: rbac/p1 working tree (uncommitted) snapshot applied on main@d376665 in ../hula-erp-audit
+DB: test-env PG 15.18, dump 23/08 restored + sanitize.sql; backend NODE_ENV=development, port 3999
+Users (password test-local): admin, sales01 (Sales), lou (Planning Manager), ketoan (Accounting), maiuyen (Marketing_Design), cattuong (Part-time, employee 5)
+
+--- metadata (Reflect on dist/, 628 routes) ---
+total 628 {"AUTH":70,"PERM":499,"PUBLIC":54,"APIKEY":5}; duplicates 0; unclassified 0
+mismatch vs matrix 24: 21 designs (AnyPerm D5), GET /api/test (PUBLIC), POST /api/hr/check-in|check-out (HR:create)
+in code not in matrix 47 (inline one-line routes missed by Claude's matrix generator — E2); in matrix not in code 0
+legacy @RequirePermission removed: 24 (designs 21, products 3)
+
+--- runtime ---
+PASS | P1-03 MARKETING | ["1=VCU--","2=VCUD$","3=VCUD-","4=V----","5=-----","6=-----"]
+PASS | P1-03 SYSTEM | ["1=-----","2=VCUD$","3=-----","4=-----","5=-----","6=-----"]
+PASS | P1-03 CMS group | [{"id":7,"name":"Biên tập Website (CMS)","n":0}] CMS=VCUD-
+PASS | P1-03 PURCHASE unchanged | 3=VCUD- 2=VCUD$
+PASS | P1-03 total rows | group_permissions=109 (expect 109)
+PASS | HRME profile | status=200 employee.id=5 hasUserPassword=false
+PASS | HRME leaves own-only | status=200 count=0 (company has 6 leaves of emp 1)
+PASS | HRME payslips own-only | status=200 count=4
+PASS | HRME attendances/assets/balance | 200
+PASS | HRME check-in ignores body employee_id | status=201 last attendance employee_id=5 (body sent 1)
+FAIL | B1 leave mass-assignment | POST /hr/me/leaves {id:1, approved_at} as cattuong -> 201; leave#1 before={"employee_id":1,"status":"APPROVED"} after={"employee_id":5,"status":"PENDING","approved_at":"2026-10-01T00:00:00.000Z"}
+FAIL | M2 designs loosened | cattuong GET /designs/logos -> 200 (prod today 403)
+INFO | D6b products | cattuong GET /products -> 200, 803 rows, exposes cost_price=true
+PASS | legacy FINANCE still 403 | sales01 -> 403
+INFO | D12 old HR API | cattuong GET /hr/payslips?employee_id=1 -> 200, 8 rows (someone else's payslips; exists on prod today)
+PASS | PUB GET /public/settings|products|policies, /system/config/SITE_MODE, POST /shipping/webhook/ghtk (200), POST /tiktok/webhook (200), GET /upload/files/* (404 not 401), /upload/watermark/b2b/config, POST /public/portal/request-otp (404 = unknown email), GET /test
+PASS | PUB no DENY logs for public routes
+PASS | no UNCLASSIFIED at runtime

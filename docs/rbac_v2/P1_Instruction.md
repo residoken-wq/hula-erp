@@ -1,5 +1,7 @@
 # P1 — Phân hạng toàn bộ endpoint + mã quyền mới + seed
 
+> **Changelog 2026-09-25 (sau AUDIT_P1 vòng 1):** thêm D6b (API sản phẩm giữ `PRODUCT:view`), D12 (chặn ngay API HR cũ), E3 (designs giữ decorator cũ song song `AnyPerm`), E4 (đánh giá 360 chuyển sang `/hr/me/reviews`). Chi tiết thi công: **`AUDIT_P1.md` mục 4 (R0–R7)**. Luật 00_START-HERE 2 ("không thêm `@RequirePermission` mới") **được nới riêng cho R2, R3, R4** theo quyết định của Chủ dự án.
+
 **Điều kiện bắt đầu:** P0 đã audit PASS, **và** chủ dự án đã chốt D1–D7. Kết quả ghi vào bảng dưới; bảng còn trống thì **không được làm**.
 **Nhánh:** `rbac/p1`, tạo từ `main`. P0 đã merge ở `3f491fe`.
 **Hành vi sau deploy:** vẫn SHADOW, chưa chặn ai. Menu frontend có thể đổi chỗ gate (I-02, I-03, I-04), nhưng nhờ seed nên không ai mất menu.
@@ -15,6 +17,8 @@
 | D4 CMS | ✅ **Tạo nhóm quyền CMS riêng; Chủ dự án tự gán user** (2026-09-25) | Seed **không** cấp CMS cho nhóm có sẵn. Seed tạo mới nhóm `Biên tập Website (CMS)` có CMS đủ 4 quyền, chưa có user nào (P1.3) |
 | D5 Designs | ✅ **Tạm cả hai** (2026-09-25) | `AnyPerm(['PRODUCT',a],['PRODUCTION',a])` cho `designs/*`; menu `hasPerm('PRODUCT') \|\| hasPerm('PRODUCTION')` |
 | D6 Tra cứu danh mục | ✅ **Mọi user đã đăng nhập xem** (2026-09-25) | Giữ các dòng `AUTH` cho `GET` products/materials/categories/processes/suppliers. Ghi/sửa vẫn cần quyền module |
+| D6b Sản phẩm | ✅ **API sản phẩm giữ `PRODUCT:view`** (2026-09-25, sau test thật: lộ giá vốn) | `GET /products`, `/products/:id`, `/products/packing-specs` giữ decorator cũ + `@Perm('PRODUCT','view')` |
+| D12 HR cũ | ✅ **Chặn ngay ở P1** (2026-09-25, sau test thật: part-time đọc được 8 phiếu lương người khác) | Route `hr.controller.ts` gắn thêm `@RequirePermission('HR', …)`, chặn thật khi deploy |
 | D7 HR | ✅ **Nhân viên chỉ thao tác hồ sơ của chính mình; hồ sơ người khác chỉ Admin** (2026-09-25) | Làm theo P1.4 (bản mới): thêm API `/hr/me/*`, route HR cũ cần quyền `HR`. "Chỉ Admin" thực hiện bằng cách **không cấp quyền HR cho nhóm nào**; Chủ dự án tự bỏ quyền HR ở các nhóm đang có (không seed xoá tự động) |
 
 ---

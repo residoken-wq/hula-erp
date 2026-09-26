@@ -1,4 +1,4 @@
-﻿id,method,route,source,handler,current,proposed_tier,proposed_perm,change,ops_risk,review,note
+id,method,route,source,handler,current,proposed_tier,proposed_perm,change,ops_risk,review,note
 R001,POST,/api/ai/pricing,src/ai/ai.controller.ts:20,suggestPrice,JWT,AUTH,,NO_CHANGE,THẤP,,
 R002,POST,/api/ai/chat,src/ai/ai.controller.ts:25,chat,JWT,AUTH,,NO_CHANGE,THẤP,,
 R003,POST,/api/ai/chat-stream,src/ai/ai.controller.ts:30,chatStream,JWT,AUTH,,NO_CHANGE,THẤP,,
@@ -256,11 +256,11 @@ R254,GET,/api/production/assignments,src/production/production.controller.ts:59,
 R255,GET,/api/production/assignments/:id,src/production/production.controller.ts:72,getAssignmentDetail,NONE,PERM,PRODUCTION:view,ADD_LOGIN+PERM,CAO,,
 R256,PUT,/api/production/assignments/:id,src/production/production.controller.ts:77,updateAssignment,NONE,PERM,PRODUCTION:update,ADD_LOGIN+PERM,CAO,,
 R257,DELETE,/api/production/assignments/:id,src/production/production.controller.ts:82,deleteAssignment,NONE,PERM,PRODUCTION:delete,ADD_LOGIN+PERM,CAO,,
-R258,GET,/api/products/packing-specs,src/products/products.controller.ts:16,getPackingSpecs,"PERM PRODUCT,can_view",AUTH,,NO_CHANGE,THẤP,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R258,GET,/api/products/packing-specs,src/products/products.controller.ts:16,getPackingSpecs,"PERM PRODUCT,can_view",PERM,PRODUCT:view,ADD_PERM,THẤP,,D6b: giữ PRODUCT:view vì chứa thông tin sản phẩm
 R259,POST,/api/products/packing-specs,src/products/products.controller.ts:25,createPackingSpec,"PERM PRODUCT,can_create",PERM,PRODUCT:create,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R260,PUT,/api/products/packing-specs/:id,src/products/products.controller.ts:31,updatePackingSpec,"PERM PRODUCT,can_update",PERM,PRODUCT:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R261,DELETE,/api/products/packing-specs/:id,src/products/products.controller.ts:37,deletePackingSpec,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,NO_CHANGE,THẤP,,Giữ quyền hiện có
-R262,GET,/api/products,src/products/products.controller.ts:44,undefined,JWT,AUTH,,NO_CHANGE,THẤP,,Tra cứu danh mục dùng chung nhiều module (REVIEW trường giá vốn ở Phase 4)
+R262,GET,/api/products,src/products/products.controller.ts:44,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,THẤP,,D6b: giữ PRODUCT:view vì chứa giá vốn
 R263,POST,/api/products,src/products/products.controller.ts:48,undefined,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
 R264,POST,/api/products/create-variant,src/products/products.controller.ts:51,createVariant,JWT,PERM,PRODUCT:create,ADD_PERM,TRUNG BÌNH,,
 R265,GET,/api/products/:id/routings,src/products/products.controller.ts:57,undefined,JWT,PERM,PRODUCT:view,ADD_PERM,TRUNG BÌNH,,
@@ -571,3 +571,61 @@ R569,GET,/api/zns/orders/:orderId/latest-log,src/zns/zns.controller.ts:62,getLat
 R570,GET,/api/zns/deliveries/:deliveryId/latest-log,src/zns/zns.controller.ts:68,getLatestDeliveryLog,"PERM SALES,can_view",PERM,SALES:view,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R571,POST,/api/zns/orders/:orderId/send-confirmation,src/zns/zns.controller.ts:74,sendOrderConfirmation,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
 R572,POST,/api/zns/deliveries/:deliveryId/send-notice,src/zns/zns.controller.ts:86,sendDeliveryNotice,"PERM SALES,can_update",PERM,SALES:update,NO_CHANGE,THẤP,,Giữ quyền hiện có
+R573,GET,/api/hr/me,src/hr/hr-me.controller.ts:28,getMyProfile,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R574,GET,/api/hr/me/attendances,src/hr/hr-me.controller.ts:34,getMyAttendances,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R575,GET,/api/hr/me/leaves,src/hr/hr-me.controller.ts:47,getMyLeaves,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R576,GET,/api/hr/me/payslips,src/hr/hr-me.controller.ts:58,getMyPayslips,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R577,GET,/api/hr/me/assets,src/hr/hr-me.controller.ts:71,getMyAssets,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R578,GET,/api/hr/me/balance,src/hr/hr-me.controller.ts:77,getMyLeaveBalance,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R579,POST,/api/hr/me/check-in,src/hr/hr-me.controller.ts:88,checkIn,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R580,POST,/api/hr/me/check-out,src/hr/hr-me.controller.ts:94,checkOut,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R581,POST,/api/hr/me/leaves,src/hr/hr-me.controller.ts:100,createMyLeave,JWT,AUTH,,NEW,THẤP,,Tự phục vụ HR nhân viên (D7)
+R582,GET,/api/auth/permission-catalog,src/auth/auth.controller.ts:22,catalog,JWT,AUTH,,ADDED_P1,THẤP,,Tra cứu danh mục quyền RBAC
+R583,GET,/api/auth/me,src/auth/auth.controller.ts:29,me,JWT,AUTH,,ADDED_P1,THẤP,,Lấy thông tin tài khoản hiện tại
+R584,GET,/api/auth/rbac/mode,src/auth/rbac.controller.ts:16,getMode,JWT,PERM,SYSTEM:view,ADDED_P1,THẤP,,Lấy chế độ RBAC
+R585,PUT,/api/auth/rbac/mode,src/auth/rbac.controller.ts:23,setMode,JWT,PERM,SYSTEM:update,ADDED_P1,THẤP,,Đổi chế độ RBAC
+R586,GET,/api/auth/rbac/report,src/auth/rbac.controller.ts:31,getReport,JWT,PERM,SYSTEM:view,ADDED_P1,THẤP,,Báo cáo vi phạm RBAC
+R587,GET,/api/auth/rbac/unclassified,src/auth/rbac.controller.ts:41,getUnclassified,JWT,PERM,SYSTEM:view,ADDED_P1,THẤP,,Danh sách route chưa phân hạng
+R588,GET,/api/categories/:id,src/categories/categories.controller.ts:11,findOne,JWT,AUTH,,ADDED_P1,THẤP,,Tra cứu chi tiết danh mục
+R589,POST,/api/categories,src/categories/categories.controller.ts:13,create,JWT,PERM,PRODUCT:create,ADDED_P1,TRUNG BÌNH,,Tạo danh mục sản phẩm
+R590,POST,/api/categories/:id/sync-size,src/categories/categories.controller.ts:15,syncSize,JWT,PERM,PRODUCT:update,ADDED_P1,TRUNG BÌNH,,Đồng bộ size danh mục
+R591,PUT,/api/categories/:id,src/categories/categories.controller.ts:17,update,JWT,PERM,PRODUCT:update,ADDED_P1,TRUNG BÌNH,,Cập nhật danh mục
+R592,DELETE,/api/categories/:id,src/categories/categories.controller.ts:19,remove,JWT,PERM,PRODUCT:delete,ADDED_P1,TRUNG BÌNH,,Xóa danh mục
+R593,GET,/api/customers,src/customers/customers.controller.ts:14,findAll,"PERM SALES,can_view",PERM,SALES:view,ADDED_P1,THẤP,,Danh sách khách hàng
+R594,PUT,/api/customers/:id,src/customers/customers.controller.ts:26,update,"PERM SALES,can_update",PERM,SALES:update,ADDED_P1,THẤP,,Cập nhật khách hàng
+R595,DELETE,/api/customers/:id,src/customers/customers.controller.ts:27,remove,"PERM SALES,can_delete",PERM,SALES:delete,ADDED_P1,THẤP,,Xóa khách hàng
+R596,GET,/api/finance/categories,src/finance/finance.controller.ts:13,getCategories,"PERM FINANCE,can_view",PERM,FINANCE:view,ADDED_P1,THẤP,,Danh mục tài chính
+R597,POST,/api/finance/categories,src/finance/finance.controller.ts:14,createCategory,"PERM FINANCE,can_create",PERM,FINANCE:create,ADDED_P1,THẤP,,Tạo danh mục tài chính
+R598,PUT,/api/finance/categories/:id,src/finance/finance.controller.ts:15,updateCategory,"PERM FINANCE,can_update",PERM,FINANCE:update,ADDED_P1,THẤP,,Cập nhật danh mục tài chính
+R599,DELETE,/api/finance/categories/:id,src/finance/finance.controller.ts:16,deleteCategory,"PERM FINANCE,can_delete",PERM,FINANCE:delete,ADDED_P1,THẤP,,Xóa danh mục tài chính
+R600,PUT,/api/finance/transactions/:id,src/finance/finance.controller.ts:28,updateTransaction,"PERM FINANCE,can_update",PERM,FINANCE:update,ADDED_P1,THẤP,,Cập nhật giao dịch tài chính
+R601,DELETE,/api/finance/transactions/:id,src/finance/finance.controller.ts:29,deleteTransaction,"PERM FINANCE,can_delete",PERM,FINANCE:delete,ADDED_P1,THẤP,,Xóa giao dịch tài chính
+R602,GET,/api/hr/me/reviews,src/hr/hr-me.controller.ts:130,getMyReviews,JWT,AUTH,,ADDED_P1,THẤP,,Tự phục vụ đánh giá 360 cá nhân (E4)
+R603,POST,/api/hr/me/reviews/:id/submit,src/hr/hr-me.controller.ts:137,submitMyReview,JWT,AUTH,,ADDED_P1,THẤP,,Nộp bài đánh giá 360 cá nhân (E4)
+R604,GET,/api/planning/suggestion,src/planning/planning.controller.ts:26,getSuggestion,JWT,PERM,PRODUCTION:view,ADDED_P1,TRUNG BÌNH,,Gợi ý kế hoạch sản xuất
+R605,GET,/api/planning/booking-stats,src/planning/planning.controller.ts:28,getBookingStats,JWT,PERM,PRODUCTION:view,ADDED_P1,TRUNG BÌNH,,Thống kê booking kế hoạch
+R606,GET,/api/planning/bookings,src/planning/planning.controller.ts:30,getAllBookings,JWT,PERM,PRODUCTION:view,ADDED_P1,TRUNG BÌNH,,Danh sách booking kế hoạch
+R607,GET,/api/planning/bookings/:sku,src/planning/planning.controller.ts:32,getBookingsBySku,JWT,PERM,PRODUCTION:view,ADDED_P1,TRUNG BÌNH,,Chi tiết booking theo SKU
+R608,GET,/api/planning/gantt,src/planning/planning.controller.ts:34,getGantt,JWT,PERM,PRODUCTION:view,ADDED_P1,TRUNG BÌNH,,Biểu đồ Gantt kế hoạch
+R609,POST,/api/planning/sync-booking-stock,src/planning/planning.controller.ts:36,syncBookingStock,JWT,PERM,PRODUCTION:create,ADDED_P1,TRUNG BÌNH,,Đồng bộ tồn kho booking
+R610,POST,/api/planning/:id/confirm-bookings,src/planning/planning.controller.ts:187,confirmBookings,JWT,PERM,PRODUCTION:update,ADDED_P1,TRUNG BÌNH,,Xác nhận booking kế hoạch
+R611,POST,/api/planning/bookings/:itemId/revert,src/planning/planning.controller.ts:189,revertBooking,JWT,PERM,PRODUCTION:update,ADDED_P1,TRUNG BÌNH,,Hoàn tác booking kế hoạch
+R612,POST,/api/processes,src/processes/processes.controller.ts:11,create,JWT,PERM,PRODUCTION:create,ADDED_P1,TRUNG BÌNH,,Tạo quy trình sản xuất
+R613,PUT,/api/processes/:id,src/processes/processes.controller.ts:13,update,JWT,PERM,PRODUCTION:update,ADDED_P1,TRUNG BÌNH,,Cập nhật quy trình sản xuất
+R614,DELETE,/api/processes/:id,src/processes/processes.controller.ts:15,remove,JWT,PERM,PRODUCTION:delete,ADDED_P1,TRUNG BÌNH,,Xóa quy trình sản xuất
+R615,GET,/api/products/:id,src/products/products.controller.ts:46,findOne,"PERM PRODUCT,can_view",PERM,PRODUCT:view,ADDED_P1,THẤP,,Chi tiết sản phẩm
+R616,PUT,/api/products/:id,src/products/products.controller.ts:51,update,"PERM PRODUCT,can_update",PERM,PRODUCT:update,ADDED_P1,THẤP,,Cập nhật sản phẩm
+R617,DELETE,/api/products/:id,src/products/products.controller.ts:52,remove,"PERM PRODUCT,can_delete",PERM,PRODUCT:delete,ADDED_P1,THẤP,,Xóa sản phẩm
+R618,POST,/api/products/:id/routings,src/products/products.controller.ts:63,saveRoutings,JWT,PERM,PRODUCT:update,ADDED_P1,TRUNG BÌNH,,Lưu định tuyến sản phẩm
+R619,POST,/api/products/:id/logistics,src/products/products.controller.ts:68,saveLogistics,JWT,PERM,PRODUCT:update,ADDED_P1,TRUNG BÌNH,,Lưu thông tin vận chuyển sản phẩm
+R620,POST,/api/products/:id/pattern,src/products/products.controller.ts:74,savePattern,JWT,PERM,PRODUCT:update,ADDED_P1,TRUNG BÌNH,,Lưu mẫu rập sản phẩm
+R621,POST,/api/products/:id/website-config,src/products/products.controller.ts:80,saveWebsiteConfig,JWT,PERM,PRODUCT:update,ADDED_P1,TRUNG BÌNH,,Cấu hình hiển thị website
+R622,POST,/api/products/:id/boms,src/products/products.controller.ts:86,saveBoms,JWT,PERM,PRODUCT:update,ADDED_P1,TRUNG BÌNH,,Lưu BOM sản phẩm
+R623,POST,/api/products/combo/add,src/products/products.controller.ts:94,addComboItem,JWT,PERM,PRODUCT:create,ADDED_P1,TRUNG BÌNH,,Thêm thành phần combo
+R624,DELETE,/api/products/combo/item/:id,src/products/products.controller.ts:96,removeComboItem,JWT,PERM,PRODUCT:delete,ADDED_P1,TRUNG BÌNH,,Xóa thành phần combo
+R625,DELETE,/api/purchasing/pooled/all,src/purchasing/purchasing.controller.ts:25,clearPooled,JWT,PERM,PURCHASE:delete,ADDED_P1,TRUNG BÌNH,,Xóa gom hàng mua
+R626,POST,/api/purchasing/create-pooled,src/purchasing/purchasing.controller.ts:27,createPooled,JWT,PERM,PURCHASE:create,ADDED_P1,TRUNG BÌNH,,Tạo đơn gom hàng mua
+R627,GET,/api/purchasing/pooled/:id/aggregate,src/purchasing/purchasing.controller.ts:29,getPooledAggregate,JWT,PERM,PURCHASE:view,ADDED_P1,TRUNG BÌNH,,Tổng hợp gom mua hàng
+R628,POST,/api/sales/portal/:uuid/action,src/sales/sales.controller.ts:226,customerAction,JWT,PERM,SALES:update,ADDED_P1,TRUNG BÌNH,,Khách thao tác trên portal bán hàng
+R629,PUT,/api/tasks/:id,src/tasks/tasks.controller.ts:23,update,JWT,AUTH,,ADDED_P1,THẤP,,Cập nhật task cá nhân
+R630,DELETE,/api/tasks/:id,src/tasks/tasks.controller.ts:25,remove,JWT,AUTH,,ADDED_P1,THẤP,,Xóa task cá nhân
