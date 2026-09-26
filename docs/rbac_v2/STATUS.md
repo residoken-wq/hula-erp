@@ -8,7 +8,7 @@ Quy tắc cập nhật: `.agents/rules/collaboration-rules.md` mục 4. Dòng m�
 |---|---|---|---|---|
 | P0 | DEPLOYED | `rbac/p0` → main @ 3f491fe | — | 2026-09-25 Chủ dự án (Claude ghi) |
 | P1 | DEPLOYED 2026-09-26 11:40 | `rbac/p1` → main @ 912c104 | — | 2026-09-26 Chủ dự án (Claude ghi) |
-| P2.0 | READY | `rbac/p2` (tạo từ `main`) | — (làm song song trong lúc SHADOW) | 2026-09-26 Claude |
+| P2.0 | SUBMITTED | `rbac/p2` (tạo từ `main`) | — (làm song song trong lúc SHADOW) | 2026-09-26 Antigravity |
 | P2 ENFORCE | BLOCKED | — | P2.0 DEPLOYED; I-18; **SHADOW tới 2026-10-26 11:40** (D8); checklist P2.2 ký | 2026-09-26 Claude |
 | P3 | BLOCKED | `rbac/p3` | P2 ENFORCE ổn định 2 tuần; D10, D11 | 2026-09-24 Claude |
 | P4 | DESIGN_ONLY | — | Chủ dự án giao phần nghiệp vụ | 2026-09-24 Claude |
@@ -38,6 +38,8 @@ _(chưa có)_
 
 ## Nhật ký
 
+- 2026-09-26 · Antigravity · Hoàn thành P2.0 (E5 watermark B2B @Public, E6 portal NCC NPL theo uuid, check-public-callers quét 126 file 61 call 0 lệch, tích hợp qa.js). Reset test-env, test acceptance PASS 3/3 (P2-00a, P2-00b, P2-00c), nộp REPORT_P2.0.md, chuyển trạng thái P2.0 sang SUBMITTED.
+- 2026-09-26 · Antigravity · Nhận P2.0, tạo nhánh rbac/p2 từ main, chuyển trạng thái P2.0 sang IN_PROGRESS.
 - 2026-09-26 · Claude · Chủ dự án xác nhận "P1 deployed OK" lúc 2026-09-26 11:40 → P1 DEPLOYED. Cửa sổ SHADOW (D8): 2026-09-26 11:40 → 2026-10-26 11:40. Tách P2 thành P2.0 (code, READY ngay) và P2 ENFORCE (sau SHADOW).
 - 2026-09-26 · Claude · Theo lệnh Chủ dự án: merge --no-ff rbac/p1 vào main (912c104), push origin main. Ghi D8 = SHADOW 30 ngày; D9 = theo dõi log rồi quyết.
 - 2026-09-26 · Claude · Audit P1 vòng 2: AUDIT_PASS. Chạy lại trên DB copy vừa reset: B1, M2, D6b, D12, E4 đều đạt với 7 user thật (tạo đợt đánh giá 360 thật để test E4). Metadata 630 route, 154/154 cặp decorator cũ/mới khớp. Quét bề mặt ẩn danh phát hiện E5 (watermark B2B) và E6 (NPL portal NCC), đều do matrix của Claude; không hỏng khi deploy P1, đã đưa vào P2.0 bắt buộc trước ENFORCE.

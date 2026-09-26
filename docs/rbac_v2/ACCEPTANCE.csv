@@ -39,9 +39,9 @@ PUB-06,P1,Portal NCC,Xem PO; xác nhận; cập nhật tiến độ,Chạy; khô
 PUB-07,P1,Portal ứng viên,Mở link token; nộp bài,Chạy; không DENY,PASS,"/api/hr/recruitment/assessments/* không DENY",evidence/P1/PUB-01-to-09_public-endpoints.txt
 PUB-08,P1,Webhook,Gửi webhook GHTK và Lalamove test (sandbox/mock),200; trạng thái giao hàng cập nhật,PASS,"Webhooks GHTK & Lalamove HTTP 200/201, không bị chặn bởi RbacGuard",evidence/P1/PUB-01-to-09_public-endpoints.txt
 PUB-09,P1,Ảnh,Ảnh sản phẩm /api/upload/files/*; watermark B2B config,Hiển thị; không DENY,PASS,"/api/upload/files/* gắn @Public(), không DENY",evidence/P1/PUB-01-to-09_public-endpoints.txt
-P2-00a,P2,Watermark B2B public (E5),Không token GET /api/upload/watermark/b2b/config; xem rbac_access_logs,200; không có DENY_NO_AUTH,NOT_RUN,,P2_Instruction P2.0-a
-P2-00b,P2,NPL portal NCC theo uuid (E6),Portal NCC A xem NPL PO của mình; đổi poId sang PO của NCC B,200 với PO của mình; 404 với PO NCC khác,NOT_RUN,,P2_Instruction P2.0-b
-P2-00c,P2,Quét bề mặt ẩn danh,node scripts/rbac/check-public-callers.js,0 lời gọi tới route không PUBLIC; exit 0,NOT_RUN,,P2_Instruction P2.0-c
+P2-00a,P2,Watermark B2B public (E5),Không token GET /api/upload/watermark/b2b/config; xem rbac_access_logs,200; không có DENY_NO_AUTH,PASS,"HTTP 200 payload {enabled:true,...}; rbac_access_logs không có bản ghi DENY_NO_AUTH nào",evidence/P2/P2-00a_watermark-b2b.txt
+P2-00b,P2,NPL portal NCC theo uuid (E6),Portal NCC A xem NPL PO của mình; đổi poId sang PO của NCC B,200 với PO của mình; 404 với PO NCC khác,PASS,"NCC A xem NPL PO 596 của mình: HTTP 200 (5 items); đổi sang PO 595 của NCC B: HTTP 404; route cũ không token ghi nhận DENY_NO_AUTH (PURCHASE:view)",evidence/P2/P2-00b_supplier-portal-npl.txt
+P2-00c,P2,Quét bề mặt ẩn danh,node scripts/rbac/check-public-callers.js,0 lời gọi tới route không PUBLIC; exit 0,PASS,"check-public-callers quét 126 file, 61 lời gọi ẩn danh, 0 lời gọi lệch, exit 0",evidence/P2/P2-00c_check-public-callers.txt
 P2-01,P2,Go-live,Checklist P2.2 đủ chữ ký,Đã ký,NOT_RUN,,
 P2-02,P2,ENFORCE,Không token gọi GET /api/purchasing,401,NOT_RUN,,
 P2-03,P2,ENFORCE,User không PURCHASE gọi GET /api/purchasing,403 message có mã PURCHASE:view,NOT_RUN,,

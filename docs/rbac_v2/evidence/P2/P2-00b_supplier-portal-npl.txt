@@ -1,0 +1,23 @@
+=== EVIDENCE P2-00b: NPL portal NCC theo uuid (E6) ===
+Timestamp: 2026-09-26T07:11:41.784Z
+NCC A (Hưng Nguyên, ID 17, UUID 01d122d7-b9a2-42aa-b964-d64ce66f0cfc)
+NCC B (Ngọc Cường, ID 3, UUID 9c9fe50a-63b0-45d7-908a-aed88a7e398a)
+
+1. NCC A xem NPL đơn PO của mình (PO 596):
+   GET /api/purchasing/supplier-portal/01d122d7-b9a2-42aa-b964-d64ce66f0cfc/outsourcing-materials/596
+   HTTP Status: 200 (Expected: 200)
+   Materials Count: 5
+   Sample Item: {"type":"MATERIAL","material_id":124,"code":"Vải-Poly Canvas-phủ màu","name":"Vải-Poly Canvas-phủ màu","unit":"m","quantity":11.151,"used_quantity":0,"stock":0,"reserved_for_plan":false,"key":"MAT_124","delivered_quantity":0,"pxks":[]}
+
+2. NCC A đổi poId sang PO của NCC B (PO 595):
+   GET /api/purchasing/supplier-portal/01d122d7-b9a2-42aa-b964-d64ce66f0cfc/outsourcing-materials/595
+   HTTP Status: 404 (Expected: 404)
+   Response: {"message":"Không tìm thấy đơn mua hàng hoặc đơn không thuộc nhà cung cấp này","error":"Not Found","statusCode":404}
+
+3. Route cũ không có token (vẫn ghi DENY_NO_AUTH để chặn khi ENFORCE):
+   GET /api/purchasing/596/outsourcing-materials
+   HTTP Status: 200 (SHADOW mode)
+   Log records in rbac_access_logs: 1
+   Logged decision: DENY_NO_AUTH, required: PURCHASE:view
+
+Conclusion: PASS
