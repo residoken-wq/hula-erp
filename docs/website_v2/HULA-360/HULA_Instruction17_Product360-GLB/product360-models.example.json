@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-01",
+  "license_note": "Asset do script Blender sinh ra thuộc HULA. Asset import: ghi nguồn và điều khoản (D2).",
+  "assets": {
+    "mattress-satin": {
+      "file": "/models/product360/mattress-satin.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.65,
+        0.025,
+        1.2
+      ],
+      "material_preset": "satin",
+      "recolor": [
+        "fabric_main"
+      ],
+      "hotspots": [
+        "hotspot_1",
+        "hotspot_2",
+        "hotspot_3",
+        "hotspot_5"
+      ],
+      "modelingAssumptions": "Catalogue 120x65 (NEM_MN_-_05), chưa xác nhận chiều đo; dày 2.5cm giả định",
+      "quilt_pattern": "thoi",
+      "texture": "real",
+      "quilt_cell_cm": [
+        14,
+        15
+      ],
+      "binding_width_cm": 3,
+      "fixed_colors": {
+        "binding": "grey",
+        "underside": "grey"
+      }
+    },
+    "pillow": {
+      "file": "/models/product360/pillow.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.4,
+        0.08,
+        0.25
+      ],
+      "material_preset": "satin",
+      "recolor": [
+        "fabric_main"
+      ],
+      "hotspots": [],
+      "modelingAssumptions": "Độ dày 8cm lấy theo tỉ lệ ảnh"
+    },
+    "bag-box": {
+      "file": "/models/product360/bag-box.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.36,
+        0.28,
+        0.14
+      ],
+      "material_preset": "bag",
+      "recolor": [
+        "fabric_main",
+        "fabric_accent"
+      ],
+      "recolor_secondary": [],
+      "hotspots": [],
+      "modelingAssumptions": "Túi hộp quai đeo size S 36x28 (TUI_BAO_QUAN_-_03, sales kit 32-33); sâu 14cm giả định; mặt sau+hông cùng màu"
+    },
+    "bag-handle": {
+      "file": "/models/product360/bag-handle.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.48,
+        0.4,
+        0.1
+      ],
+      "material_preset": "bag",
+      "recolor": [
+        "fabric_main"
+      ],
+      "hotspots": [],
+      "modelingAssumptions": "Size S 48x40 (sales kit 30); mặt sau xám mặc định"
+    },
+    "bag-drawstring": {
+      "file": "/models/product360/bag-drawstring.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.4,
+        0.5,
+        0.05
+      ],
+      "material_preset": "bag",
+      "recolor": [
+        "fabric_main"
+      ],
+      "hotspots": [],
+      "modelingAssumptions": "Size S 40x50 (sales kit 29); mặt sau xám mặc định"
+    },
+    "blanket-std-thoi": {
+      "file": "/models/product360/blanket-std-thoi.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.7,
+        0.03,
+        0.45
+      ],
+      "material_preset": "satin",
+      "recolor": [
+        "fabric_main"
+      ],
+      "hotspots": [
+        "hotspot_4"
+      ],
+      "modelingAssumptions": "Chăn 130x70 gấp 1/3 đặt trên nệm",
+      "quilt_pattern": "thoi",
+      "quilt_cell_cm": [
+        14,
+        15
+      ],
+      "binding_width_cm": 3
+    },
+    "blanket-std-song": {
+      "file": "/models/product360/blanket-std-song.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.7,
+        0.03,
+        0.45
+      ],
+      "material_preset": "cara",
+      "recolor": [
+        "fabric_main"
+      ],
+      "hotspots": [
+        "hotspot_4"
+      ],
+      "modelingAssumptions": "Chăn 130x70 gấp 1/3 đặt trên nệm",
+      "quilt_pattern": "song",
+      "quilt_cell_cm": [
+        14,
+        15
+      ],
+      "binding_width_cm": 3
+    },
+    "mattress-cara": {
+      "file": "/models/product360/mattress-cara.glb",
+      "source": "blender",
+      "dimensions_m": [
+        0.63,
+        0.025,
+        1.2
+      ],
+      "material_preset": "cara",
+      "recolor": [
+        "fabric_main"
+      ],
+      "hotspots": [
+        "hotspot_1",
+        "hotspot_2",
+        "hotspot_3",
+        "hotspot_5"
+      ],
+      "modelingAssumptions": "Catalogue 120x63 (NEM_MN_-_01, sales kit 16); dày 2.5cm giả định",
+      "quilt_pattern": "song",
+      "texture": "real",
+      "quilt_cell_cm": [
+        14,
+        15
+      ],
+      "binding_width_cm": 3,
+      "fixed_colors": {
+        "binding": "grey",
+        "underside": "grey"
+      }
+    }
+  },
+  "lines": [
+    {
+      "match": {
+        "subcategory_id": "<id dòng Satin HQ trong wizard_config>"
+      },
+      "parts": {
+        "mattress": "mattress-satin",
+        "pillow": "pillow",
+        "blanket": "blanket-std-thoi"
+      },
+      "bags": {
+        "box": "bag-box",
+        "handle": "bag-handle",
+        "drawstring": "bag-drawstring"
+      },
+      "material_overrides": {},
+      "quilt_pattern": "thoi"
+    },
+    {
+      "match": {
+        "subcategory_id": "<id dòng Cotton Cara>"
+      },
+      "parts": {
+        "mattress": "mattress-cara",
+        "pillow": "pillow",
+        "blanket": "blanket-std-song"
+      },
+      "bags": {
+        "box": "bag-box",
+        "handle": "bag-handle",
+        "drawstring": "bag-drawstring"
+      },
+      "quilt_pattern": "song",
+      "material_preset": "cara"
+    }
+  ],
+  "layout": {
+    "mattress": {
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    "pillow": {
+      "position": [
+        0,
+        0.025,
+        -0.45
+      ],
+      "exploded": [
+        0,
+        0.22,
+        0
+      ]
+    },
+    "blanket": {
+      "position": [
+        0,
+        0.025,
+        0.15
+      ],
+      "exploded": [
+        0,
+        0.35,
+        0
+      ]
+    },
+    "bag": {
+      "position": [
+        0.75,
+        0,
+        0.3
+      ],
+      "rotationY": -0.5,
+      "exploded": [
+        0.35,
+        0,
+        0
+      ]
+    }
+  }
+}

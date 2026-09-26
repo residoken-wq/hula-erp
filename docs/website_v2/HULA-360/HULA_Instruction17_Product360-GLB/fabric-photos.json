@@ -1,0 +1,158 @@
+{
+  "source_dir": "C:/Users/admin/Downloads/HÌNH 360-20260926T081640Z-1-001/HÌNH 360",
+  "target_dir": "assets-src/product360/fabric/raw",
+  "note": "role = tên file mới. use: texture (làm tile), reference (chỉ tham chiếu), detail (mesh/decal chi tiết). Q1 đã chốt 2026-09-26.",
+  "photos": [
+    {
+      "file": "1790409797490.jpg",
+      "role": "cara-quilt-thoi-overview",
+      "fabric": "cara",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797527.jpg",
+      "role": "cara-quilt-thoi-closeup",
+      "fabric": "cara",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797570.jpg",
+      "role": "cara-quilt-song-flat",
+      "fabric": "cara",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797593.jpg",
+      "role": "strap-velcro-top",
+      "fabric": "binding",
+      "use": "detail"
+    },
+    {
+      "file": "1790409797608.jpg",
+      "role": "hang-loop",
+      "fabric": "binding",
+      "use": "detail"
+    },
+    {
+      "file": "1790409797627.jpg",
+      "role": "strap-velcro-side",
+      "fabric": "binding",
+      "use": "detail"
+    },
+    {
+      "file": "1790409797642.jpg",
+      "role": "name-label",
+      "fabric": "underside",
+      "use": "detail"
+    },
+    {
+      "file": "1790409797662.jpg",
+      "role": "underside-quilt-ogee-flat",
+      "fabric": "underside",
+      "use": "texture"
+    },
+    {
+      "file": "1790409797675.jpg",
+      "role": "underside-edge-mesh",
+      "fabric": "underside",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797689.jpg",
+      "role": "underside-quilt-ogee-2",
+      "fabric": "underside",
+      "use": "texture"
+    },
+    {
+      "file": "1790409797698.jpg",
+      "role": "antislip-mesh-oblique",
+      "fabric": "antislip",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797714.jpg",
+      "role": "antislip-mesh-flat",
+      "fabric": "antislip",
+      "use": "texture"
+    },
+    {
+      "file": "1790409797730.jpg",
+      "role": "satin-quilt-thoi-overview",
+      "fabric": "satin",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797744.jpg",
+      "role": "satin-quilt-thoi-binding-blue",
+      "fabric": "satin",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797755.jpg",
+      "role": "satin-quilt-song-flat",
+      "fabric": "satin",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797771.jpg",
+      "role": "cara-plain-oblique",
+      "fabric": "cara",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797784.jpg",
+      "role": "cara-plain-a4",
+      "fabric": "cara",
+      "use": "texture"
+    },
+    {
+      "file": "1790409797801.jpg",
+      "role": "satin-plain-oblique",
+      "fabric": "satin",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797817.jpg",
+      "role": "satin-plain-flat",
+      "fabric": "satin",
+      "use": "texture"
+    },
+    {
+      "file": "1790409797833.jpg",
+      "role": "satin-plain-a4",
+      "fabric": "satin",
+      "use": "texture"
+    },
+    {
+      "file": "1790409797848.jpg",
+      "role": "cara-plain-closeup",
+      "fabric": "cara",
+      "use": "reference"
+    },
+    {
+      "file": "1790409797860.jpg",
+      "role": "cara-plain-flat",
+      "fabric": "cara",
+      "use": "texture"
+    }
+  ],
+  "salekit": {
+    "file": "C:/Users/admin/Downloads/HULA SHOP-SALE KIT - PRINT.pdf",
+    "target_dir": "assets-src/product360/salekit",
+    "pages": [
+      11,
+      16,
+      17,
+      20,
+      21,
+      29,
+      30,
+      32,
+      33,
+      34,
+      43,
+      44
+    ],
+    "scale": 2
+  }
+}
