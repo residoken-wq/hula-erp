@@ -18,6 +18,14 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+import {
+  checkGreeting,
+  checkNoSecret,
+  checkDaySchedule,
+  AVATAR_URL_REGEX,
+  HOTLINE_REGEX,
+} from './chatbot-config.validator';
+
 export function IsGreetingValid(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({
@@ -27,20 +35,29 @@ export function IsGreetingValid(validationOptions?: ValidationOptions) {
       options: validationOptions,
       validator: {
         validate(value: any, _args: ValidationArguments) {
-          if (typeof value !== 'string') return false;
-          if (value.length > 300) return false;
-          const matches = value.match(/{([^}]+)}/g);
-          if (matches) {
-            for (const m of matches) {
-              if (m !== '{short_name}' && m !== '{display_name}') {
-                return false;
-              }
-            }
-          }
-          return true;
+          return checkGreeting(value);
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be <= 300 chars and only contain placeholders {short_name} or {display_name}`;
+        },
+      },
+    });
+  };
+}
+
+export function IsValidDaySchedule(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isValidDaySchedule',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, _args: ValidationArguments) {
+          return checkDaySchedule(value);
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} schedule is invalid (must have valid time step and from < to when active)`;
         },
       },
     });
@@ -56,14 +73,7 @@ export function IsNoSecret(validationOptions?: ValidationOptions) {
       options: validationOptions,
       validator: {
         validate(value: any, _args: ValidationArguments) {
-          if (typeof value !== 'string') return true;
-          if (/AIza[0-9A-Za-z_-]{20,}/.test(value)) return false;
-          if (/sk-[A-Za-z0-9]{20,}/.test(value)) return false;
-          // Reject long base64 secret tokens (>= 32 random alphanumeric/base64 chars without spaces)
-          if (/[A-Za-z0-9+/=_-]{32,}/.test(value) && !value.startsWith('http') && !value.startsWith('/')) {
-            return false;
-          }
-          return true;
+          return checkNoSecret(value);
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} contains prohibited secret-like content`;
@@ -76,13 +86,13 @@ export function IsNoSecret(validationOptions?: ValidationOptions) {
 export class ContactChannelsDto {
   @IsOptional()
   @IsString()
-  @Matches(/^$|^[\d\s+]{8,15}$/, { message: 'hotline must be 8-15 digits, spaces, or +' })
+  @Matches(/^$|^[\d\s+\-,.]{8,50}$/, { message: 'hotline must be 8-50 digits, spaces, dashes, commas, or +' })
   @IsNoSecret()
   hotline?: string;
 
   @IsOptional()
   @IsString()
-  @Matches(/^$|^https:\/\/.+/, { message: 'zalo_url must start with https://' })
+  @Matches(/^$|^https:\/\/[^\s<>"']+$/, { message: 'zalo_url must start with https://' })
   @IsNoSecret()
   zalo_url?: string;
 
@@ -94,7 +104,7 @@ export class ContactChannelsDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^$|^https:\/\/.+/, { message: 'messenger_url must start with https://' })
+  @Matches(/^$|^https:\/\/[^\s<>"']+$/, { message: 'messenger_url must start with https://' })
   @IsNoSecret()
   messenger_url?: string;
 }
@@ -121,30 +131,37 @@ export class DayScheduleDto {
 export class WorkingHoursDaysDto {
   @ValidateNested()
   @Type(() => DayScheduleDto)
+  @IsValidDaySchedule()
   mon: DayScheduleDto;
 
   @ValidateNested()
   @Type(() => DayScheduleDto)
+  @IsValidDaySchedule()
   tue: DayScheduleDto;
 
   @ValidateNested()
   @Type(() => DayScheduleDto)
+  @IsValidDaySchedule()
   wed: DayScheduleDto;
 
   @ValidateNested()
   @Type(() => DayScheduleDto)
+  @IsValidDaySchedule()
   thu: DayScheduleDto;
 
   @ValidateNested()
   @Type(() => DayScheduleDto)
+  @IsValidDaySchedule()
   fri: DayScheduleDto;
 
   @ValidateNested()
   @Type(() => DayScheduleDto)
+  @IsValidDaySchedule()
   sat: DayScheduleDto;
 
   @ValidateNested()
   @Type(() => DayScheduleDto)
+  @IsValidDaySchedule()
   sun: DayScheduleDto;
 }
 
@@ -281,7 +298,7 @@ export class ChatbotConfigDto {
   short_name: string;
 
   @IsString()
-  @Matches(/^(\/|https:\/\/)/, { message: 'avatar_url must start with / or https://' })
+  @Matches(AVATAR_URL_REGEX, { message: 'avatar_url must start with / (not //) or https://' })
   @IsNoSecret()
   avatar_url: string;
 
@@ -300,7 +317,7 @@ export class ChatbotConfigDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(300)
   @IsNoSecret()
   response_sla_text?: string;
 

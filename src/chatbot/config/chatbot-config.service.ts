@@ -9,6 +9,21 @@ import { ChatbotAuditEvent } from '../entities/chatbot-audit-event.entity';
 import { CHATBOT_DEFAULTS, ChatbotConfigType } from '../chatbot.defaults';
 import { ChatbotConfigDto } from './chatbot-config.dto';
 import { isWithinWorkingHours, parseTimeToMinutes } from './working-hours';
+import {
+  checkAvatarUrl,
+  checkDaySchedule,
+  checkDisplayName,
+  checkEmail,
+  checkGreeting,
+  checkHolidayNote,
+  checkHotline,
+  checkMessengerUrl,
+  checkNoSecret,
+  checkResponseSlaText,
+  checkShortName,
+  checkTimezone,
+  checkZaloUrl,
+} from './chatbot-config.validator';
 
 export function renderTemplate(template: string, vars: Record<string, string>): string {
   if (!template) return '';
@@ -104,16 +119,15 @@ export class ChatbotConfigService {
     const defaults = CHATBOT_DEFAULTS;
     const result: any = { ...defaults };
 
+    if (!raw || typeof raw !== 'object') {
+      return defaults;
+    }
+
     // Boolean fields
     result.enabled = typeof raw.enabled === 'boolean' ? raw.enabled : defaults.enabled;
 
-    // String fields
-    if (
-      typeof raw.display_name === 'string' &&
-      raw.display_name.length >= 2 &&
-      raw.display_name.length <= 60 &&
-      !/[<>{}]/.test(raw.display_name)
-    ) {
+    // String fields with strict validation
+    if (checkDisplayName(raw.display_name)) {
       result.display_name = raw.display_name;
     } else {
       if (raw.display_name !== undefined) {
@@ -122,12 +136,7 @@ export class ChatbotConfigService {
       result.display_name = defaults.display_name;
     }
 
-    if (
-      typeof raw.short_name === 'string' &&
-      raw.short_name.length >= 2 &&
-      raw.short_name.length <= 30 &&
-      !/[<>{}]/.test(raw.short_name)
-    ) {
+    if (checkShortName(raw.short_name)) {
       result.short_name = raw.short_name;
     } else {
       if (raw.short_name !== undefined) {
@@ -136,10 +145,7 @@ export class ChatbotConfigService {
       result.short_name = defaults.short_name;
     }
 
-    if (
-      typeof raw.avatar_url === 'string' &&
-      (raw.avatar_url.startsWith('/') || raw.avatar_url.startsWith('https://'))
-    ) {
+    if (checkAvatarUrl(raw.avatar_url)) {
       result.avatar_url = raw.avatar_url;
     } else {
       if (raw.avatar_url !== undefined) {
@@ -148,17 +154,8 @@ export class ChatbotConfigService {
       result.avatar_url = defaults.avatar_url;
     }
 
-    if (typeof raw.greeting === 'string' && raw.greeting.length <= 300) {
-      const placeholders = raw.greeting.match(/{([^}]+)}/g) || [];
-      const validPlaceholders = placeholders.every(
-        (p: string) => p === '{short_name}' || p === '{display_name}',
-      );
-      if (validPlaceholders) {
-        result.greeting = raw.greeting;
-      } else {
-        this.logger.warn('chatbot config invalid field greeting');
-        result.greeting = defaults.greeting;
-      }
+    if (checkGreeting(raw.greeting)) {
+      result.greeting = raw.greeting;
     } else {
       if (raw.greeting !== undefined) {
         this.logger.warn('chatbot config invalid field greeting');
@@ -166,39 +163,127 @@ export class ChatbotConfigService {
       result.greeting = defaults.greeting;
     }
 
-    // Contact channels
-    result.contact_channels = {
-      hotline: typeof raw.contact_channels?.hotline === 'string' ? raw.contact_channels.hotline : '',
-      zalo_url: typeof raw.contact_channels?.zalo_url === 'string' ? raw.contact_channels.zalo_url : '',
-      email_public: typeof raw.contact_channels?.email_public === 'string' ? raw.contact_channels.email_public : '',
-      messenger_url: typeof raw.contact_channels?.messenger_url === 'string' ? raw.contact_channels.messenger_url : '',
-    };
+    // Contact channels: strictly validate URL scheme and hotline characters
+    const rawContact = raw.contact_channels;
+    const hotlineVal = rawContact?.hotline;
+    const zaloVal = rawContact?.zalo_url;
+    const emailVal = rawContact?.email_public;
+    const messengerVal = rawContact?.messenger_url;
 
-    // Working hours
-    if (raw.working_hours && typeof raw.working_hours === 'object') {
-      result.working_hours = deepMerge(defaults.working_hours, raw.working_hours);
+    result.contact_channels = {
+      hotline: checkHotline(hotlineVal) ? (hotlineVal || '') : '',
+      zalo_url: checkZaloUrl(zaloVal) ? (zaloVal || '') : '',
+      email_public: checkEmail(emailVal) ? (emailVal || '') : '',
+      messenger_url: checkMessengerUrl(messengerVal) ? (messengerVal || '') : '',
+    };
+    if (hotlineVal && !checkHotline(hotlineVal)) {
+      this.logger.warn('chatbot config invalid field contact_channels.hotline');
+    }
+    if (zaloVal && !checkZaloUrl(zaloVal)) {
+      this.logger.warn('chatbot config invalid field contact_channels.zalo_url');
+    }
+    if (emailVal && !checkEmail(emailVal)) {
+      this.logger.warn('chatbot config invalid field contact_channels.email_public');
+    }
+    if (messengerVal && !checkMessengerUrl(messengerVal)) {
+      this.logger.warn('chatbot config invalid field contact_channels.messenger_url');
+    }
+
+    // Working hours: validate timezone, each day schedule, holiday_note
+    const rawWh = raw.working_hours;
+    if (rawWh && typeof rawWh === 'object') {
+      const daysList = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+      const validDays: any = {};
+      for (const d of daysList) {
+        const rawDay = rawWh.days?.[d];
+        if (checkDaySchedule(rawDay)) {
+          validDays[d] = {
+            off: rawDay.off,
+            ...(rawDay.from ? { from: rawDay.from } : {}),
+            ...(rawDay.to ? { to: rawDay.to } : {}),
+          };
+        } else {
+          if (rawDay !== undefined) {
+            this.logger.warn(`chatbot config invalid field working_hours.days.${d}`);
+          }
+          validDays[d] = defaults.working_hours.days[d];
+        }
+      }
+
+      result.working_hours = {
+        tz: checkTimezone(rawWh.tz) ? (rawWh.tz || defaults.working_hours.tz) : defaults.working_hours.tz,
+        days: validDays,
+        holiday_note: checkHolidayNote(rawWh.holiday_note) ? (rawWh.holiday_note || '') : '',
+      };
+      if (rawWh.tz && !checkTimezone(rawWh.tz)) {
+        this.logger.warn('chatbot config invalid field working_hours.tz');
+      }
+      if (rawWh.holiday_note && !checkHolidayNote(rawWh.holiday_note)) {
+        this.logger.warn('chatbot config invalid field working_hours.holiday_note');
+      }
     } else {
+      if (rawWh !== undefined) {
+        this.logger.warn('chatbot config invalid field working_hours');
+      }
       result.working_hours = defaults.working_hours;
     }
 
-    result.response_sla_text =
-      typeof raw.response_sla_text === 'string' ? raw.response_sla_text : defaults.response_sla_text;
+    // Response SLA text: max 300 chars, no secrets
+    if (checkResponseSlaText(raw.response_sla_text)) {
+      result.response_sla_text =
+        raw.response_sla_text !== undefined ? raw.response_sla_text : defaults.response_sla_text;
+    } else {
+      this.logger.warn('chatbot config invalid field response_sla_text');
+      result.response_sla_text = defaults.response_sla_text;
+    }
 
     // Notification lists
-    result.notify_emails = Array.isArray(raw.notify_emails)
-      ? raw.notify_emails.filter((e: any) => typeof e === 'string' && e.includes('@')).slice(0, 10)
-      : defaults.notify_emails;
+    if (Array.isArray(raw.notify_emails)) {
+      const validEmails = raw.notify_emails
+        .filter((e: any) => typeof e === 'string' && checkEmail(e) && e.length > 0 && checkNoSecret(e))
+        .slice(0, 10);
+      result.notify_emails = validEmails;
+      if (validEmails.length !== raw.notify_emails.length) {
+        this.logger.warn('chatbot config invalid field notify_emails');
+      }
+    } else {
+      if (raw.notify_emails !== undefined) {
+        this.logger.warn('chatbot config invalid field notify_emails');
+      }
+      result.notify_emails = defaults.notify_emails;
+    }
 
-    result.notify_user_ids = Array.isArray(raw.notify_user_ids)
-      ? raw.notify_user_ids.filter((id: any) => typeof id === 'number' && Number.isInteger(id))
-      : defaults.notify_user_ids;
+    if (Array.isArray(raw.notify_user_ids)) {
+      const validIds = raw.notify_user_ids.filter(
+        (id: any) => typeof id === 'number' && Number.isInteger(id) && id > 0,
+      );
+      result.notify_user_ids = validIds;
+      if (validIds.length !== raw.notify_user_ids.length) {
+        this.logger.warn('chatbot config invalid field notify_user_ids');
+      }
+    } else {
+      if (raw.notify_user_ids !== undefined) {
+        this.logger.warn('chatbot config invalid field notify_user_ids');
+      }
+      result.notify_user_ids = defaults.notify_user_ids;
+    }
 
     // Limits
     result.limits = { ...defaults.limits };
     if (raw.limits && typeof raw.limits === 'object') {
-      for (const k of Object.keys(defaults.limits)) {
+      const limitBounds: Record<string, [number, number]> = {
+        session_per_ip_hour: [1, 500],
+        msg_per_session_5m: [1, 200],
+        msg_per_ip_5m: [1, 1000],
+        submit_per_session_hour: [1, 100],
+        upload_per_session_hour: [1, 100],
+        llm_concurrency: [1, 50],
+        unassigned_alert_min: [1, 1440],
+        max_message_chars: [100, 10000],
+      };
+      for (const [k, [min, max]] of Object.entries(limitBounds)) {
         const val = raw.limits[k];
-        if (typeof val === 'number' && Number.isFinite(val) && val > 0) {
+        if (typeof val === 'number' && Number.isInteger(val) && val >= min && val <= max) {
           result.limits[k] = val;
         } else if (val !== undefined) {
           this.logger.warn(`chatbot config invalid field limits.${k}`);
@@ -209,9 +294,10 @@ export class ChatbotConfigService {
     // Retention days
     result.retention_days = { ...defaults.retention_days };
     if (raw.retention_days && typeof raw.retention_days === 'object') {
-      for (const k of Object.keys(defaults.retention_days)) {
+      const retentionKeys = ['chat', 'attachment', 'request', 'ticket', 'audit'];
+      for (const k of retentionKeys) {
         const val = raw.retention_days[k];
-        if (typeof val === 'number' && Number.isFinite(val) && val > 0) {
+        if (typeof val === 'number' && Number.isInteger(val) && val >= 1 && val <= 3650) {
           result.retention_days[k] = val;
         } else if (val !== undefined) {
           this.logger.warn(`chatbot config invalid field retention_days.${k}`);
@@ -222,12 +308,22 @@ export class ChatbotConfigService {
     // LLM
     result.llm = { ...defaults.llm };
     if (raw.llm && typeof raw.llm === 'object') {
-      if (typeof raw.llm.daily_call_budget === 'number' && raw.llm.daily_call_budget > 0) {
+      if (
+        typeof raw.llm.daily_call_budget === 'number' &&
+        Number.isInteger(raw.llm.daily_call_budget) &&
+        raw.llm.daily_call_budget >= 1 &&
+        raw.llm.daily_call_budget <= 100000
+      ) {
         result.llm.daily_call_budget = raw.llm.daily_call_budget;
       } else if (raw.llm.daily_call_budget !== undefined) {
         this.logger.warn('chatbot config invalid field llm.daily_call_budget');
       }
-      if (typeof raw.llm.timeout_ms === 'number' && raw.llm.timeout_ms >= 1000) {
+      if (
+        typeof raw.llm.timeout_ms === 'number' &&
+        Number.isInteger(raw.llm.timeout_ms) &&
+        raw.llm.timeout_ms >= 1000 &&
+        raw.llm.timeout_ms <= 120000
+      ) {
         result.llm.timeout_ms = raw.llm.timeout_ms;
       } else if (raw.llm.timeout_ms !== undefined) {
         this.logger.warn('chatbot config invalid field llm.timeout_ms');
@@ -390,11 +486,21 @@ export class ChatbotConfigService {
         });
         const getVal = (k: string) => fallbacks.find((f) => f.key === k)?.value || '';
 
-        if (!channels.hotline) channels.hotline = getVal('contact_phone');
-        if (!channels.zalo_url) channels.zalo_url = getVal('zalo_url');
-        if (!channels.email_public) channels.email_public = getVal('contact_email');
+        if (!channels.hotline) {
+          const ph = getVal('contact_phone');
+          if (checkHotline(ph)) channels.hotline = ph;
+        }
+        if (!channels.zalo_url) {
+          const z = getVal('zalo_url');
+          if (checkZaloUrl(z)) channels.zalo_url = z;
+        }
+        if (!channels.email_public) {
+          const em = getVal('contact_email');
+          if (checkEmail(em)) channels.email_public = em;
+        }
         if (!channels.messenger_url) {
-          channels.messenger_url = getVal('facebook_url') || getVal('facebook_page_url');
+          const fb = getVal('facebook_url') || getVal('facebook_page_url');
+          if (checkMessengerUrl(fb)) channels.messenger_url = fb;
         }
       } catch (e: any) {
         this.logger.warn(`Could not load contact channels fallback: ${e?.message}`);
