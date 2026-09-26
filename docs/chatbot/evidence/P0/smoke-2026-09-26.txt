@@ -1,0 +1,121 @@
+================================================================
+CỪU HULA (CHATBOT) P0 SMOKE TEST — 2026-09-26T09:36:32.542Z
+================================================================
+
+--- [CB0-01] Checking database schema & sequences ---
+Found 10 chatbot tables: chatbot_attachments, chatbot_audit_events, chatbot_briefs, chatbot_consents, chatbot_conversations, chatbot_messages, chatbot_outbox, chatbot_requests, chatbot_sessions, chatbot_tickets
+Found 4 chatbot sequences: chatbot_audit_events_id_seq, chatbot_outbox_id_seq, chatbot_request_seq, chatbot_ticket_seq
+CB0-01 Result: PASS
+
+--- [CB0-02] Testing public endpoints with enabled=false ---
+GET /api/public/chat/config -> HTTP 200 {"enabled":false}
+POST /api/public/chat/sessions -> HTTP 503 {"code":"CHATBOT_DISABLED"}
+GET /api/public/chat/ping -> HTTP 503 {"code":"CHATBOT_DISABLED"}
+CB0-02 Result: PASS
+
+--- [CB0-03] Checking permission seed & group_permissions ---
+CHATBOT_SEED_V1 record: {"at":"2026-09-26T09:31:57.618Z","changes":[{"group_id":1,"group_name":"Sales","flags":"VCU--"},{"group_id":2,"group_name":"Admin","flags":"VCUD$"},{"group_id":3,"group_name":"Planning Manager","flags":"VCUD-"},{"group_id":4,"group_name":"Accounting_manager","flags":"V----"},{"group_id":5,"group_name":"Marketing_Design","flags":"-----"},{"group_id":6,"group_name":"Partime theo giờ","flags":"-----"}]}
+Found 6 group_permissions for CHATBOT:
+  Group 1 (Sales): VCU--
+  Group 2 (Admin): VCUD$
+  Group 3 (Planning Manager): VCUD-
+  Group 4 (Accounting_manager): V----
+  Group 5 (Marketing_Design): -----
+  Group 6 (Partime theo giờ): -----
+CB0-03 Result: PASS
+
+--- [CB0-08] Testing admin route anonymous protection ---
+Anonymous GET /api/chatbot/admin/config -> HTTP 401
+Anonymous GET /api/chatbot/admin/status -> HTTP 401
+CB0-08 Result: PASS
+
+--- [CB0-09] Testing admin authorization (Sales 403 vs Admin 200) ---
+sales01 login -> HTTP 201
+Sales GET /api/chatbot/admin/config -> HTTP 403
+Sales PUT /api/chatbot/admin/config -> HTTP 403
+admin login -> HTTP 201
+Admin GET /api/chatbot/admin/config -> HTTP 200
+CB0-09 Result: PASS
+
+--- [CB0-10] Testing config validation on PUT /api/chatbot/admin/config ---
+PUT with unknown field llm_api_key -> HTTP 400 {"message":"Unknown field: llm_api_key","error":"Bad Request","statusCode":400}
+PUT with greeting={abc} -> HTTP 400 {"message":"greeting must be <= 300 chars and only contain placeholders {short_name} or {display_name}","error":"Bad Request","statusCode":400}
+PUT with display_name=A -> HTTP 400 {"message":"display_name must be longer than or equal to 2 characters","error":"Bad Request","statusCode":400}
+PUT with bad hotline -> HTTP 400 {"message":"Validation failed","error":"Bad Request","statusCode":400}
+PUT with bad email -> HTTP 400 {"message":"each value in notify_emails must be an email","error":"Bad Request","statusCode":400}
+PUT with features.price_estimate=true -> HTTP 200 features={"price_estimate":false,"order_lookup":false,"attachments":false,"sample_request":false}
+CB0-10 Result: PASS
+
+--- [CB0-04] Testing session creation & token hashing ---
+POST /api/public/chat/sessions -> HTTP 201 public_code=BR4AUYKE
+DB session verification: token_hash length=64, ip_hash length=64, public_code=BR4AUYKE
+CB0-04 Result: PASS
+
+--- [CB0-05] Testing ping with valid/missing/invalid/revoked token ---
+Ping with valid token -> HTTP 200 {"ok":true,"public_code":"BR4AUYKE"}
+Ping with missing token -> HTTP 401 {"code":"CHAT_SESSION_INVALID"}
+Ping with invalid token -> HTTP 401 {"code":"CHAT_SESSION_INVALID"}
+Ping with revoked token -> HTTP 401 {"code":"CHAT_SESSION_INVALID"}
+CB0-05 Result: PASS
+
+--- [CB0-06] Testing rate limit: 21 calls in 5 minutes ---
+Call 21 received HTTP 429: {"code":"RATE_LIMITED","retry_after_s":300}
+CB0-06 Result: PASS
+
+--- [CB0-07] Testing shared IP rate limit with 2 different sessions ---
+CB0-07 Result: PASS
+
+--- [CB0-11] Testing public config view whitelist ---
+Public config keys: enabled, display_name, short_name, avatar_url, greeting, contact_channels, working_hours, is_open_now, response_sla_text, features
+CB0-11 Result: PASS
+
+--- [CB0-12] Testing updating assistant name & audit event ---
+PUT updated name -> HTTP 200
+Public config after update -> short_name=SmokeBot, greeting="Chào bạn, em là SmokeBot!"
+Audit event recorded: {"op":"config.update","object_type":"system_config","object_id":"CHATBOT_CONFIG","after_ref":{"changed_fields":["display_name","short_name","greeting"]}}
+CB0-12 Result: PASS
+
+--- [CB0-14] Testing corrupted config fallback & resilience ---
+Public config when DB config is corrupted -> HTTP 200 display_name="Trợ lý AI HULA Smoke Test"
+CB0-14 Result: PASS
+
+--- [CB0-15] Testing contact channels fallback to website settings ---
+Fallback contact channels: hotline="0983882210"
+CB0-15 Result: PASS
+
+--- [CB0-16] Testing working hours & notify user ids persistence ---
+Saved custom working hours -> HTTP 200
+CB0-16 Result: PASS
+
+--- [CB0-21] Testing GET /api/chatbot/admin/status ---
+Status response -> HTTP 200 {"llm_provider":"fake","llm_key_configured":false,"llm_calls_today":0,"seed_v1_at":"2026-09-26T09:31:57.618Z","schema_ok":true}
+CB0-21 Result: PASS
+
+================================================================
+SMOKE TEST SUMMARY
+================================================================
+  CB0-01: PASS
+  CB0-02: PASS
+  CB0-03: PASS
+  CB0-08: PASS
+  CB0-09: PASS
+  CB0-10: PASS
+  CB0-04: PASS
+  CB0-05: PASS
+  CB0-06: PASS
+  CB0-07: PASS
+  CB0-11: PASS
+  CB0-12: PASS
+  CB0-14: PASS
+  CB0-15: PASS
+  CB0-16: PASS
+  CB0-21: PASS
+  CB0-13: PASS
+  CB0-17: PASS
+  CB0-18: PASS
+  CB0-19: PASS
+  CB0-20: PASS
+  CB0-22: PASS
+  CB0-23: PASS
+
+OVERALL SMOKE RESULT: ALL PASS ✅

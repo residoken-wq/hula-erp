@@ -630,3 +630,9 @@ R628,POST,/api/sales/portal/:uuid/action,src/sales/sales.controller.ts:226,custo
 R629,PUT,/api/tasks/:id,src/tasks/tasks.controller.ts:23,update,JWT,AUTH,,ADDED_P1,THẤP,,Cập nhật task cá nhân
 R630,DELETE,/api/tasks/:id,src/tasks/tasks.controller.ts:25,remove,JWT,AUTH,,ADDED_P1,THẤP,,Xóa task cá nhân
 R631,GET,/api/purchasing/supplier-portal/:uuid/outsourcing-materials/:poId,src/purchasing/purchasing.controller.ts:85,getSupplierPortalOutsourcingMaterials,NONE,PUBLIC,,ADDED_P2,THẤP,,E6: NPL trên portal NCC theo uuid
+CB-001,GET,/api/public/chat/config,src/chatbot/controllers/public-chat.controller.ts:28,getConfig,NEW,PUBLIC,,NEW_CHATBOT_P0,THẤP,,Cấu hình công khai trợ lý AI
+CB-002,POST,/api/public/chat/sessions,src/chatbot/controllers/public-chat.controller.ts:34,createSession,NEW,PUBLIC,,NEW_CHATBOT_P0,THẤP,,Tạo phiên chat khách vãng lai
+CB-003,GET,/api/public/chat/ping,src/chatbot/controllers/public-chat.controller.ts:50,ping,NEW,PUBLIC,,NEW_CHATBOT_P0,THẤP,,Kiểm tra phiên chat và rate limit
+CB-004,GET,/api/chatbot/admin/config,src/chatbot/controllers/chatbot-admin-config.controller.ts:29,getConfig,NEW,PERM,SYSTEM:view,NEW_CHATBOT_P0,THẤP,,Q-04 cặp RequirePermission+Perm
+CB-005,PUT,/api/chatbot/admin/config,src/chatbot/controllers/chatbot-admin-config.controller.ts:36,updateConfig,NEW,PERM,SYSTEM:update,NEW_CHATBOT_P0,THẤP,,Q-04 cặp RequirePermission+Perm
+CB-006,GET,/api/chatbot/admin/status,src/chatbot/controllers/chatbot-admin-config.controller.ts:44,getStatus,NEW,PERM,SYSTEM:view,NEW_CHATBOT_P0,THẤP,,Q-04 cặp RequirePermission+Perm

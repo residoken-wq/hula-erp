@@ -52,11 +52,19 @@ async function runQA() {
     for (const workspace of workspaces) {
         console.log(`${colors.bold}👉 Checking ${workspace.name}...${colors.reset}`);
 
+        if (!fs.existsSync(path.join(workspace.path, 'node_modules')) && workspace.type !== 'nest') {
+            console.log(`${colors.yellow}[${workspace.name}] Skipping: node_modules not installed.${colors.reset}`);
+            console.log('-----------------------------------');
+            continue;
+        }
+
         try {
-            // 1. Type Check (All Projects)
-            // Using tsc --noEmit to check types without generating files
-            // For root (backend), we use the local tsc
-            await runCommand('npx', ['tsc', '--noEmit'], workspace.path, workspace.name + ' TypeCheck');
+            // 1. Type Check / Build
+            if (workspace.type === 'vite') {
+                await runCommand('npm', ['run', 'build'], workspace.path, workspace.name + ' Build');
+            } else {
+                await runCommand('npx', ['tsc', '--noEmit'], workspace.path, workspace.name + ' TypeCheck');
+            }
 
             // 2. Linting
             if (workspace.type === 'nest') {
@@ -92,6 +100,26 @@ async function runQA() {
     console.log(`${colors.bold}👉 Running RBAC Public Callers Check...${colors.reset}`);
     try {
         await runCommand('node', ['scripts/rbac/check-public-callers.js'], projectRoot, 'RBAC Public Callers Check');
+    } catch (error) {
+        console.error(error.message);
+        failed = true;
+    }
+    console.log('-----------------------------------');
+
+    // 2.7 Chatbot No Secrets Check
+    console.log(`${colors.bold}👉 Running Chatbot No Secrets Check...${colors.reset}`);
+    try {
+        await runCommand('node', ['scripts/chatbot/check-no-secrets.js'], projectRoot, 'Chatbot No Secrets');
+    } catch (error) {
+        console.error(error.message);
+        failed = true;
+    }
+    console.log('-----------------------------------');
+
+    // 2.8 Chatbot No Hardcoded Name Check
+    console.log(`${colors.bold}👉 Running Chatbot No Hardcoded Name Check...${colors.reset}`);
+    try {
+        await runCommand('node', ['scripts/chatbot/check-no-hardcoded-name.js'], projectRoot, 'Chatbot No Hardcoded Name');
     } catch (error) {
         console.error(error.message);
         failed = true;

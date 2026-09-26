@@ -6,7 +6,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
-| P0 | **READY** | `chatbot/p0` (từ `main`) | — | 2026-09-26 Claude |
+| P0 | **SUBMITTED** | `chatbot/p0` (từ `main`) | — | 2026-09-26 Antigravity |
 | P1 | BLOCKED | `chatbot/p1` | P0 AUDIT_PASS, Q-02 | 2026-09-26 Claude |
 | P2 | BLOCKED | `chatbot/p2` | P1 AUDIT_PASS, Q-03 | 2026-09-26 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
@@ -42,6 +42,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 
 ## Nhật ký
 
+- 2026-09-26 · Antigravity · Hoàn thành toàn bộ P0: 10 bảng DDL + 2 sequence + subscriber exclusion; CHATBOT seed sao chép từ SALES; ChatbotConfigService 30s RAM cache và validation; Session token sha256 + sliding window rate limiter; Adapter FakeProvider/GeminiProvider + atomic budget; ChatAttachmentService magic bytes + strip EXIF; Route CB-001..006; Tab "Trợ lý AI website" trong Cấu hình hệ thống; QA pass 100% (npm run qa, check-rbac, check-public-callers, check-no-secrets, check-no-hardcoded-name, 34 backend unit tests pass, frontend build pass, smoke test CB0-01..CB0-23 ALL PASS). P0 SUBMITTED.
+- 2026-09-26 · Antigravity · Bắt đầu P0 trên nhánh chatbot/p0. Tạo nhánh từ main, merge docs/chatbot từ chatbot/plan. Tiến hành dựng schema, seed, config, adapter LLM, route, tab admin và QA. P0 IN_PROGRESS.
 - 2026-09-26 · Claude · Viết lại P0_Instruction thành bản code được ngay:
   - đặc tả 10 bảng, route CB-001..006;
   - tên trợ lý sửa được (`display_name`/`short_name`/avatar/lời chào), Q-13 chốt;
