@@ -32,7 +32,7 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | Q-11 | OPEN | |
 | Q-12 | OPEN | |
 | Q-13 | OPEN | |
-| Q-14 | CHỐT 2026-09-26 | Vá trong RBAC P2.0-d (E7, D13) trên nhánh `rbac/p2` @ 64e3709. Điều kiện trước go-live chatbot |
+| Q-14 | CHỐT 2026-09-26 | Vá bằng hotfix RBAC P2.0.1 (E7, D13) trên nhánh `rbac/e7` @ 2b92163. Điều kiện trước go-live chatbot |
 
 ## Chấp nhận ngoại lệ (Chủ dự án ký)
 

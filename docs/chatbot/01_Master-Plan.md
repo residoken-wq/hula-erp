@@ -175,4 +175,4 @@ P0→P5 làm tuần tự. P1 và P2 dùng chung P0; nếu Chủ dự án muốn 
 | Q-11 | Người duyệt nội dung theo mảng (SPEC §3: Sales lead, Kỹ thuật, Kế toán, CSKH)? | Chủ dự án chỉ định tài khoản ERP, gán `CHATBOT_KB` | P5 |
 | Q-12 | Bật dự toán giá khi go-live? | **Tắt** tới khi sales duyệt đủ rule giá. Bot chỉ ghi nhận và chuyển sales | P5 |
 | Q-13 | Tên hiển thị và avatar? | "Cừu Hula — Trợ lý AI", ảnh cừu nhận được, sửa được trong admin | P2 |
-| Q-14 ⚠ | Vá lỗ hổng §2.4 (`/system/config/:key` lộ `SMTP_PASS`)? | **Làm ngay** trong RBAC P2.0 (E7), đổi mật khẩu SMTP sau khi vá — **Chốt 2026-09-26: E7 trong RBAC P2.0 (D13), gộp thêm `/system/smtp` và `POST /system/config`** | Điều kiện go-live P5 |
+| Q-14 ⚠ | Vá lỗ hổng §2.4 (`/system/config/:key` lộ `SMTP_PASS`)? | **Làm ngay** trong RBAC P2.0 (E7), đổi mật khẩu SMTP sau khi vá — **Chốt 2026-09-26: E7 = hotfix RBAC P2.0.1 nhánh `rbac/e7` (D13), gộp thêm `/system/smtp` và `POST /system/config`** | Điều kiện go-live P5 |
