@@ -1,9 +1,10 @@
+// Purpose: Runs automated HTTP acceptance tests and captures evidence for P1 (one-off P1)
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
 const BASE_URL = 'http://127.0.0.1:3999';
-const EVIDENCE_DIR = path.resolve(__dirname, '../docs/rbac_v2/evidence/P1');
+const EVIDENCE_DIR = path.resolve(__dirname, '../../docs/rbac_v2/evidence/P1');
 
 if (!fs.existsSync(EVIDENCE_DIR)) {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });

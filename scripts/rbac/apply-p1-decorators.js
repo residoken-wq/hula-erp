@@ -1,3 +1,4 @@
+// Purpose: Batch applies RBAC decorators according to route-matrix.csv (one-off P1)
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');

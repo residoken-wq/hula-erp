@@ -150,11 +150,24 @@ function runCheck() {
                 } else if (text.startsWith('AuthOnly(') || text === 'AuthOnly') {
                   rbacDecs.push({ type: 'AUTH', raw: text });
                 } else if (text.startsWith('Perm(')) {
-                  rbacDecs.push({ type: 'PERM', raw: text });
+                  const m = text.match(/Perm\(\s*['"]([^'"]+)['"]/);
+                  rbacDecs.push({ type: 'PERM', raw: text, modules: m ? [m[1]] : [] });
                 } else if (text.startsWith('AnyPerm(')) {
-                  rbacDecs.push({ type: 'PERM', raw: text });
+                  const mods = [...text.matchAll(/\['([A-Z_]+)'/g)].map(m => m[1]);
+                  rbacDecs.push({ type: 'PERM', raw: text, modules: mods });
                 } else if (text.startsWith('RequirePermission(')) {
-                  rbacDecs.push({ type: 'PERM', raw: text, legacy: true });
+                  const m = text.match(/RequirePermission\(\s*['"]([^'"]+)['"]/);
+                  rbacDecs.push({ type: 'PERM', raw: text, legacy: true, module: m ? m[1] : null });
+                }
+              }
+
+              // Check for valid transition pair: @RequirePermission + @Perm/@AnyPerm where legacy module in modern modules
+              let isTransitionPair = false;
+              if (rbacDecs.length === 2) {
+                const legacyDec = rbacDecs.find(d => d.legacy);
+                const modernDec = rbacDecs.find(d => !d.legacy && d.type === 'PERM' && d.modules);
+                if (legacyDec && modernDec && legacyDec.module && modernDec.modules.includes(legacyDec.module)) {
+                  isTransitionPair = true;
                 }
               }
 
@@ -171,27 +184,28 @@ function runCheck() {
 
               if (rbacDecs.length === 0) {
                 unclassified.push(routeInfo);
-              } else if (rbacDecs.length > 1) {
-                // If it has multiple, check if they are redundant or conflict
+              } else if (rbacDecs.length > 1 && !isTransitionPair) {
+                // If it has multiple and not a valid transition pair, flag error
                 multipleDecorated.push(routeInfo);
               } else {
-                const tier = rbacDecs[0].type;
+                const tier = isTransitionPair ? 'PERM' : rbacDecs[0].type;
                 tierCounts[tier] = (tierCounts[tier] || 0) + 1;
               }
 
               // Compare with matrix
               const matrixEntry = matrixMap.get(key);
+              const effectiveCodeTier = isTransitionPair ? 'PERM' : rbacDecs[0]?.type;
               if (!matrixEntry) {
                 diffs.push({
                   key,
                   type: 'NOT_IN_MATRIX',
-                  codeTier: rbacDecs[0]?.type || 'NONE',
+                  codeTier: effectiveCodeTier || 'NONE',
                   matrixTier: null,
                   file: relFile,
                   methodName
                 });
               } else {
-                const codeTier = rbacDecs[0]?.type;
+                const codeTier = effectiveCodeTier;
                 if (codeTier && codeTier !== matrixEntry.tier) {
                   diffs.push({
                     key,
