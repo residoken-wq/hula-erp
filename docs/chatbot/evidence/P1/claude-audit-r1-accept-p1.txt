@@ -1,0 +1,18 @@
+=== accept-p1 2026-09-27T00:05:04.516Z base=http://localhost:4999/api db=hula_db token=cbtestmuj24gaa
+PASS  CB1-01  conflicts=16 open=16 spec_rows=11 scripts=8 seedKey=1 sources=A1,S1,S2,S3,S4,SPEC
+PASS  CB1-02  anon=401 sales=403 louGet=200 louCreate=201/draft louPublish=403 salesPreview=403 badType=400
+PASS  CB1-03  draft=0 review=0 pub=1 v2draft=2/draft served="Trả lời kiểm"→"Bản hai cbte" oldStatus=retired versions=2 retired=0 kb_version 0→1→3 editRetired=400 audit_publish=2
+PASS  CB1-04  {"exp":0,"fut":0,"priv":0,"cur":1}
+PASS  CB1-05  topicLock=409/CONFLICT_LOCKED codeLock=409 louResolve=403 resolve=200 publishAfter=200 reopen=200
+PASS  CB1-06  A=BO_NMN_HQ_6CT_CuuXanh B=BO_NMN_HQ_6CT_Doraemon topic=product.spec.size nonWeb=400/SKU_NOT_ON_WEBSITE badKey=400 thicknessLocked=409 facts=2 catalog=BO_NMN_HQ_6CT_CuuXanh compare={"BO_NMN_HQ_6CT_CuuXanh":"120x60 cm","BO_NMN_HQ_6CT_Doraemon":"chưa xác nhận"} cmp1=400 nonWebDetail={"product":null}
+PASS  CB1-07  create=201 topic=bundle.Bcbtestmuj24gaa nonWebSku=400 empty=400 publish=200
+PASS  CB1-08  lockedBeforeResolve=409 bands={"29":"needs_sales/no_rule","30":3000000,"49":4900000,"50":4500000,"99":8910000,"100":9000000,"300":27000000,"301":"needs_sales/no_rule"}
+PASS  CB1-09  overlap publish=409/PRICE_CONFLICT
+PASS  CB1-10  publishCustomerRule=200 est10={"status":"needs_sales","reason":"no_rule"}
+PASS  CB1-11  {"status":"needs_sales","reason":"discount_request"}
+PASS  CB1-12  excl8%=1080000 tax=80000 incl=3000000/0
+PASS  CB1-13  {"status":"partial","missing":["service:LOGO_cbtestmuj24gaa"],"lines":[{"target_type":"sku","target_code":"BO_NMN_HQ_6CT_CuuXanh","quantity":30,"unit_price":100000,"subtotal":3000000,"tax":0,"total":3
+PASS  CB1-14  {"status":"disabled"}
+PASS  CB1-15  unknownField=400 badTopic=400 badPrice=400 badScope=400
+PASS  CB1-16  pii_rows=0 internal_ref_leak=false
+=== RESULT 16/16 PASS
