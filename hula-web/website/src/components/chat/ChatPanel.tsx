@@ -81,8 +81,8 @@ export default function ChatPanel() {
 
   if (!isOpen) return null;
 
-  const botName = config?.display_name || 'Cừu Hula — Trợ lý AI';
-  const shortName = config?.short_name || 'Cừu Hula';
+  const botName = config?.display_name || 'Trợ lý AI';
+  const shortName = config?.short_name || 'Trợ lý';
   const avatarUrl = config?.avatar_url || '/images/chatbot/cuu-hula-96.webp';
 
   const handleSend = () => {

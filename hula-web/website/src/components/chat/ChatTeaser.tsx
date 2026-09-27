@@ -12,7 +12,7 @@ export default function ChatTeaser() {
   }
 
   const avatarUrl = config.avatar_url || '/images/chatbot/cuu-hula-96.webp';
-  const botName = config.short_name || 'Cừu Hula';
+  const botName = config.short_name || 'Trợ lý';
 
   const handleStart = async (val: string) => {
     await openChat();

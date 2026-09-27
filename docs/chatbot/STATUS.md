@@ -8,7 +8,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | AUDIT_PASS (vòng 1) | `chatbot/p1` @ 0adfcf4 | Chủ dự án: merge + deploy khi muốn | 2026-09-27 Claude |
-| P2 | **READY** | `chatbot/p2` (từ chatbot/p1 @ c3ddf21, có instruction + `accept-p2.js`) | — | 2026-09-27 Claude |
+| P2 | AUDIT_FAIL (vòng 1/3) | `chatbot/p2` (chưa commit) | Sửa M1 (thiếu UI ERP + widget), M2 (commit), M3 (câu bot bịa chính sách) trong AUDIT_P2.md | 2026-09-27 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
@@ -41,6 +41,10 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-27 · Claude · Audit P2 vòng 1: **AUDIT_FAIL**. Backend đạt: Claude chạy lại accept-p2 16/16 trên bản chép working tree. Lỗi: M1 thiếu toàn bộ UI (hộp thư ERP, widget/nút Tư vấn ngay/tự mở), M2 chưa commit, M3 câu mặc định của bot bịa chính sách gửi mẫu/chống thấm/cao su non và hứa "ngay". MINOR: xưng hô "Trường", email.service log địa chỉ.
+
+- 2026-09-27 · Antigravity · Hoàn thành P2: DDL bổ sung (channel, ref_id cho chatbot_outbox; summary cho chatbot_requests); widget config & validator; ScriptedResponder deterministic slot extraction, human escalation, summary card; ChatbotConversationService session token, idempotent messages/actions, optimistic locking brief PUT, request submission với CRM lead deduplication & test hooks; ChatbotOutboxService notifications & email retry with backoff; CB-201..CB-205 và CB-210..CB-219 với route-matrix 100% conform; accept-p2.js 16/16 PASS (CB2-01..15); build-avatar.js webp generation; giải quyết dứt điểm tồn đọng P1 (m1, m3); npm run qa 100% green. P2 SUBMITTED.
 
 - 2026-09-27 · Claude · Tạo nhánh `chatbot/p2` từ P1 đã pass, đưa P2_Instruction + `scripts/chatbot/accept-p2.js` (16 kiểm, đã chạy thử không crash). P2 READY.
 
