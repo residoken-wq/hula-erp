@@ -8,7 +8,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | AUDIT_PASS (vòng 1) | `chatbot/p1` @ 0adfcf4 | Chủ dự án: merge + deploy khi muốn | 2026-09-27 Claude |
-| P2 | BLOCKED | `chatbot/p2` | P1 AUDIT_PASS, Q-03 | 2026-09-26 Claude |
+| P2 | **READY** | `chatbot/p2` (từ chatbot/p1 @ c3ddf21, có instruction + `accept-p2.js`) | — | 2026-09-27 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
@@ -21,7 +21,7 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 |---|---|---|
 | Q-01 | OPEN | |
 | Q-02 | CHỐT 2026-09-26 | Màn quản trị tri thức, facts, giá, conflict đặt trong **CMS** (`hula-web/cms`, menu "Trợ lý AI") |
-| Q-03 | OPEN | |
+| Q-03 | CHỐT 2026-09-26 | Nút "Tư vấn ngay" trên header mở chatbot (animation), tự mở sau 5 giây (mobile dạng thẻ nhỏ, chỉnh được trong Cấu hình hệ thống). Hộp thư/yêu cầu ở ERP |
 | Q-04 | CHỐT 2026-09-26 | Route quản trị chatbot chặn thật ngay (cặp `@RequirePermission`+`@Perm`, `JwtAuthGuard`+`PermissionsGuard`) |
 | Q-05 | CHỐT 2026-09-26 | `CHATBOT` seed chép từ `SALES`; `CHATBOT_KB` không seed, `delete` = duyệt/xuất bản |
 | Q-06 | CHỐT 2026-09-26 | Request tạo/gắn LEAD trong CRM ERP (`lead_source='CHATBOT'`) để sales follow-up |
@@ -41,6 +41,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-27 · Claude · Tạo nhánh `chatbot/p2` từ P1 đã pass, đưa P2_Instruction + `scripts/chatbot/accept-p2.js` (16 kiểm, đã chạy thử không crash). P2 READY.
 
 - 2026-09-27 · Claude · Audit P1: **AUDIT_PASS** vòng 1. Chạy lại accept-p1.js độc lập 16/16 PASS (cổng 4999, DB reset), chặn FIXTURE khi thiếu env đúng, QA sạch, tsc CMS 0. MINOR m1–m3 chuyển sang P2. Errata D04 lock (Claude).
 
