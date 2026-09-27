@@ -22,6 +22,10 @@ import { LLM_PROVIDER } from './llm/llm-provider';
 
 import { PublicChatController } from './controllers/public-chat.controller';
 import { ChatbotAdminConfigController } from './controllers/chatbot-admin-config.controller';
+import { ChatbotKbController } from './controllers/chatbot-kb.controller';
+import { ChatbotKbSeedService } from './seed/chatbot-kb-seed.service';
+import { ChatbotKbService } from './kb/chatbot-kb.service';
+import { ChatbotToolsService } from './tools/chatbot-tools.service';
 
 @Module({
   imports: [
@@ -37,10 +41,12 @@ import { ChatbotAdminConfigController } from './controllers/chatbot-admin-config
   controllers: [
     PublicChatController,
     ChatbotAdminConfigController,
+    ChatbotKbController,
   ],
   providers: [
     ChatbotSchemaService,
     ChatbotSeedService,
+    ChatbotKbSeedService,
     ChatbotConfigService,
     ChatSessionService,
     ChatSessionGuard,
@@ -49,6 +55,8 @@ import { ChatbotAdminConfigController } from './controllers/chatbot-admin-config
     LlmBudgetService,
     ChatAttachmentService,
     ChatbotAuditService,
+    ChatbotKbService,
+    ChatbotToolsService,
     FakeProvider,
     GeminiProvider,
     {
@@ -77,7 +85,10 @@ import { ChatbotAdminConfigController } from './controllers/chatbot-admin-config
     ChatbotAuditService,
     ChatRateLimiter,
     LlmBudgetService,
+    ChatbotKbService,
+    ChatbotToolsService,
     LLM_PROVIDER,
   ],
 })
 export class ChatbotModule {}
+

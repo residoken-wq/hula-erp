@@ -7,7 +7,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
-| P1 | **READY** | `chatbot/p1` (Claude tạo từ main @ 4210b60, có instruction + `accept-p1.js`) | — | 2026-09-26 Claude |
+| P1 | **SUBMITTED** | `chatbot/p1` | — | 2026-09-27 Antigravity |
 | P2 | BLOCKED | `chatbot/p2` | P1 AUDIT_PASS, Q-03 | 2026-09-26 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
@@ -41,6 +41,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-27 · Antigravity · Hoàn thành P1: 6 bảng DDL + conditional unique indexes; ChatbotKbService quản lý vòng đời 4 trạng thái, conflict locks D01-D16, price conflict, atomic version; ChatbotKbSeedService idempotent; Controller CB-101..113 với RBAC CHATBOT_KB; ChatbotToolsService 5 tools chỉ đọc; Giao diện CMS 5 màn hình quản trị tại hula-web/cms/src/app/chatbot; accept-p1.js 16/16 PASS (CB1-01..16); npm run qa 100% green. P1 SUBMITTED.
 
 - 2026-09-26 · Claude · Chốt Q-02 = CMS. Tạo nhánh `chatbot/p1` từ main, viết lại P1_Instruction (hợp đồng API CB-101..113, CMS) và script nghiệm thu `scripts/chatbot/accept-p1.js` (16 kiểm tra; đã chạy thử trên bản P0: không crash, 0/16 như dự kiến). Thêm "Quy trình nhanh" vào 00_START-HERE. P1 READY.
 

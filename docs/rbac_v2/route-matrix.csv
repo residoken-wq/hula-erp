@@ -636,3 +636,17 @@ CB-003,GET,/api/public/chat/ping,src/chatbot/controllers/public-chat.controller.
 CB-004,GET,/api/chatbot/admin/config,src/chatbot/controllers/chatbot-admin-config.controller.ts:29,getConfig,NEW,PERM,SYSTEM:view,NEW_CHATBOT_P0,THẤP,,Q-04 cặp RequirePermission+Perm
 CB-005,PUT,/api/chatbot/admin/config,src/chatbot/controllers/chatbot-admin-config.controller.ts:36,updateConfig,NEW,PERM,SYSTEM:update,NEW_CHATBOT_P0,THẤP,,Q-04 cặp RequirePermission+Perm
 CB-006,GET,/api/chatbot/admin/status,src/chatbot/controllers/chatbot-admin-config.controller.ts:44,getStatus,NEW,PERM,SYSTEM:view,NEW_CHATBOT_P0,THẤP,,Q-04 cặp RequirePermission+Perm
+CB-101,GET,/api/chatbot/admin/kb/:type,src/chatbot/controllers/chatbot-kb.controller.ts:100,findAll,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Danh sách mục tri thức
+CB-102,GET,/api/chatbot/admin/kb/:type/:id,src/chatbot/controllers/chatbot-kb.controller.ts:108,findOne,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Chi tiết mục tri thức kèm lịch sử phiên bản
+CB-103,POST,/api/chatbot/admin/kb/:type,src/chatbot/controllers/chatbot-kb.controller.ts:117,create,NEW,PERM,CHATBOT_KB:create,NEW_CHATBOT_P1,THẤP,,Tạo mới draft tri thức
+CB-104,PUT,/api/chatbot/admin/kb/:type/:id,src/chatbot/controllers/chatbot-kb.controller.ts:125,update,NEW,PERM,CHATBOT_KB:update,NEW_CHATBOT_P1,THẤP,,Cập nhật tri thức
+CB-105,POST,/api/chatbot/admin/kb/:type/:id/submit,src/chatbot/controllers/chatbot-kb.controller.ts:139,submit,NEW,PERM,CHATBOT_KB:update,NEW_CHATBOT_P1,THẤP,,Gửi duyệt tri thức
+CB-106,POST,/api/chatbot/admin/kb/:type/:id/publish,src/chatbot/controllers/chatbot-kb.controller.ts:147,publish,NEW,PERM,CHATBOT_KB:delete,NEW_CHATBOT_P1,THẤP,,Xuất bản tri thức
+CB-107,POST,/api/chatbot/admin/kb/:type/:id/retire,src/chatbot/controllers/chatbot-kb.controller.ts:155,retire,NEW,PERM,CHATBOT_KB:delete,NEW_CHATBOT_P1,THẤP,,Thu hồi tri thức
+CB-108,GET,/api/chatbot/admin/kb/conflicts,src/chatbot/controllers/chatbot-kb.controller.ts:35,getConflicts,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Danh sách mâu thuẫn tri thức
+CB-109,PUT,/api/chatbot/admin/kb/conflicts/:code,src/chatbot/controllers/chatbot-kb.controller.ts:43,resolveConflict,NEW,PERM,CHATBOT_KB:delete,NEW_CHATBOT_P1,THẤP,,Giải quyết hoặc mở lại mâu thuẫn
+CB-110,GET,/api/chatbot/admin/kb/website-products,src/chatbot/controllers/chatbot-kb.controller.ts:52,getWebsiteProducts,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Danh sách sản phẩm website
+CB-111,GET,/api/chatbot/admin/kb/version,src/chatbot/controllers/chatbot-kb.controller.ts:60,getVersion,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Phiên bản tri thức hiện hành
+CB-112,POST,/api/chatbot/admin/kb/preview,src/chatbot/controllers/chatbot-kb.controller.ts:68,previewTool,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Chạy thử công cụ tri thức
+CB-113,GET,/api/chatbot/admin/kb/sources,src/chatbot/controllers/chatbot-kb.controller.ts:98,getSources,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Nguồn tài liệu tri thức
+
