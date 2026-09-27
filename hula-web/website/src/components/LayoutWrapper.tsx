@@ -8,6 +8,7 @@ import Topbar from './Topbar';
 import FloatingActionWidgets from './FloatingActionWidgets';
 import { CartProvider } from '@/contexts/CartContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
+import { ChatWidgetProvider, ChatWidget } from './chat';
 
 // Pages where Header and Footer should be hidden
 const STANDALONE_PAGES = ['/coming-soon', '/maintenance'];
@@ -27,14 +28,17 @@ export default function LayoutWrapper({
     return (
         <SettingsProvider>
             <CartProvider>
-                <Topbar />
-                <Header />
-                <main className="flex-1">
-                    {children}
-                </main>
-                <Footer />
-                <CartDrawer />
-                <FloatingActionWidgets />
+                <ChatWidgetProvider>
+                    <Topbar />
+                    <Header />
+                    <main className="flex-1">
+                        {children}
+                    </main>
+                    <Footer />
+                    <CartDrawer />
+                    <FloatingActionWidgets />
+                    <ChatWidget />
+                </ChatWidgetProvider>
             </CartProvider>
         </SettingsProvider>
     );

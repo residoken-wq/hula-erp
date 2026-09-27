@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { resolveImageUrl } from '@/lib/utils';
+import { useChatWidget } from './chat';
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,6 +18,11 @@ export default function Header() {
     const pathname = usePathname();
     const { itemCount, setIsCartOpen } = useCart();
     const { settings } = useSettings();
+    const { config: chatConfig, openChat } = useChatWidget();
+
+    const isChatEnabled = chatConfig?.enabled === true;
+    const ctaLabel = chatConfig?.widget?.cta_label || 'Tư vấn ngay';
+    const avatarUrl = chatConfig?.avatar_url || '/images/chatbot/cuu-hula-96.webp';
 
     useEffect(() => {
         const handleScroll = () => {
@@ -174,12 +181,32 @@ export default function Header() {
                             </button>
 
                             {/* CTA Button - Desktop */}
-                            <Link
-                                href="/lien-he"
-                                className="hidden sm:inline-flex items-center px-5 py-2.5 bg-primary-500 text-white font-semibold rounded-pill hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-95"
-                            >
-                                Tư vấn ngay
-                            </Link>
+                            {isChatEnabled ? (
+                                <button
+                                    type="button"
+                                    onClick={openChat}
+                                    className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white font-semibold rounded-pill hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-95 animate-chat-wiggle"
+                                    id="header-chat-cta"
+                                >
+                                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-white/20 border border-white/40 flex-shrink-0">
+                                        <Image
+                                            src={avatarUrl}
+                                            alt="Cừu Hula"
+                                            width={24}
+                                            height={24}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <span>{ctaLabel}</span>
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/lien-he"
+                                    className="hidden sm:inline-flex items-center px-5 py-2.5 bg-primary-500 text-white font-semibold rounded-pill hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-95"
+                                >
+                                    {ctaLabel}
+                                </Link>
+                            )}
 
                             {/* Mobile Menu Button */}
                             <button
@@ -258,16 +285,41 @@ export default function Header() {
                         </div>
 
                         <div className="p-4 mt-4 space-y-3">
-                            <Link
-                                href="/lien-he"
-                                onClick={() => setIsMenuOpen(false)}
-                                className="flex items-center justify-center gap-2 w-full py-4 bg-primary-500 text-white font-semibold rounded-pill shadow-lg shadow-primary-500/30 transition-all active:scale-[0.98]"
-                            >
-                                <span>Tư vấn ngay</span>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                </svg>
-                            </Link>
+                            {isChatEnabled ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        openChat();
+                                    }}
+                                    className="flex items-center justify-center gap-2.5 w-full py-4 bg-primary-500 text-white font-semibold rounded-pill shadow-lg shadow-primary-500/30 transition-all active:scale-[0.98]"
+                                >
+                                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-white/20 border border-white/40 flex-shrink-0">
+                                        <Image
+                                            src={avatarUrl}
+                                            alt="Cừu Hula"
+                                            width={24}
+                                            height={24}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <span>{ctaLabel}</span>
+                                    <svg className="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                    </svg>
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/lien-he"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="flex items-center justify-center gap-2 w-full py-4 bg-primary-500 text-white font-semibold rounded-pill shadow-lg shadow-primary-500/30 transition-all active:scale-[0.98]"
+                                >
+                                    <span>{ctaLabel}</span>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                    </svg>
+                                </Link>
+                            )}
 
                             <button
                                 onClick={() => { setIsMenuOpen(false); setIsCartOpen(true); }}
