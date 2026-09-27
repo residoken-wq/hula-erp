@@ -6,6 +6,9 @@ import { User } from '../users/entities/user.entity';
 import { UserGroup } from '../users/entities/user-group.entity';
 import { GroupPermission } from '../users/entities/group-permission.entity';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { Customer } from '../customers/customer.entity';
+import { EmailService } from '../common/services/email.service';
 
 import { ChatbotSchemaService } from './schema/chatbot-schema.service';
 import { ChatbotSeedService } from './seed/chatbot-seed.service';
@@ -23,25 +26,32 @@ import { LLM_PROVIDER } from './llm/llm-provider';
 import { PublicChatController } from './controllers/public-chat.controller';
 import { ChatbotAdminConfigController } from './controllers/chatbot-admin-config.controller';
 import { ChatbotKbController } from './controllers/chatbot-kb.controller';
+import { ChatbotInboxController } from './controllers/chatbot-inbox.controller';
 import { ChatbotKbSeedService } from './seed/chatbot-kb-seed.service';
 import { ChatbotKbService } from './kb/chatbot-kb.service';
 import { ChatbotToolsService } from './tools/chatbot-tools.service';
+import { ScriptedResponderService } from './conversation/scripted-responder.service';
+import { ChatbotConversationService } from './conversation/chatbot-conversation.service';
+import { ChatbotOutboxService } from './outbox/chatbot-outbox.service';
 
 @Module({
   imports: [
     AuthModule,
+    NotificationsModule,
     TypeOrmModule.forFeature([
       ...CHATBOT_ENTITIES,
       SystemConfig,
       User,
       UserGroup,
       GroupPermission,
+      Customer,
     ]),
   ],
   controllers: [
     PublicChatController,
     ChatbotAdminConfigController,
     ChatbotKbController,
+    ChatbotInboxController,
   ],
   providers: [
     ChatbotSchemaService,
@@ -57,6 +67,10 @@ import { ChatbotToolsService } from './tools/chatbot-tools.service';
     ChatbotAuditService,
     ChatbotKbService,
     ChatbotToolsService,
+    ScriptedResponderService,
+    ChatbotConversationService,
+    ChatbotOutboxService,
+    EmailService,
     FakeProvider,
     GeminiProvider,
     {

@@ -175,6 +175,7 @@ export class ChatbotSchemaService implements OnModuleInit {
           customer_requested_due_at date NULL,
           promised_due_at date NULL,
           internal_note text NULL,
+          summary text NULL,
           created_at timestamptz NOT NULL DEFAULT now(),
           updated_at timestamptz NOT NULL DEFAULT now(),
           CONSTRAINT uq_chatbot_requests_code UNIQUE (code),
@@ -217,12 +218,26 @@ export class ChatbotSchemaService implements OnModuleInit {
           attempts int NOT NULL DEFAULT 0,
           next_attempt_at timestamptz NOT NULL DEFAULT now(),
           last_error varchar(300) NULL,
+          channel varchar(12) NULL,
+          ref_id varchar(64) NULL,
           created_at timestamptz NOT NULL DEFAULT now()
         );`,
       },
       {
         name: 'index idx_chatbot_outbox_status_next',
         sql: `CREATE INDEX IF NOT EXISTS idx_chatbot_outbox_status_next ON chatbot_outbox (status, next_attempt_at);`,
+      },
+      {
+        name: 'alter chatbot_outbox add channel',
+        sql: `ALTER TABLE chatbot_outbox ADD COLUMN IF NOT EXISTS channel varchar(12);`,
+      },
+      {
+        name: 'alter chatbot_outbox add ref_id',
+        sql: `ALTER TABLE chatbot_outbox ADD COLUMN IF NOT EXISTS ref_id varchar(64);`,
+      },
+      {
+        name: 'alter chatbot_requests add summary',
+        sql: `ALTER TABLE chatbot_requests ADD COLUMN IF NOT EXISTS summary text;`,
       },
 
       // 10. chatbot_audit_events

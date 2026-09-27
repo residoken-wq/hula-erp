@@ -649,4 +649,19 @@ CB-110,GET,/api/chatbot/admin/kb/website-products,src/chatbot/controllers/chatbo
 CB-111,GET,/api/chatbot/admin/kb/version,src/chatbot/controllers/chatbot-kb.controller.ts:60,getVersion,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Phiên bản tri thức hiện hành
 CB-112,POST,/api/chatbot/admin/kb/preview,src/chatbot/controllers/chatbot-kb.controller.ts:68,previewTool,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Chạy thử công cụ tri thức
 CB-113,GET,/api/chatbot/admin/kb/sources,src/chatbot/controllers/chatbot-kb.controller.ts:98,getSources,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P1,THẤP,,Nguồn tài liệu tri thức
+CB-201,GET,/api/public/chat/conversation,src/chatbot/controllers/public-chat.controller.ts:86,getConversation,NEW,PUBLIC,,NEW_CHATBOT_P2,THẤP,,Khách đọc thông tin hội thoại
+CB-202,POST,/api/public/chat/messages,src/chatbot/controllers/public-chat.controller.ts:94,postMessage,NEW,PUBLIC,,NEW_CHATBOT_P2,THẤP,,Khách gửi tin nhắn
+CB-203,POST,/api/public/chat/actions,src/chatbot/controllers/public-chat.controller.ts:124,postAction,NEW,PUBLIC,,NEW_CHATBOT_P2,THẤP,,Khách gửi hành động
+CB-204,PUT,/api/public/chat/brief,src/chatbot/controllers/public-chat.controller.ts:159,putBrief,NEW,PUBLIC,,NEW_CHATBOT_P2,THẤP,,Khách cập nhật brief
+CB-205,POST,/api/public/chat/requests,src/chatbot/controllers/public-chat.controller.ts:170,createRequest,NEW,PUBLIC,,NEW_CHATBOT_P2,THẤP,,Khách gửi yêu cầu
+CB-210,GET,/api/chatbot/admin/inbox/conversations,src/chatbot/controllers/chatbot-inbox.controller.ts:58,listConversations,NEW,PERM,CHATBOT:view,NEW_CHATBOT_P2,THẤP,,Danh sách hội thoại
+CB-211,GET,/api/chatbot/admin/inbox/conversations/:id,src/chatbot/controllers/chatbot-inbox.controller.ts:131,getConversationDetail,NEW,PERM,CHATBOT:view,NEW_CHATBOT_P2,THẤP,,Chi tiết hội thoại
+CB-212,POST,/api/chatbot/admin/inbox/conversations/:id/take,src/chatbot/controllers/chatbot-inbox.controller.ts:175,takeConversation,NEW,PERM,CHATBOT:update,NEW_CHATBOT_P2,THẤP,,Nhân viên tiếp nhận hội thoại
+CB-213,POST,/api/chatbot/admin/inbox/conversations/:id/release,src/chatbot/controllers/chatbot-inbox.controller.ts:212,releaseConversation,NEW,PERM,CHATBOT:update,NEW_CHATBOT_P2,THẤP,,Nhân viên trả hội thoại về cho bot
+CB-214,POST,/api/chatbot/admin/inbox/conversations/:id/messages,src/chatbot/controllers/chatbot-inbox.controller.ts:251,sendStaffMessage,NEW,PERM,CHATBOT:update,NEW_CHATBOT_P2,THẤP,,Nhân viên gửi tin nhắn
+CB-215,GET,/api/chatbot/admin/inbox/requests,src/chatbot/controllers/chatbot-inbox.controller.ts:298,listRequests,NEW,PERM,CHATBOT:view,NEW_CHATBOT_P2,THẤP,,Danh sách yêu cầu
+CB-216,GET,/api/chatbot/admin/inbox/requests/:id,src/chatbot/controllers/chatbot-inbox.controller.ts:346,getRequestDetail,NEW,PERM,CHATBOT:view,NEW_CHATBOT_P2,THẤP,,Chi tiết yêu cầu
+CB-217,PUT,/api/chatbot/admin/inbox/requests/:id,src/chatbot/controllers/chatbot-inbox.controller.ts:374,updateRequest,NEW,PERM,CHATBOT:update,NEW_CHATBOT_P2,THẤP,,Cập nhật yêu cầu
+CB-218,GET,/api/chatbot/admin/inbox/outbox,src/chatbot/controllers/chatbot-inbox.controller.ts:445,listOutbox,NEW,PERM,CHATBOT:view,NEW_CHATBOT_P2,THẤP,,Danh sách outbox
+CB-219,POST,/api/chatbot/admin/inbox/outbox/run,src/chatbot/controllers/chatbot-inbox.controller.ts:479,runOutbox,NEW,PERM,CHATBOT:update,NEW_CHATBOT_P2,THẤP,,Kích hoạt xử lý outbox
 
