@@ -1,0 +1,7 @@
+check_rbac=0
+public_callers=0
+✅ check-no-secrets: Scanned 57 files. No secrets or real emails detected.
+✅ check-no-hardcoded-name: Scanned 50 files. No hardcoded name outside defaults.
+Tests:       44 passed, 44 total
+tsc=0
+15

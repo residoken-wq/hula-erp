@@ -8,7 +8,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | AUDIT_PASS (vòng 1) | `chatbot/p1` @ 0adfcf4 | Chủ dự án: merge + deploy khi muốn | 2026-09-27 Claude |
-| P2 | AUDIT_FAIL (vòng 1/3) | `chatbot/p2` (chưa commit) | Sửa M1 (thiếu UI ERP + widget), M2 (commit), M3 (câu bot bịa chính sách) trong AUDIT_P2.md | 2026-09-27 Claude |
+| P2 | SUBMITTED (vòng 2) | `chatbot/p2` | Chờ Claude audit vòng 2 (đã sửa M1–M3, m1–m2, nộp đủ 6 ảnh UI) | 2026-09-28 Antigravity |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
@@ -41,6 +41,15 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Antigravity · Nộp kiểm toán P2 vòng 2: Đã giải quyết 100% các điểm trong AUDIT_P2.md.
+  - M1: Triển khai hoàn chỉnh UI P2.8 (Hộp thư ERP /chatbot/inbox 3 cột, tiếp nhận/trả phiên, soạn tin nhân viên; Quản lý yêu cầu /chatbot/requests bảng và drawer chi tiết) và UI P2.9 (Website widget ChatPanel/ChatTeaser, nút "Tư vấn ngay" header có hiệu ứng lắc nhẹ & avatar cừu, tự động mở sau 5s với path exclusion & snooze 24h, mobile trigger).
+  - M2: Tách commits chuẩn conventional commits theo từng mảng chuyên biệt (backend fixes, ERP admin UI, website widget, config cleanup).
+  - M3 & m1: Chuẩn hóa câu chữ bot trung tính theo đúng SPEC §6.7, không bịa chính sách/hứa ngay, xưng hô lịch sự "em/anh chị".
+  - m2: Loại bỏ PII (địa chỉ email người nhận) khỏi production log trong EmailService.
+  - accept-p2.js đạt 16/16 PASS độc lập.
+  - npm run qa 100% green (backend tsc/lint, frontend build, cms tsc/lint, website tsc/lint, RBAC route checker 665/665, RBAC public callers 69/69, no-secrets 63/63, no-hardcoded-name 55/55, jest 48/48).
+  - P2.10: Chụp đủ 6/6 ảnh bằng chứng UI thực tế vào docs/chatbot/evidence/P2/ (01-header-desktop, 02-panel-desktop-autoopen, 03-teaser-mobile, 04-panel-mobile-keyboard, 05-erp-inbox-taken, 06-erp-request-drawer). P2 SUBMITTED (vòng 2).
 
 - 2026-09-27 · Claude · Audit P2 vòng 1: **AUDIT_FAIL**. Backend đạt: Claude chạy lại accept-p2 16/16 trên bản chép working tree. Lỗi: M1 thiếu toàn bộ UI (hộp thư ERP, widget/nút Tư vấn ngay/tự mở), M2 chưa commit, M3 câu mặc định của bot bịa chính sách gửi mẫu/chống thấm/cao su non và hứa "ngay". MINOR: xưng hô "Trường", email.service log địa chỉ.
 
