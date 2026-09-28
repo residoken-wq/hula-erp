@@ -162,6 +162,41 @@ npm run qa   # tắt backend sau khi xong
 3. CMS "Nhập JSON" với kết quả `inserted`.
 4. CMS "Khoảng trống kiến thức".
 
+## P3.10 Kịch bản trước, AI sau (Chủ dự án chốt 2026-09-28, làm trong vòng 2)
+
+Lý do: key Gemini free tier chỉ có khoảng 20 request/ngày/model (AUDIT_P3, phần bổ sung). Chủ dự án muốn câu trả lời đi theo kịch bản và tri thức đã duyệt là chính, **chỉ gọi Gemini khi kho chưa có câu trả lời**.
+
+1. **Config `llm.mode`** (validator chung; tab Cấu hình hệ thống thêm ô chọn "Chế độ trả lời", đặt ngoài khung Nâng cao):
+   - `script_first` (**mặc định**): kịch bản và tri thức trước, AI khi không có.
+   - `llm_first`: như P3.5 hiện tại.
+   - `script_only`: không bao giờ gọi AI.
+2. **`RuleUnderstander`** (code, không LLM): nâng logic `understand` của `FakeProvider` thành service thật, dùng chung cho `script_first`, `script_only` và fallback. Bổ sung tối thiểu:
+   - `quantity`: đơn vị `bộ|cái|chiếc|set|bé|bạn|túi|tấm|chăn|gối`. Nếu một câu có nhiều số, lấy số đi với hạng mục nệm/chăn/gối/túi. **Không** lấy số đi với `đồng phục|áo|tạp dề` (S3-25).
+   - `segment=business`: `đồng phục|thương mại|hợp tác|đại lý|phân phối|khách của em|bên em làm`.
+   - `intent`:
+     - `price`: `báo giá|giá|bao nhiêu tiền`
+     - `reorder`: `như đợt trước|đặt lại|như cũ|mẫu cũ`
+     - `invoice`: `hóa đơn|hợp đồng|biên bản|MST|mã số thuế|xuất hóa đơn|pháp nhân`
+     - `order_status`: `khi nào giao|giao chưa|đơn hàng|lâu không|chưa giao|giao qua|địa chỉ cũ`
+     - `sample`: `xem mẫu|gửi mẫu|mẫu vải|chỉ xem`
+     - `payment`: `chuyển khoản|thanh toán|tạm ứng|UNC`
+     - `complaint`: theo luật complaint.
+     - Khi trùng nhiều intent, ưu tiên theo thứ tự `complaint > invoice > payment > order_status > sample > reorder > price > product_advice`.
+   - `suggest_ticket`:
+     - `complaint_quality`: `thấm|lỗi|hỏng|rách|kém|thô|phàn nàn|khiếu nại`;
+     - `design_change`: `dừng in|dừng thêu|bỏ nền|sửa mockup|bỏ vòng|đổi logo`;
+     - `delivery`: `giao .* (giờ nghỉ|trễ|bất tiện)|giao sai`.
+3. **Luồng một lượt ở `script_first`:**
+   1. `RuleUnderstander` → brief, luật code P3.5 bước 4 (complaint, infant, human).
+   2. Có luật đặc biệt (complaint / infant / human / order_status / invoice / payment) → trả lời bằng `script.*` hoặc `faq.*.process` tương ứng. `route='script'`, **không gọi AI**.
+   3. `retrieveForTurn` có kết quả **chắc chắn** (khớp `topic_hint` hoặc phủ ≥ 70% tokens) → trả lời = câu tri thức đã render placeholder + tối đa 1 câu hỏi slot còn thiếu (template). `route='knowledge'`, **không gọi AI**.
+   4. Còn lại → ghi knowledge gap, rồi nếu còn budget và không đang bị chặn 429 thì gọi AI như P3.5 (validator giữ nguyên, `route='llm'`). **Gộp "hiểu" và "diễn đạt" thành 1 lần gọi** (schema `turn.v1` = understand + reply), để mỗi lượt chỉ tốn 1 request.
+   5. AI không gọi được → câu an toàn chung + đề nghị gặp nhân viên, `route='fallback'`.
+4. `script_only`: như trên nhưng bước 4 luôn đi thẳng sang bước 5.
+5. `llm_meta.route` bắt buộc có ở **mọi** tin `ai`: `script` | `knowledge` | `llm` | `fallback`. Tin không gọi AI thì không trừ budget.
+6. **Cổng chất lượng (CB3-24):** ở `script_only`, 31 case của `eval-cases.json` phải đạt **≥ 25/31**, và **0** lỗi an toàn (`no_money`, `no_commit`, `no_pii_leak`, `no_product_cards`).
+7. **Không** hard-code câu trả lời theo từng case eval. Câu chữ lấy từ `script.*` / `faq.*` trong kho. Luật chỉ quyết định intent, slot, route.
+
 ## Không làm ở P3
 - Không upload file, không ticket thật (P4), không dự toán giá cho khách.
 - Không sửa `src/ai/**`.

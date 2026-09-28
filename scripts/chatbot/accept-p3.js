@@ -67,6 +67,10 @@ const usageToday = () => { const key = 'CHATBOT_LLM_USAGE_' + new Intl.DateTimeF
   const defaultBudget = cfg0 && cfg0.llm && cfg0.llm.daily_call_budget;
   let cfg = (await req('PUT', '/chatbot/admin/config', { token: admin, body: { ...cfg0, enabled: true, contact_channels: { ...cfg0.contact_channels, email_public: 'sales-test@example.com' } } })).b;
   const putCfg = async (patch) => { const cur = (await req('GET', '/chatbot/admin/config', { token: admin })).b; const r = await req('PUT', '/chatbot/admin/config', { token: admin, body: { ...cur, ...patch } }); return r; };
+  // P3.10 (script-first, Chủ dự án 2026-09-28): default llm.mode is 'script_first'.
+  // CB3-05..18 exercise the LLM pipeline, so they run in 'llm_first'; CB3-21..24 test the script-first modes.
+  const defaultMode = cfg && cfg.llm && cfg.llm.mode;
+  { const m = await putCfg({ llm: { ...cfg.llm, mode: 'llm_first' } }); if (m.s === 200) cfg = m.b; else log(`WARN cannot set llm.mode=llm_first (${m.s})`); }
 
   const kbFile = JSON.parse(read('docs/chatbot/knowledge/kb-v2.json'));
   const total = kbFile.knowledge.length + kbFile.scripts.length;
@@ -285,6 +289,88 @@ const usageToday = () => { const key = 'CHATBOT_LLM_USAGE_' + new Intl.DateTimeF
     await putCfg({ llm: { ...cfg.llm, timeout_ms: 20000, daily_call_budget: 600 } });
     const ok = (x) => x.take < 300 && x.replies === 0 && x.aiAfter === '0' && x.human.startsWith('true|') && x.human.length > 5;
     check('CB3-18', ok(a) && ok(b), j([a, b]));
+  });
+
+  // ---------- P3.10 script-first (added 2026-09-28) ----------
+  const setMode = async (mode) => { const r = await putCfg({ llm: { ...cfg.llm, timeout_ms: 20000, daily_call_budget: 600, mode } }); return r.s; };
+
+  // CB3-21 script_first: a question covered by approved knowledge is answered WITHOUT calling the LLM
+  await step('CB3-21', async () => {
+    const s = await setMode('script_first');
+    const before = usageToday();
+    const S = await newSession();
+    const r = await msg(S.tok, 'Nệm dày bao nhiêu cm?');
+    const after = usageToday();
+    const m = lastAiMeta(S.code) || {};
+    check('CB3-21', s === 200 && defaultMode === 'script_first' && r.s === 200 && /chần gòn hay foam/i.test(replyText(r)) && after === before && m.route === 'knowledge',
+      `setMode=${s} defaultMode=${defaultMode} usage ${before}→${after} route=${m.route} reply="${replyText(r).slice(0, 80)}"`);
+  });
+
+  // CB3-22 script_first: a question with no knowledge goes to the LLM (fake), validator still applies
+  await step('CB3-22', async () => {
+    await setMode('script_first');
+    const before = usageToday();
+    const S = await newSession();
+    const r = await msg(S.tok, 'Nệm có dùng được cho thú cưng như mèo không');
+    const after = usageToday();
+    const m = lastAiMeta(S.code) || {};
+    check('CB3-22', r.s === 200 && replyText(r).length > 0 && after > before && m.route === 'llm' && !MONEY.test(replyText(r)), `usage ${before}→${after} route=${m.route}`);
+  });
+
+  // CB3-23 script_only: never calls the LLM, still answers safely
+  await step('CB3-23', async () => {
+    const s = await setMode('script_only');
+    const before = usageToday();
+    const S = await newSession();
+    const r = await msg(S.tok, 'Nệm có dùng được cho thú cưng như mèo không');
+    const after = usageToday();
+    const m = lastAiMeta(S.code) || {};
+    check('CB3-23', s === 200 && r.s === 200 && replyText(r).length > 0 && after === before && ['script', 'fallback', 'knowledge'].includes(m.route) && /nhân viên/i.test(replyText(r)),
+      `setMode=${s} usage ${before}→${after} route=${m.route} reply="${replyText(r).slice(0, 80)}"`);
+  });
+
+  // CB3-24 script_only quality gate: the 31 anonymized cases must reach >= 25/31 (80%) with rules only
+  await step('CB3-24', async () => {
+    await setMode('script_only');
+    const evalFile = JSON.parse(read('docs/chatbot/knowledge/eval-cases.json'));
+    const COMMIT = ['đã gửi', 'đã tiếp nhận', 'đã nhận tiền', 'đã chuyển khoản', 'đã dừng', 'đã đặt lịch', 'đã giao', 'cam kết', 'chắc chắn', 'an toàn tuyệt đối', 'kháng khuẩn', 'chống thấm', 'đạt chuẩn'];
+    const xreq = async (method, p, { chat, body, ip }) => {
+      const h = { 'Content-Type': 'application/json', 'X-Forwarded-For': ip };
+      if (chat) h['X-Chat-Session'] = chat;
+      const r = await fetch(BASE + p, { method, headers: h, body: body === undefined ? undefined : j(body) });
+      const t = await r.text(); try { return JSON.parse(t); } catch { return {}; }
+    };
+    let pass = 0; const failed = [];
+    for (let i = 0; i < evalFile.cases.length; i++) {
+      const c = evalFile.cases[i]; const ip = `10.98.${i + 1}.7`;
+      const s = await xreq('POST', '/public/chat/sessions', { body: {}, ip });
+      if (!s.session_token) { failed.push(`${c.id}:session`); continue; }
+      const texts = []; const types = [];
+      for (const t of c.turns) {
+        const r = await xreq('POST', '/public/chat/messages', { chat: s.session_token, body: { client_msg_id: uuid(), text: t }, ip });
+        for (const x of r.replies || []) { texts.push(x.text || ''); if (x.payload && x.payload.type) types.push(x.payload.type); }
+      }
+      const cv = await xreq('GET', '/public/chat/conversation', { chat: s.session_token, ip });
+      const brief = (cv.brief && cv.brief.data) || {}; const conv = cv.conversation || {};
+      const all = texts.join(' '); const last = texts[texts.length - 1] || '';
+      const f = [];
+      for (const e of c.expect || []) {
+        if (e === 'no_money' && MONEY.test(all)) f.push(e);
+        else if (e === 'no_commit' && COMMIT.some((p) => all.toLowerCase().includes(p))) f.push(e);
+        else if (e === 'max_q2' && (last.match(/\?/g) || []).length > 2) f.push(e);
+        else if (e === 'no_repeat_qty' && /bao nhiêu bộ/i.test(last)) f.push(e);
+        else if (e === 'handoff' && !(types.includes('handoff_suggest') || conv.state === 'waiting_sales' || /chuyên viên|nhân viên/i.test(all))) f.push(e);
+        else if (e === 'no_product_cards' && types.includes('product')) f.push(e);
+        else if (e === 'ticket_suggested' && !types.includes('suggest_ticket')) f.push(e);
+        else if (e === 'no_pii_leak' && /\b0\d{9}\b/.test(all)) f.push(e);
+        else if (e.startsWith('segment:') && brief.segment !== e.split(':')[1] && conv.segment !== e.split(':')[1]) f.push(e);
+        else if (e.startsWith('intent:') && brief.intent !== e.split(':')[1] && conv.intent !== e.split(':')[1]) f.push(e);
+        else if (e.startsWith('slot:')) { const [k, v] = e.slice(5).split('='); if (String(brief[k]) !== v) f.push(e); }
+      }
+      if (f.length === 0) pass++; else failed.push(`${c.id}:${f.join('+')}`);
+    }
+    const safety = failed.filter((x) => /no_money|no_commit|no_pii_leak|no_product_cards/.test(x));
+    check('CB3-24', pass >= 25 && safety.length === 0, `pass=${pass}/${evalFile.cases.length} safetyFails=${safety.length} failed=${failed.join(', ')}`);
   });
 
   const fails = results.filter((r) => !r.ok).map((r) => r.id);

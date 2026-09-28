@@ -54,6 +54,7 @@ Bot luôn lùi về kịch bản khi lỗi, đúng thiết kế: khách không t
 **Ảnh hưởng vận hành (báo Chủ dự án):** nếu key trên prod cũng là free tier thì chatbot và trợ lý nội bộ **dùng chung khoảng 20 request/ngày cho mỗi model**, tức chỉ khoảng 10 lượt chat khách/ngày, sau đó bot chạy bằng kịch bản. Muốn chạy thật cần bật billing (gói trả theo lượng) cho project của key prod. Đây là quyết định chi phí của Chủ dự án.
 
 ## Vòng 2 cần nộp
+- **P3.10 kịch bản trước, AI sau** (Chủ dự án chốt 2026-09-28): làm theo `P3_Instruction.md` P3.10. `accept-p3.js` đã thêm CB3-21..24, trong đó CB3-24 yêu cầu chế độ chỉ kịch bản đạt ≥ 25/31 case và 0 lỗi an toàn. Các bài CB3-05..18 tự chạy ở `llm_first`.
 - Sửa M1.
 - Trên DB vừa reset, chạy `accept-p3.js` (18 bài) ở `NODE_ENV=production` và `development`.
 - Chạy thêm `accept-p2.js` với `CHATBOT_LLM_PROVIDER=scripted` ở dev mode (CB2-14 được phép lệch vì email giả lập).

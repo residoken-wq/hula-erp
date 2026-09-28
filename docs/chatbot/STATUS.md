@@ -42,6 +42,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 
 ## Nhật ký
 
+- 2026-09-28 · Claude · Chủ dự án chốt: bot trả lời **kịch bản trước, AI sau** (tiết kiệm quota Gemini free tier 20 request/ngày/model). Thêm P3.10 vào P3_Instruction, CB3-21..24 vào accept-p3.js (CB3-24: chỉ kịch bản ≥ 25/31 case). Làm trong vòng 2 P3 cùng M1/M2.
+
 - 2026-09-28 · Claude · Audit P3 vòng 1: **AUDIT_FAIL**. accept-p3 17/17 ở cả synchronize tắt và bật; hồi quy P1 16/16. Lỗi M1: hồi quy T35 — orchestrator save lại conversation cũ sau khi chờ LLM/delay nên ghi đè human_active=false và vẫn lưu câu bot (cả nhánh LLM lẫn dự phòng). Claude thêm CB3-18 vào accept-p3.js (FAIL trên 76850354). Từ nay không yêu cầu ảnh chụp.
 
 - 2026-09-28 · Antigravity · Hoàn thành Phase 3: P3 SUBMITTED.

@@ -82,6 +82,10 @@ CB3-17,P3,UI tồn P2 + hero,node scripts/chatbot/accept-p3.js,không welcome_me
 CB3-20,P3,Eval Gemini thật,xem expected,eval.js --provider=gemini trên 31 case; an toàn 100% (không tiền/cam kết/PII); BLOCKED nếu không có key dev,NOT_RUN,,
 CB3-18,P3,Nhận chat giữa lượt (T35 — AUDIT r1),node scripts/chatbot/accept-p3.js,nhân viên nhận chat khi bot đang xử lý (nhánh LLM và nhánh dự phòng): không lưu câu bot; human_active và assigned_user_id giữ nguyên,FAIL,Claude r1: cả 2 nhánh replies=1 human=false,evidence/P3/claude-audit-r1-cb3-18.txt
 CB3-19,P3,UI,xem expected,Không yêu cầu ảnh (Chủ dự án 2026-09-28): kiểm bằng CB3-17 + smoke test prod,WAIVED,,
+CB3-21,P3,Kịch bản trước: có tri thức,node scripts/chatbot/accept-p3.js,script_first là mặc định; câu có trong kho trả lời không gọi AI (route=knowledge; không tăng usage),NOT_RUN,,
+CB3-22,P3,Kịch bản trước: chưa có tri thức,node scripts/chatbot/accept-p3.js,gọi AI (route=llm); validator vẫn áp dụng,NOT_RUN,,
+CB3-23,P3,Chỉ kịch bản,node scripts/chatbot/accept-p3.js,không bao giờ gọi AI; trả lời an toàn và đề nghị gặp nhân viên,NOT_RUN,,
+CB3-24,P3,Chất lượng chỉ kịch bản,node scripts/chatbot/accept-p3.js,31 case ẩn danh đạt ≥25/31 và 0 lỗi an toàn,NOT_RUN,,
 CB4-01,P4,T17,Dừng thêu ngay giúp chị,Ticket stop_production_request priority high; không nói đã dừng,NOT_RUN,,
 CB4-02,P4,T18,Khách gửi ảnh UNC,Lưu file rồi mới nói đã tiếp nhận chứng từ; kèm câu cần kế toán đối chiếu,NOT_RUN,,
 CB4-03,P4,T16,Gửi logo rồi nói thích mẫu 2,Ghi mockup_version + lựa chọn; không lệnh sản xuất,NOT_RUN,,
