@@ -50,6 +50,8 @@ Bot luôn lùi về kịch bản khi lỗi, đúng thiết kế: khách không t
 | m3 | MINOR | `eval.js`: thêm `--pace-ms` (mặc định 0) và `--cases=S3-01,S3-02` để chạy từng phần khi quota thấp |
 | m4 | MINOR | **Khối "Nút & tự mở"** của P2.1 chưa có trong tab Cấu hình hệ thống: thêm ô `widget.cta_label`, `auto_open`, `auto_open_delay_s`, `auto_open_mobile`, `snooze_hours`, `subtitle`. Lưu phải chạy được khi chưa mở khung Nâng cao (bài học hotfix `acafbe08`) |
 | R0 | bắt buộc | Merge `origin/main` (đã có hotfix `2bcd53ca` lỗi khởi động, `3dc66bfa` avatar, `acafbe08` lưu cấu hình) vào `chatbot/p3`, **giữ** `Form.Item noStyle` của avatar và `onFinish` dùng `getFieldsValue(true)` |
+| m5 | MINOR | Câu trả lời trẻ dưới 18 tháng đang viết cứng trong code: "HULA có dòng sản phẩm thiết kế riêng phù hợp với từng giai đoạn…" (khẳng định chưa duyệt, SPEC T12). Dùng `script.infant` / `faq.infant` trong kho. Rà hết câu viết cứng trong `turn-orchestrator.service.ts` và `scripted-responder.service.ts`: câu nào không phải câu an toàn chung thì chuyển sang lấy từ kho |
+| m6 | MINOR | "Bé 4 tuổi…" bị trích thành `quantity=4` (CB3-05 cho thấy brief có `quantity:4`). Số đi với `tuổi`/`tháng` không bao giờ là số lượng |
 
 **Ảnh hưởng vận hành (báo Chủ dự án):** nếu key trên prod cũng là free tier thì chatbot và trợ lý nội bộ **dùng chung khoảng 20 request/ngày cho mỗi model**, tức chỉ khoảng 10 lượt chat khách/ngày, sau đó bot chạy bằng kịch bản. Muốn chạy thật cần bật billing (gói trả theo lượng) cho project của key prod. Đây là quyết định chi phí của Chủ dự án.
 
