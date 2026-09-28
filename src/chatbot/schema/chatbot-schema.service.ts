@@ -9,7 +9,11 @@ export class ChatbotSchemaService implements OnModuleInit {
   constructor(private readonly dataSource: DataSource) {}
 
   async onModuleInit() {
-    await this.initSchema();
+    try {
+      await this.initSchema();
+    } catch (err: any) {
+      this.logger.error(`Chatbot schema init failed: ${err?.message}`);
+    }
   }
 
   async initSchema(): Promise<void> {
