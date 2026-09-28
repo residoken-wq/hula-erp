@@ -27,9 +27,9 @@ const BASE = baseIdx >= 0 ? args[baseIdx + 1] : 'origin/main';
 // Lỗi typecheck có sẵn từ trước, được phép ở chế độ --full (không phải do nhánh hiện tại gây ra).
 // Chỉ thêm vào đây khi Claude/Chủ dự án đồng ý; mục tiêu là danh sách rỗng.
 const KNOWN_TS_ERRORS = {
-  // Frontend: 46 lỗi có sẵn trên main 2026-09-28 (28 ở UnifiedDesignWorkflow.tsx; 1 ở pages/chatbot/ChatbotInboxPage.tsx — P3 sửa).
+  // Frontend: 45 lỗi có sẵn trên main 2026-09-28 (28 ở UnifiedDesignWorkflow.tsx; lỗi ở pages/chatbot/ChatbotInboxPage.tsx đã sửa).
   // Trước đây QA dùng vite build (không kiểm type) nên không thấy. Giảm số này mỗi khi sửa được lỗi.
-  'Frontend (Admin)': 46,
+  'Frontend (Admin)': 45,
 };
 
 const WS = [
