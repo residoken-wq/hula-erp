@@ -21,6 +21,7 @@ export default function ChatTeaser() {
 
   return (
     <div
+      id="chat-teaser"
       className="fixed bottom-28 right-4 z-[89] w-[calc(100vw-32px)] sm:w-80 max-h-[35vh] bg-white rounded-2xl shadow-2xl border border-primary-200 overflow-hidden flex flex-col animate-slide-up"
       style={{ boxShadow: '0 10px 30px rgba(35, 167, 211, 0.25)' }}
     >

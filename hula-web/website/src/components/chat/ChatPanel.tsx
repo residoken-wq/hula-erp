@@ -144,6 +144,7 @@ export default function ChatPanel() {
 
   return (
     <div
+      id="chat-panel"
       ref={panelRef}
       className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 z-[90] w-full sm:w-[400px] sm:max-w-[calc(100vw-32px)] h-[100dvh] sm:h-[620px] sm:max-h-[calc(100vh-48px)] bg-white sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-100"
       style={{ boxShadow: '0 12px 40px rgba(0, 0, 0, 0.16)' }}
