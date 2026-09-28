@@ -1,0 +1,24 @@
+=== accept-p3 2026-09-28T14:26:33.544Z base=http://localhost:4999/api db=hula_db
+PASS  CB3-01  first={"inserted":70,"skipped":0,"conflicts_inserted":1} second={"inserted":0,"skipped":70,"conflicts_inserted":0} rows=70/70 published=0 D17=open review_note_saved=1
+PASS  CB3-02  anon=401 sales=403 published=400/IMPORT_STATUS_NOT_ALLOWED unknownField=400 badTopic=400 badRows=0 louImport=200/0
+PASS  CB3-03  price=409/CONFLICT_LOCKED blanket=409 D17=true leadtime=409 safePublish=200,200,200,200,200,200,200,200,200,200,200
+PASS  CB3-04  answer="Dạ anh/chị gửi file logo gốc (vector hoặc PNG) qua email sales-test@example.com hoặc gửi trong khung chat này khi có chứ"
+PASS  CB3-05  brief={"items":[],"intent":"product_advice","surface":"giường lưới","age_years":4} reply="Dạ nệm chần gòn giặt được bằng máy giặt; giặt xong nên lấy ra phơi ngay ạ. Dạ trường mình dự kiến đặ" meta={"model":"fake-model","route":"llm","provider":"fake","kb_version":11,"latency_ms":{"tools":2,"compose":1,"understand":1},"input_preview":"Bé 4 tuổi nằm giường lưới muốn dễ giặt","prompt_version":"v1"
+PASS  CB3-06  reply="Dạ độ dày tùy dòng nệm (chần gòn hay foam) và loại vải, nên em chưa báo một con số chung được ạ. Anh/chị cho em biết mình quan tâm nệm chần "
+PASS  CB3-07  reply="Dạ giá phụ thuộc dòng sản phẩm (túi ngủ hay bộ rời), chất liệu (Cotton Cara hay Satin), các món trong bộ (nệm, gối, chăn, túi), số lượng và phần in/thêu logo. A"
+PASS  CB3-08  input_preview="sđt em [SĐT], email em là [EMAIL], tư vấn giúp em nệm cho bé"
+PASS  CB3-09  reply="Dạ giá phụ thuộc dòng sản phẩm (túi ngủ hay bộ rời), chất liệu (Cotton Cara hay Satin), các món trong bộ (nệm, gối, chăn" validator={"rules":["commitment_phrase","url_detected","too_many_questions"],"blocked":true}
+PASS  CB3-10  payloads=["suggest_ticket"] reply="Dạ em rất tiếc về sự bất tiện này ạ. Em đã ghi nhận phản ánh của anh/chị để nhân viên HULA kiểm tra "
+PASS  CB3-11  payloads=["handoff_suggest"] reply="Dạ với độ tuổi này, em sẽ chuyển nhu cầu để chuyên viên kiểm tra sản phẩm phù hợp. Anh/chị cho em bi"
+PASS  CB3-12  gap=2|open listed=true salesList=403
+PASS  CB3-13  ms=2047 fallback=timeout
+PASS  CB3-14  usage 10→10 fallback=budget
+PASS  CB3-15  take=201 replies=0 usage 11→11
+PASS  CB3-16  key_source=none model=fake-model defaultBudget=600
+PASS  CB3-17  {"noWelcome":true,"noDatChuan":true,"usesGreeting":true,"usesSubtitle":true,"headerNowrap":true,"heroOpensChat":true,"cmsImport":true,"gapsPage":true,"matrix":true,"subtitle":true}
+PASS  CB3-18  [{"label":"llm","take":201,"replies":0,"aiAfter":"0","human":"true|1"},{"label":"fallback-budget","take":201,"replies":0,"aiAfter":"0","human":"true|1"}]
+PASS  CB3-21  setMode=200 defaultMode=script_first usage 12→12 route=knowledge reply="Dạ độ dày tùy dòng nệm (chần gòn hay foam) và loại vải, nên em chưa báo một con "
+PASS  CB3-22  usage 12→13 route=llm
+PASS  CB3-23  setMode=200 usage 13→13 route=fallback reply="Dạ em là Cừu Hula, trợ lý AI của HULA. Câu hỏi này em chưa có thông tin chính xá"
+PASS  CB3-24  pass=26/31 safetyFails=0 failed=S3-01:intent:price, S3-09:intent:reorder, S3-18:ticket_suggested, S3-22:intent:sample, S3-31:intent:invoice
+=== RESULT 22/22 PASS

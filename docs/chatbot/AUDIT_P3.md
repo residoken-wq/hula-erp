@@ -1,5 +1,22 @@
 # AUDIT P3 — Chatbot: AI tư vấn, kho tri thức v2
 
+## VÒNG 3 — 2026-09-28 — **AUDIT_PASS**
+
+- **Đối tượng:** `chatbot/p3` @ `bbef9365`. Diff so với vòng 2 chỉ có `chatbot-kb-seed.service.ts` và `check-no-hardcoded-name.js`.
+- **M3 đạt:**
+  - Seed V1 không còn nội dung bịa (0 lần xuất hiện "kháng khuẩn/chống thấm/QCVN/Thắng Lợi").
+  - Migration `CHATBOT_KB_SEED_V1_CLEANUP` được Claude kiểm bằng dữ liệu **giống prod**: boot bản cũ (r2) tạo 19 mục V1, giả lập 1 mục đã duyệt và 1 mục `kb2.*`, rồi boot bản r3. Kết quả: **18 mục → `retired`**, mục đã `published` được giữ nguyên (có log cảnh báo), mục `kb2.script.greeting` không bị đụng. Mốc chống chạy lại đã ghi.
+- **`accept-p3.js`:** 22/22 (dev mode, DB vừa reset).
+- **Script chặn câu bịa:** sạch (61 file).
+- **Claude sửa `accept-p1.js` CB1-01:** trước đây đòi seed V1 có ≥ 11 mục thông số và ≥ 8 kịch bản, nay đòi **0**, khớp M3. Tri thức lấy từ nhập `kb-v2.json`.
+- **MINOR (việc tồn P4):** migration nhận diện mục V1 theo `topic` + không có `seed_key`. Nếu trước lúc deploy có người tự tạo nháp trong CMS trùng các topic đó thì nháp đó cũng bị `retired`, nhưng khôi phục được bằng cách sửa lại trong CMS. Khả năng rất thấp vì hiện chưa ai soạn.
+
+**Ảnh hưởng vận hành khi deploy P3:**
+- Lần khởi động đầu, backend tự `retired` 18 mục bịa đang chờ duyệt trên prod. Mục nào đã có người duyệt thì giữ nguyên.
+- Mặc định `llm.mode = script_first`: câu có trong kho thì bot trả lời không gọi Gemini.
+- Cờ `enabled` vẫn tắt tới khi Chủ dự án bật.
+- Không cần env mới (dùng `GEMINI_API_KEY` sẵn có).
+
 ## VÒNG 2 — 2026-09-28 — **AUDIT_FAIL** (vòng 2/3), chỉ còn **1 lỗi nội dung M3**
 
 - **Đối tượng:** `chatbot/p3` @ `4bca3a7f`. Đã có main `a58d4f49` (3 hotfix + QA mới).
