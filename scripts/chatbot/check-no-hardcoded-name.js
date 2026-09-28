@@ -59,10 +59,35 @@ for (const target of scanTargets) {
   }
 }
 
+// Check seed files for forbidden fabricated claims (M3):
+// kháng khuẩn|chống thấm|chứng nhận|QCVN|đạt chuẩn|an toàn tuyệt đối
+const seedScanTargets = [
+  path.join(projectRoot, 'src/chatbot/seed'),
+  path.join(projectRoot, 'docs/chatbot/knowledge/kb-v2.json')
+];
+const forbiddenSeedPattern = /(kháng khuẩn|chống thấm|chứng nhận|QCVN|đạt chuẩn|an toàn tuyệt đối)/i;
+
+for (const target of seedScanTargets) {
+  const files = getFiles(target);
+  for (const file of files) {
+    const relPath = path.relative(projectRoot, file).replace(/\\/g, '/');
+    const content = fs.readFileSync(file, 'utf8');
+    const lines = content.split('\n');
+    lines.forEach((line, idx) => {
+      const match = line.match(forbiddenSeedPattern);
+      if (match) {
+        console.error(`[FORBIDDEN SEED CLAIM FOUND] in ${relPath}:${idx + 1} - Matched: "${match[0]}"`);
+        console.error(`  Line: ${line.trim()}`);
+        hasError = true;
+      }
+    });
+  }
+}
+
 if (hasError) {
-  console.error('\n❌ check-no-hardcoded-name: Found hardcoded assistant name outside chatbot.defaults.ts!');
+  console.error('\n❌ check-no-hardcoded-name: Found violations (hardcoded name or forbidden seed claim)!');
   process.exit(1);
 } else {
-  console.log(`\n✅ check-no-hardcoded-name: Scanned ${scannedFiles} files. No hardcoded name outside defaults.`);
+  console.log(`\n✅ check-no-hardcoded-name: Scanned ${scannedFiles} files. No hardcoded name outside defaults & no forbidden seed claims.`);
   process.exit(0);
 }

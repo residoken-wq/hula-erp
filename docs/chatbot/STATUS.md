@@ -7,9 +7,9 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
-| P1 | AUDIT_PASS (vòng 1) | `chatbot/p1` @ 0adfcf4 | Chủ dự án: merge + deploy khi muốn | 2026-09-27 Claude |
-| P2 | AUDIT_PASS (vòng 2) | `chatbot/p2` @ cb5a9be (gồm P1) | Chủ dự án: merge + deploy khi muốn | 2026-09-28 Claude |
-| P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
+| P1 | MERGED (main @ eaa07f2) | `chatbot/p1` → `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
+| P2 | MERGED (main @ eaa07f2) | `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
+| P3 | AUDIT_PASS (vòng 3) | `chatbot/p3` @ bbef9365 | Chủ dự án: merge + deploy khi muốn | 2026-09-28 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
 
@@ -19,7 +19,7 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 
 | ID | Trạng thái | Kết quả |
 |---|---|---|
-| Q-01 | OPEN | |
+| Q-01 | CHỐT 2026-09-28 | Dùng chung key Google của trợ lý nội bộ (`GEMINI_API_KEY`), `CHATBOT_LLM_API_KEY` ghi đè nếu có. Budget mặc định 600 lượt gọi/ngày |
 | Q-02 | CHỐT 2026-09-26 | Màn quản trị tri thức, facts, giá, conflict đặt trong **CMS** (`hula-web/cms`, menu "Trợ lý AI") |
 | Q-03 | CHỐT 2026-09-26 | Nút "Tư vấn ngay" trên header mở chatbot (animation), tự mở sau 5 giây (mobile dạng thẻ nhỏ, chỉnh được trong Cấu hình hệ thống). Hộp thư/yêu cầu ở ERP |
 | Q-04 | CHỐT 2026-09-26 | Route quản trị chatbot chặn thật ngay (cặp `@RequirePermission`+`@Perm`, `JwtAuthGuard`+`PermissionsGuard`) |
@@ -41,6 +41,39 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Claude · Audit P3 vòng 3: **AUDIT_PASS**. M3 đạt: seed V1 hết nội dung bịa; migration cleanup test bằng dữ liệu giống prod (18 retired, mục đã duyệt giữ nguyên, kb2 không bị đụng); accept-p3 22/22. Sửa accept-p1 CB1-01 cho khớp.
+
+- 2026-09-28 · Antigravity · Nộp nghiệm thu P3 vòng 3: **P3 SUBMITTED (vòng 3)**.
+  - Sửa triệt để M3: loại bỏ toàn bộ 11 mục `product.spec.*` và 8 `script.*` bịa khỏi `CHATBOT_KB_SEED_V1` (seed V1 chỉ còn sources + 16 conflict).
+  - Bổ sung migration idempotent `CHATBOT_KB_SEED_V1_CLEANUP`: tự động chuyển sang `retired` các mục V1 cũ đang ở `draft` / `needs_review`; bỏ qua và giữ nguyên các mục `published` kèm cảnh báo log.
+  - Bổ sung kiểm tra trong `scripts/chatbot/check-no-hardcoded-name.js` chặn mọi file seed chứa các từ ngữ quảng cáo bịa (`kháng khuẩn|chống thấm|chứng nhận|QCVN|đạt chuẩn|an toàn tuyệt đối`).
+  - Nghiệm thu tự động độc lập trên DB PostgreSQL vừa reset: `accept-p3.js` 22/22 PASS ở cả `NODE_ENV=development` và `NODE_ENV=production`; `npm run qa` 100% green (49s).
+
+- 2026-09-28 · Claude · Audit P3 vòng 2: code đạt hết (accept-p3 22/22 dev mode, CB3-18 đạt, CB3-24 26/31, qa PASS 54s). **AUDIT_FAIL** vì M3: seed tri thức V1 (có từ P1, đã chạy trên prod) chứa 11 thông số bịa (Thắng Lợi, QCVN, kháng khuẩn, chống thấm…) và kịch bản hứa hẹn. Chủ dự án không duyệt các mục này trong CMS cho tới khi sửa.
+
+- 2026-09-28 · Antigravity · Nộp nghiệm thu P3 vòng 2: **P3 SUBMITTED (vòng 2)**.
+  - Sửa dứt điểm M1: `commitTurn()` dùng transaction + `SELECT ... FOR UPDATE` (`pessimistic_write`), drop reply và bảo toàn trạng thái khi nhân viên tiếp quản giữa lượt (CB3-18 PASS ở cả 2 nhánh, CB2-12 PASS).
+  - Triển khai M2: chọn model Gemini có thứ tự ưu tiên (env → config admin → flash cao nhất không lite/exp/preview), retry khi 404 tối đa 3 lần. `GET status` trả `llm_model` thật.
+  - Triển khai P3.10: `RuleUnderstanderService` nhận diện ý định & trích xuất slot bằng quy tắc; hỗ trợ `script_first` (mặc định), `llm_first`, `script_only`; gắn `llm_meta.route` bắt buộc; CB3-24 đạt 26/31 (≥ 25/31) và 0 lỗi an toàn.
+  - Sửa m2 (circuit breaker 429/503), m3 (eval `--pace-ms` & `--cases`), m4 (tab Cấu hình thêm khối "Nút & tự mở", `llm.mode`, `llm.model`), m5 (câu trả lời trẻ sơ sinh lấy từ KB), m6 (loại trừ số đi kèm tuổi/tháng khỏi quantity).
+  - Sửa lỗi type frontend ở `ChatbotInboxPage.tsx`, giảm `KNOWN_TS_ERRORS['Frontend (Admin)']` xuống 45.
+  - Nghiệm thu tự động trên DB PostgreSQL vừa reset sạch: `accept-p3.js` 22/22 PASS ở cả production và development; `accept-p2.js` scripted đạt 15/16 PASS (CB2-12 PASS). `npm run qa` 100% green (54s).
+
+- 2026-09-28 · Claude · Chủ dự án chốt: bot trả lời **kịch bản trước, AI sau** (tiết kiệm quota Gemini free tier 20 request/ngày/model). Thêm P3.10 vào P3_Instruction, CB3-21..24 vào accept-p3.js (CB3-24: chỉ kịch bản ≥ 25/31 case). Làm trong vòng 2 P3 cùng M1/M2.
+
+- 2026-09-28 · Claude · Audit P3 vòng 1: **AUDIT_FAIL**. accept-p3 17/17 ở cả synchronize tắt và bật; hồi quy P1 16/16. Lỗi M1: hồi quy T35 — orchestrator save lại conversation cũ sau khi chờ LLM/delay nên ghi đè human_active=false và vẫn lưu câu bot (cả nhánh LLM lẫn dự phòng). Claude thêm CB3-18 vào accept-p3.js (FAIL trên 76850354). Từ nay không yêu cầu ảnh chụp.
+
+- 2026-09-28 · Antigravity · Hoàn thành Phase 3: P3 SUBMITTED.
+  - Chạy `scripts/chatbot/accept-p3.js` đạt 17/17 PASS trên cả môi trường `NODE_ENV=production` và `NODE_ENV=development` (DB vừa reset).
+  - Đã merge đầy đủ 2 hotfix từ `origin/main`: fix crash khởi động (TypeORM synchronize, onModuleInit an toàn) và fix avatar upload (giữ Form.Item noStyle).
+  - QA suite (`npm run qa`) đạt 100% green (backend test, frontend build, cms tsc/lint, website tsc/lint, rbac checker, no-secrets, no-hardcoded-name).
+  - Triển khai eval runner 31 ca kiểm thử, lưu kết quả tại `docs/chatbot/evidence/P3/`.
+  - Viết `docs/chatbot/REPORT_P3.md` chi tiết.
+
+- 2026-09-28 · Antigravity · Bắt đầu P3 trên nhánh `chatbot/p3`. Triển khai theo P3_Instruction: sửa UI tồn (lời chào config, nút hero avatar cừu, phụ đề panel), dùng chung GEMINI_API_KEY (Q-01), import tri thức JSON (CB-120), template placeholder, retrieveForTurn, TurnOrchestrator pipeline (Understand v1, business rules, Compose v1, ReplyValidator, FakeProvider test hooks), quản lý khoảng trống kiến thức (CB-121, CB-122), CMS pages, chạy nghiệm thu accept-p3.js 17/17 và thu thập 4 ảnh bằng chứng. P3 IN_PROGRESS.
+
+- 2026-09-28 · Claude · Theo lệnh Chủ dự án: merge --no-ff chatbot/p2 (gồm P1) vào main (eaa07f2), push. Chốt Q-01 (dùng chung GEMINI_API_KEY). Nút hero thay bằng avatar chatbot (P3.0). Phân tích S1/S2/S3 → knowledge/kb-v2.json (52 tri thức + 18 kịch bản, D17 mới) + eval-cases.json (31 case ẩn danh). Mở P3 với accept-p3.js (17 kiểm, gồm kiểm file UI).
 
 - 2026-09-28 · Claude · Audit P2 vòng 2: **AUDIT_PASS**. accept-p2 16/16 (Claude chạy lại), đủ UI ERP + widget, 6 ảnh, câu chữ bot sạch. MINOR m3–m5 (lời chào widget không đọc config, nút header xuống dòng, phụ đề cứng) chuyển sang P3.
 

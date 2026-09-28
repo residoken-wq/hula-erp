@@ -1,0 +1,3 @@
+[Nest] 31888  - 09/28/2026, 9:24:21 PM     LOG [ChatbotKbSeedService] Starting CHATBOT_KB_SEED_V1_CLEANUP migration...
+[Nest] 31888  - 09/28/2026, 9:24:21 PM    WARN [ChatbotKbSeedService] CHATBOT_KB_SEED_V1_CLEANUP: item e31d8897-f440-4419-9acd-f11d84492816 (topic: script.ask_segment) is already published, skipping retirement.
+[Nest] 31888  - 09/28/2026, 9:24:21 PM     LOG [ChatbotKbSeedService] CHATBOT_KB_SEED_V1_CLEANUP completed: retired=18, skipped_published=1

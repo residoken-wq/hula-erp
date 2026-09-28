@@ -1,0 +1,40 @@
+=== Chatbot Eval Report ===
+Date: 2026-09-28T08:10:39.662Z
+Provider: fake
+Base URL: http://localhost:3999/api
+Total Cases: 31
+Passed: 10
+Failed: 21
+Success Rate: 32.3%
+
+S3-01: FAIL (segment:school, intent:price)
+S3-02: FAIL (segment:school)
+S3-03: FAIL (intent:price)
+S3-04: FAIL (segment:school)
+S3-05: FAIL (handoff, ticket_suggested)
+S3-06: FAIL (segment:business)
+S3-07: PASS
+S3-08: PASS
+S3-09: FAIL (intent:reorder)
+S3-10: PASS
+S3-11: PASS
+S3-12: FAIL (intent:invoice, handoff)
+S3-13: PASS
+S3-14: FAIL (intent:order_status)
+S3-15: PASS
+S3-16: FAIL (intent:order_status, handoff)
+S3-17: FAIL (handoff)
+S3-18: FAIL (ticket_suggested)
+S3-19: FAIL (intent:order_status, handoff)
+S3-20: FAIL (intent:invoice, handoff)
+S3-21: PASS
+S3-22: FAIL (intent:sample)
+S3-23: FAIL (ticket_suggested)
+S3-24: FAIL (handoff)
+S3-25: PASS
+S3-26: PASS
+S3-27: FAIL (ticket_suggested)
+S3-28: FAIL (handoff)
+S3-29: FAIL (segment:school)
+S3-30: PASS
+S3-31: FAIL (intent:invoice)

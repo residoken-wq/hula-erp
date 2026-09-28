@@ -1,0 +1,19 @@
+=== accept-p3 2026-09-28T10:04:22.528Z base=http://localhost:4999/api db=hula_db
+PASS  CB3-01  first={"inserted":70,"skipped":0,"conflicts_inserted":1} second={"inserted":0,"skipped":70,"conflicts_inserted":0} rows=70/70 published=0 D17=open review_note_saved=1
+PASS  CB3-02  anon=401 sales=403 published=400/IMPORT_STATUS_NOT_ALLOWED unknownField=400 badTopic=400 badRows=0 louImport=200/0
+PASS  CB3-03  price=409/CONFLICT_LOCKED blanket=409 D17=true leadtime=409 safePublish=200,200,200,200,200,200,200,200,200,200,200
+PASS  CB3-04  answer="Dạ anh/chị gửi file logo gốc (vector hoặc PNG) qua email sales-test@example.com hoặc gửi trong khung chat này khi có chứ"
+PASS  CB3-05  brief={"surface":"giường lưới","quantity":4,"age_years":4} reply="Dạ nệm chần gòn giặt được bằng máy giặt; giặt xong nên lấy ra phơi ngay ạ. Dạ mình ở khu vực nào để " meta={"model":"fake-model","provider":"fake","kb_version":11,"latency_ms":{"tools":4,"compose":0,"understand":1},"input_preview":"Bé 4 tuổi nằm giường lưới muốn dễ giặt","prompt_version":"v1"}
+PASS  CB3-06  reply="Dạ độ dày tùy dòng nệm (chần gòn hay foam) và loại vải, nên em chưa báo một con số chung được ạ. Anh/chị cho em biết mình quan tâm nệm chần "
+PASS  CB3-07  reply="Dạ giá phụ thuộc dòng sản phẩm (túi ngủ hay bộ rời), chất liệu (Cotton Cara hay Satin), các món trong bộ (nệm, gối, chăn, túi), số lượng và phần in/thêu logo. A"
+PASS  CB3-08  input_preview="sđt em [SĐT], email em là [EMAIL], tư vấn giúp em nệm cho bé"
+PASS  CB3-09  reply="Dạ giá phụ thuộc dòng sản phẩm (túi ngủ hay bộ rời), chất liệu (Cotton Cara hay Satin), các món trong bộ (nệm, gối, chăn" validator={"rules":["commitment_phrase","url_detected","too_many_questions"],"blocked":true}
+PASS  CB3-10  payloads=["suggest_ticket"] reply="Dạ em rất tiếc về sự bất tiện này ạ. Em đã ghi nhận phản ánh của anh/chị để nhân viên HULA kiểm tra "
+PASS  CB3-11  payloads=["handoff_suggest"] reply="Dạ đối với các bé dưới 18 tháng tuổi, HULA có dòng sản phẩm thiết kế riêng phù hợp với từng giai đoạ"
+PASS  CB3-12  gap=2|open listed=true salesList=403
+PASS  CB3-13  ms=2045 fallback=timeout
+PASS  CB3-14  usage 10→10 fallback=budget
+PASS  CB3-15  take=201 replies=0 usage 11→11
+PASS  CB3-16  key_source=none model=models/gemini-1.5-flash defaultBudget=600
+PASS  CB3-17  {"noWelcome":true,"noDatChuan":true,"usesGreeting":true,"usesSubtitle":true,"headerNowrap":true,"heroOpensChat":true,"cmsImport":true,"gapsPage":true,"matrix":true,"subtitle":true}
+=== RESULT 17/17 PASS

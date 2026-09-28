@@ -166,6 +166,14 @@ export const chatbotKbApi = {
     preview: (tool: string, args: any, ignore_feature_flag: boolean = true) =>
         api.post('/chatbot/admin/kb/preview', { tool, args, ignore_feature_flag }),
     getSources: () => api.get('/chatbot/admin/kb/sources'),
+    importKb: (data: any) => api.post('/chatbot/admin/kb/import', data),
+    getGaps: (params?: any) => api.get('/chatbot/admin/kb/gaps', { params }),
+    updateGap: (id: string, data: { status: string }) => api.put(`/chatbot/admin/kb/gaps/${id}`, data),
+};
+
+export const chatbotGapsApi = {
+    getGaps: (params?: any) => api.get('/chatbot/admin/kb/gaps', { params }),
+    updateGap: (id: string, data: { status: string }) => api.put(`/chatbot/admin/kb/gaps/${id}`, data),
 };
 
 export default api;

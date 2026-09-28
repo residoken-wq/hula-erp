@@ -170,7 +170,7 @@ export default function ChatPanel() {
               </span>
             </div>
             <p className="text-[11px] text-white/80 line-clamp-1">
-              {conversation?.human_active ? 'Nhân viên đang hỗ trợ' : 'Tư vấn nệm chăn ga mầm non'}
+              {conversation?.human_active ? 'Nhân viên đang hỗ trợ' : (config?.widget?.subtitle || 'Tư vấn nệm mầm non')}
             </p>
           </div>
         </div>
@@ -212,10 +212,11 @@ export default function ChatPanel() {
             </div>
             <div>
               <h3 className="font-bold text-gray-800 text-base">{botName}</h3>
-              <p className="text-xs text-gray-600 mt-1 max-w-xs mx-auto leading-relaxed">
-                {config?.welcome_message ||
-                  'Chào anh/chị! Em là trợ lý AI chuyên tư vấn chăn ga gối nệm mầm non đạt chuẩn cho trường và gia đình.'}
-              </p>
+              {config?.greeting && (
+                <p className="text-xs text-gray-600 mt-1 max-w-xs mx-auto leading-relaxed">
+                  {config.greeting}
+                </p>
+              )}
             </div>
 
             {/* 4 Start Options */}

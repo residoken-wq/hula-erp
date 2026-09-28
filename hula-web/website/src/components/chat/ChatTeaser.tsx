@@ -38,10 +38,19 @@ export default function ChatTeaser() {
               unoptimized
             />
           </div>
-          <span className="text-xs font-bold text-gray-800">{botName}</span>
-          <span className="text-[10px] bg-primary-100 text-primary-700 font-semibold px-1.5 py-0.5 rounded-full">
-            AI
-          </span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-gray-800">{botName}</span>
+              <span className="text-[10px] bg-primary-100 text-primary-700 font-semibold px-1.5 py-0.5 rounded-full">
+                AI
+              </span>
+            </div>
+            {config.widget?.subtitle && (
+              <span className="text-[10px] text-gray-500 leading-tight line-clamp-1">
+                {config.widget.subtitle}
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={closeTeaser}
@@ -54,12 +63,14 @@ export default function ChatTeaser() {
 
       {/* Body content */}
       <div className="p-3 flex-1 overflow-y-auto">
-        <p
-          onClick={openChat}
-          className="text-xs text-gray-700 leading-relaxed cursor-pointer hover:text-primary-600 mb-2 font-medium"
-        >
-          {config.welcome_message || `Dạ em chào anh/chị ạ! Em có thể hỗ trợ gì cho trường hoặc bé nhà mình hôm nay ạ?`}
-        </p>
+        {config.greeting && (
+          <p
+            onClick={openChat}
+            className="text-xs text-gray-700 leading-relaxed cursor-pointer hover:text-primary-600 mb-2 font-medium"
+          >
+            {config.greeting}
+          </p>
+        )}
 
         {/* 4 Quick Start Buttons */}
         <div className="grid grid-cols-2 gap-1.5">

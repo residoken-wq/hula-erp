@@ -80,7 +80,7 @@ const tomorrow = vn(new Date(Date.now() + 86400000));
     const seedKey = sql("select count(*) from system_configs where key='CHATBOT_KB_SEED_V1'");
     const src = await req('GET', `${KB}/sources`, { token: admin });
     const srcCodes = (src.b.items || []).map((x) => x.code);
-    check('CB1-01', c.s === 200 && j(codes) === j(want) && open === 16 && nConf === '16' && Number(spec) >= 11 && Number(scripts) >= 8 && seedKey === '1' && ['S1', 'S2', 'S3', 'S4', 'A1', 'SPEC'].every((s) => srcCodes.includes(s)),
+    check('CB1-01', c.s === 200 && j(codes) === j(want) && open === 16 && nConf === '16' && Number(spec) === 0 && Number(scripts) === 0 /* AUDIT_P3 M3 (2026-09-28): seed V1 = sources + conflicts only; knowledge comes from kb-v2.json import */ && seedKey === '1' && ['S1', 'S2', 'S3', 'S4', 'A1', 'SPEC'].every((s) => srcCodes.includes(s)),
       `conflicts=${codes.length} open=${open} spec_rows=${spec} scripts=${scripts} seedKey=${seedKey} sources=${srcCodes.join(',')}`);
   });
 

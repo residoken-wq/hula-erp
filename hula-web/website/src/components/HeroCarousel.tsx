@@ -5,6 +5,7 @@ import { resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 
 import Image from 'next/image';
+import { useChatWidget } from './chat/ChatWidgetContext';
 
 interface HeroSlide {
     url: string;
@@ -44,6 +45,10 @@ export default function HeroCarousel({
     heroButton2,
     heroMaskOpacity = 40, // Default to 40%
 }: HeroCarouselProps) {
+    const { openChat, config } = useChatWidget();
+    const isChatEnabled = config?.enabled ?? false;
+    const heroCtaLabel = heroButton2 || config?.widget?.cta_label || 'Tư Vấn Ngay';
+    const avatarUrl = config?.avatar_url || '/images/chatbot/cuu-hula-96.webp';
     const [currentIndex, setCurrentIndex] = useState(0);
 
     useEffect(() => {
@@ -115,12 +120,31 @@ export default function HeroCarousel({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                 </svg>
                             </Link>
-                            <Link
-                                href="/lien-he"
-                                className="inline-flex items-center px-7 py-3.5 border-2 border-white text-white font-semibold rounded-pill hover:bg-primary-500 hover:border-primary-500 hover:text-white transition-all"
-                            >
-                                {heroButton2 || 'Tư Vấn Ngay'}
-                            </Link>
+                            {isChatEnabled ? (
+                                <button
+                                    type="button"
+                                    onClick={openChat}
+                                    className="inline-flex items-center gap-2.5 px-6 py-3 border-2 border-white text-white font-semibold rounded-pill hover:bg-primary-500 hover:border-primary-500 hover:text-white transition-all active:scale-95 animate-pulse motion-reduce:animate-none"
+                                >
+                                    <div className="relative w-7 h-7 rounded-full overflow-hidden bg-white/20 border border-white/50 shrink-0">
+                                        <Image
+                                            src={avatarUrl}
+                                            alt={config?.short_name || 'Trợ lý'}
+                                            width={28}
+                                            height={28}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <span>{heroCtaLabel}</span>
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/lien-he"
+                                    className="inline-flex items-center px-7 py-3.5 border-2 border-white text-white font-semibold rounded-pill hover:bg-primary-500 hover:border-primary-500 hover:text-white transition-all"
+                                >
+                                    {heroButton2 || 'Tư Vấn Ngay'}
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </div>
