@@ -9,7 +9,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | MERGED (main @ eaa07f2) | `chatbot/p1` → `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
 | P2 | MERGED (main @ eaa07f2) | `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
-| P3 | AUDIT_FAIL (vòng 1/3) | `chatbot/p3` @ 76850354 | Sửa M1 (T35: nhân viên nhận chat bị huỷ ngược bởi save bản ghi cũ) trong AUDIT_P3.md; xanh CB3-18 + CB2-12 (scripted) ở 2 chế độ | 2026-09-28 Claude |
+| P3 | SUBMITTED (vòng 2) | `chatbot/p3` | Giải quyết 100% AUDIT_P3 vòng 1: M1 (FOR UPDATE), M2 (Gemini ranking + 404 retry), P3.10 (script_first), m2-m6; accept-p3 22/22 PASS; accept-p2 scripted 15/16 PASS (CB2-12 PASS); QA pass | 2026-09-28 Antigravity |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
 
@@ -41,6 +41,14 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Antigravity · Nộp nghiệm thu P3 vòng 2: **P3 SUBMITTED (vòng 2)**.
+  - Sửa dứt điểm M1: `commitTurn()` dùng transaction + `SELECT ... FOR UPDATE` (`pessimistic_write`), drop reply và bảo toàn trạng thái khi nhân viên tiếp quản giữa lượt (CB3-18 PASS ở cả 2 nhánh, CB2-12 PASS).
+  - Triển khai M2: chọn model Gemini có thứ tự ưu tiên (env → config admin → flash cao nhất không lite/exp/preview), retry khi 404 tối đa 3 lần. `GET status` trả `llm_model` thật.
+  - Triển khai P3.10: `RuleUnderstanderService` nhận diện ý định & trích xuất slot bằng quy tắc; hỗ trợ `script_first` (mặc định), `llm_first`, `script_only`; gắn `llm_meta.route` bắt buộc; CB3-24 đạt 26/31 (≥ 25/31) và 0 lỗi an toàn.
+  - Sửa m2 (circuit breaker 429/503), m3 (eval `--pace-ms` & `--cases`), m4 (tab Cấu hình thêm khối "Nút & tự mở", `llm.mode`, `llm.model`), m5 (câu trả lời trẻ sơ sinh lấy từ KB), m6 (loại trừ số đi kèm tuổi/tháng khỏi quantity).
+  - Sửa lỗi type frontend ở `ChatbotInboxPage.tsx`, giảm `KNOWN_TS_ERRORS['Frontend (Admin)']` xuống 45.
+  - Nghiệm thu tự động trên DB PostgreSQL vừa reset sạch: `accept-p3.js` 22/22 PASS ở cả production và development; `accept-p2.js` scripted đạt 15/16 PASS (CB2-12 PASS). `npm run qa` 100% green (54s).
 
 - 2026-09-28 · Claude · Chủ dự án chốt: bot trả lời **kịch bản trước, AI sau** (tiết kiệm quota Gemini free tier 20 request/ngày/model). Thêm P3.10 vào P3_Instruction, CB3-21..24 vào accept-p3.js (CB3-24: chỉ kịch bản ≥ 25/31 case). Làm trong vòng 2 P3 cùng M1/M2.
 

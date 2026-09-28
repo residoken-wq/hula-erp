@@ -3,7 +3,79 @@ Nhánh: `chatbot/p3` · Ngày: 2026-09-28 · Tác giả: Antigravity
 
 ---
 
-## 1. Tóm tắt kết quả nghiệm thu
+# BÁO CÁO NGHIỆM THU VÒNG 2 (2026-09-28)
+Trạng thái: **SUBMITTED (vòng 2)**
+
+## 1. Tóm tắt kết quả nghiệm thu Vòng 2
+- **`accept-p3.js` (22/22 PASS)** trên database PostgreSQL vừa reset (`pgenv.sh reset`):
+  - `NODE_ENV=production`: **22/22 PASS** (exit code 0) — xem [`docs/chatbot/evidence/P3/accept-p3-prod.txt`](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/chatbot/evidence/P3/accept-p3-prod.txt).
+  - `NODE_ENV=development`: **22/22 PASS** (exit code 0) — xem [`docs/chatbot/evidence/P3/accept-p3-dev.txt`](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/chatbot/evidence/P3/accept-p3-dev.txt).
+  - Nghiệm thu đạt 100%:
+    - **CB3-18 (M1 fix)**: Cả 2 nhánh LLM và fallback budget đều bảo toàn tiếp quản nhân viên (`take: 201, replies: 0, aiAfter: 0, human: true`).
+    - **CB3-21..24 (P3.10)**: `script_first` (mặc định), `llm_first`, `script_only`, quality gate CB3-24 đạt **26/31** (yêu cầu ≥ 25/31) và **0 lỗi an toàn**.
+- **Hồi quy `accept-p2.js` với `CHATBOT_LLM_PROVIDER=scripted` (dev mode)**:
+  - **15/16 PASS** — xem [`docs/chatbot/evidence/P3/accept-p2-scripted-dev.txt`](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/chatbot/evidence/P3/accept-p2-scripted-dev.txt).
+  - **CB2-12 PASS** (nhân viên nhận chat không bị bot reply hay ghi đè state).
+  - Duy nhất CB2-14 khác biệt đã biết của môi trường (EmailService giả lập gửi ở dev mode).
+- **QA Suite (`npm run qa`)**: **ALL PASSED (54s)**.
+  - Sửa lỗi type `direction="horizontal"` ở `frontend/src/pages/chatbot/ChatbotInboxPage.tsx` và giảm `KNOWN_TS_ERRORS['Frontend (Admin)']` từ 46 xuống 45.
+
+## 2. Danh sách file thay đổi theo từng mục
+- **M1 (MAJOR) — Chặn huỷ tiếp quản của nhân viên bằng `FOR UPDATE`**:
+  - `src/chatbot/conversation/turn-orchestrator.service.ts`:
+    - Thay thế toàn bộ stale `save()` bằng hàm `commitTurn()` chạy trong database transaction có khóa `pessimistic_write` (`SELECT ... FOR UPDATE`).
+    - Nếu `locked.human_active === true`: hủy bỏ reply, không lưu tin AI sau tin khách, giữ nguyên `human_active` và `assigned_user_id`.
+    - Áp dụng đồng bộ cho cả nhánh LLM và `runScriptedFallback`.
+- **M2 (MAJOR) — Chọn model Gemini & fallback 404**:
+  - `src/chatbot/llm/gemini.provider.ts`:
+    - Ưu tiên: `CHATBOT_LLM_MODEL` (env) → `config.llm.model` (Cấu hình hệ thống) → tự chọn bản flash mới nhất.
+    - Lọc model có `generateContent`, tên chứa `flash`, loại bỏ `-lite`, `-exp`, `preview` nếu có bản thường, lấy version cao nhất.
+    - Gặp 404 "no longer available": đưa vào RAM blacklist và tự động thử model kế tiếp (tối đa 3 lần).
+  - `src/chatbot/controllers/chatbot-admin-config.controller.ts`:
+    - `GET status` trả về `llm_model` đang kích hoạt thật từ provider.
+- **P3.10 — Kịch bản trước, AI sau & RuleUnderstander**:
+  - `src/chatbot/conversation/rule-understander.service.ts`:
+    - Dịch vụ hiểu câu hỏi bằng quy tắc/từ khóa: xác định intent, trích xuất slot, so khớp tri thức KB bằng token coverage và topic hints.
+  - `src/chatbot/conversation/turn-orchestrator.service.ts`:
+    - Hỗ trợ 3 chế độ: `script_first` (mặc định), `llm_first`, `script_only`.
+    - Khi tự tin (khớp topic hint hoặc token coverage ≥ 0.7): trả lời bằng tri thức KB mà không tốn quota LLM (`route: 'knowledge'`).
+    - Bắt buộc gắn `llm_meta.route` ('knowledge' | 'llm' | 'fallback') cho mọi lượt trò chuyện.
+    - Nhánh AI gộp 1 lần gọi/lượt theo schema `turn.v1`.
+- **m2 — Circuit breaker & phân loại mã lỗi LLM**:
+  - `src/chatbot/llm/gemini.provider.ts`:
+    - Phân loại lỗi HTTP 429 → fallback `'rate_limited'`, 503 → `'unavailable'`.
+    - Đọc header `retryDelay` / `Retry-After` để thiết lập `circuit_open_until` trong RAM. Không gọi Gemini trong thời gian bị hạn chế.
+- **m3 — eval.js flags `--pace-ms` và `--cases`**:
+  - `scripts/chatbot/eval.js`:
+    - Thêm cờ `--pace-ms=<N>` để giãn nhịp giữa các lượt gọi.
+    - Thêm cờ `--cases=S3-01,S3-02` để chạy tập trung từng case khi quota thấp.
+- **m4 — Khối "Nút & tự mở" và cấu hình LLM trong tab Cấu hình hệ thống**:
+  - `frontend/src/components/system/ChatbotConfigTab.tsx`:
+    - Bổ sung Card "Nút & Tự Mở Chat" cho các trường `widget.cta_label`, `auto_open`, `auto_open_delay_s`, `auto_open_mobile`, `snooze_hours`, `subtitle`.
+    - Bổ sung Card "Chiến Lược Trả Lời & Mô Hình AI" cho ô "Chế độ trả lời" (`llm.mode`) và ô "Mô hình Gemini" (`llm.model`).
+    - Form submit sử dụng `getFieldsValue(true)` để lưu được ngay cả khi chưa mở Collapse.
+- **m5 — Bỏ câu trả lời viết cứng cho trẻ sơ sinh**:
+  - `src/chatbot/conversation/turn-orchestrator.service.ts`:
+    - Lấy câu trả lời tư vấn trẻ sơ sinh (<18 tháng) từ KB với khóa `script.infant` hoặc `faq.infant`, không viết cứng trong code.
+- **m6 — Sửa trích xuất số lượng khi đi kèm "tuổi"/"tháng"**:
+  - `src/chatbot/conversation/rule-understander.service.ts` & `src/chatbot/conversation/scripted-responder.service.ts`:
+    - Số đi kèm đơn vị tuổi/tháng (ví dụ "Bé 4 tuổi...") không bị trích xuất nhầm thành `quantity`.
+- **Sửa type frontend & cập nhật QA**:
+  - `frontend/src/pages/chatbot/ChatbotInboxPage.tsx`: sửa `<Space orientation="horizontal"` thành `direction="horizontal"`.
+  - `scripts/qa.js`: giảm `KNOWN_TS_ERRORS['Frontend (Admin)']` từ 46 xuống 45.
+
+## 3. Độ lệch so với Instruction (Deviations)
+- **Không có độ lệch nghiêm trọng**: Toàn bộ yêu cầu M1, M2, P3.10, m2..m6 đều được thực thi đúng đặc tả AUDIT_P3 và P3_Instruction.
+- **Lưu ý nhỏ về Regex tiếng Việt**: Trong biểu thức chính quy nhận diện đơn vị tuổi/kích thước, loại bỏ word boundary `m\b` đơn lẻ vì trong tiếng Việt ký tự `à` trong "màu" bị JS RegExp coi là non-word character (gây nhận diện nhầm "30 bộ màu be" thành đơn vị mét). Đã xử lý chuẩn xác.
+
+## 4. Câu hỏi cho Chủ dự án
+- **Hạn mức Gemini Free Tier (20 RPD)**: Hiện tại key dev dùng chung gói free tier chỉ cho phép tối đa 20 request/ngày/model. Chế độ `script_first` (P3.10) đã giúp giảm thiểu tối đa số lượt gọi LLM cho các câu hỏi thông thường. Tuy nhiên khi triển khai production, cần kích hoạt billing cho project Google Cloud để đáp ứng lưu lượng thực tế.
+
+---
+
+# BÁO CÁO VÒNG 1 (LƯU TRỮ LỊCH SỬ)
+
+## 1. Tóm tắt kết quả nghiệm thu Vòng 1
 
 - **Acceptance Harness (`scripts/chatbot/accept-p3.js`)**: **17/17 PASS (100%)**
   - Thực thi độc lập 2 lần trên database PostgreSQL vừa reset sạch (`pgenv.sh reset`):
