@@ -1,0 +1,37 @@
+=== Chatbot Eval (Provider: gemini) ===
+Running 31 evaluation cases against http://localhost:4999/api...
+Evaluating S3-01: Lớp mới, dưới 50, nệm gấp gọn trong 1 túi... FAIL (intent:price)
+Evaluating S3-02: 500 bộ, phối màu, hỏi thời gian may... PASS
+Evaluating S3-03: Chỉ lấy chăn/gối/túi, thêu logo góc chăn... FAIL (intent:price)
+Evaluating S3-04: Có mẫu sẵn, muốn đặt giống, hỏi may cặp... PASS
+Evaluating S3-05: Sửa mockup bỏ nền trắng, dừng thêu in chờ duyệt... FAIL (ticket_suggested)
+Evaluating S3-06: Đơn vị thương mại hỏi nệm vỏ ruột rời 70x130 dày 6cm, 200 bộ... FAIL (segment:business)
+Evaluating S3-07: Nệm y tế cho bé 6–15 tháng, 12 tấm... PASS
+Evaluating S3-08: Đổi màu/size, xin giảm giá, nhãn khách gửi... PASS
+Evaluating S3-09: Đặt lại chăn gối như đợt trước, 100 bộ... FAIL (intent:reorder)
+Evaluating S3-10: Nhầm nệm với tấm lót, đã đặt chỗ khác... PASS
+Evaluating S3-11: Mền khác cấu tạo, muốn báo giá theo 130x73... PASS
+Evaluating S3-12: Duyệt hóa đơn nháp... FAIL (intent:invoice)
+Evaluating S3-13: Đặt thêm 30 túi ngủ, báo đã chuyển tiền... FAIL (slot:quantity=30(got undefined))
+Evaluating S3-14: Hỏi lịch giao nhiều mặt hàng... FAIL (intent:order_status)
+Evaluating S3-15: Bổ sung 30 bộ, cần làm sớm... PASS
+Evaluating S3-16: Giao địa chỉ cũ, hỏi email hóa đơn... FAIL (intent:order_status)
+Evaluating S3-17: Gửi logo gốc, hỏi không lấy hóa đơn có tính thuế... PASS
+Evaluating S3-18: Hỏi màu còn hàng, 50 bộ; sau đó phản ánh túi đồ ướt bị thấm... FAIL (ticket_suggested)
+Evaluating S3-19: Đơn chậm, hỏi phí ship... FAIL (intent:order_status)
+Evaluating S3-20: Email vào spam, cần hợp đồng và biên bản giao nhận... FAIL (intent:invoice)
+Evaluating S3-21: Khách nhắc báo giá nhiều lần... PASS
+Evaluating S3-22: Không cần báo giá, chỉ xem mẫu, gửi mẫu ra tỉnh... FAIL (intent:sample)
+Evaluating S3-23: Giao đúng giờ nghỉ trưa của trường... FAIL (ticket_suggested)
+Evaluating S3-24: Đặt 30 chăn, góp ý đường may tấm dán, xin thanh toán sau... PASS
+Evaluating S3-25: 15 bộ nệm gối, hỏi đồng phục 20 bộ... FAIL (slot:quantity=15(got 20))
+Evaluating S3-26: Chưa nhận báo giá, 70 bộ muốn giá 100... PASS
+Evaluating S3-27: Vải đợt 2 thô hơn đợt 1... FAIL (ticket_suggested)
+Evaluating S3-28: Mất nhóm chat cũ, hỏi chuyển khoản bao nhiêu, khi nào có hàng... PASS
+Evaluating S3-29: 30 set, màu nâu be, tiêu chuẩn, túi bảo quản, hỏi xanh đậm... PASS
+Evaluating S3-30: Duyệt mockup màu số 1 viền trắng... PASS
+Evaluating S3-31: Thiếu thông tin pháp nhân... FAIL (intent:invoice)
+
+Evaluation complete! Output written to:
+- C:\Users\admin\Documents\GitHub\hula-erp-audit\docs\chatbot\evidence\P3\claude-eval-gemini-paced.txt
+- C:\Users\admin\Documents\GitHub\hula-erp-audit\docs\chatbot\evidence\P3\claude-eval-gemini-paced.csv

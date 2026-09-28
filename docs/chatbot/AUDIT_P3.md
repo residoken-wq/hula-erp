@@ -29,6 +29,30 @@
 - Chạy 2 lần: nhánh LLM (fake) và nhánh dự phòng (hết budget).
 - Kết quả trên `76850354`: **FAIL** ở cả hai.
 
+## Bổ sung vòng 1: chạy Gemini thật bằng key dev (Claude, 2026-09-28)
+
+Chủ dự án cấp key dev (free tier). Claude chạy `eval.js` 3 lần trên build `76850354`, sau khi nhập `kb-v2.json` và xuất bản 69 mục không bị khoá.
+
+| Lần | Cấu hình | Kết quả Gemini |
+|---|---|---|
+| 1 | model tự chọn | 60/60 lượt gọi lỗi **404**: model tự chọn là `models/gemini-2.5-flash`, Google trả *"no longer available to new users… use models/gemini-3.8-flash"* |
+| 2 | `CHATBOT_LLM_MODEL=models/gemini-3.8-flash` | 1 lượt thành công, còn lại 54 lỗi 429 + 5 lỗi 503 (quá tải) |
+| 3 | như lần 2, giãn nhịp 13 giây/lượt | 60/60 lỗi 429 `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, **quotaValue 20** (20 request/ngày/model) |
+
+Bot luôn lùi về kịch bản khi lỗi, đúng thiết kế: khách không thấy lỗi, không bịa giá, 0 lần bị validator chặn. Chế độ dự phòng đạt 14/31 tiêu chí tự động. Các bài hỏng chủ yếu cần AI mới làm được (nhận diện intent, gợi ý ticket).
+
+**Yêu cầu sửa thêm (vòng 2):**
+
+| ID | Mức | Việc |
+|---|---|---|
+| M2 | MAJOR | **Chọn model:** không chọn "model flash đầu tiên trong danh sách". Ưu tiên `CHATBOT_LLM_MODEL`, sau đó là model đặt trong Cấu hình hệ thống (thêm ô `llm.model`, validator chung), cuối cùng là tự chọn: lọc model có `generateContent`, tên chứa `flash`, bỏ `-lite`/`-exp`/`preview` nếu có bản thường, lấy **version cao nhất**. Gọi thử bị 404 "no longer available" thì loại model đó khỏi cache và chọn model kế tiếp (tối đa 3 lần). `GET status` trả `llm_model` đang dùng thật |
+| m2 | MINOR | 429 phải ghi `fallback:'rate_limited'`, 503 ghi `'unavailable'` (hiện đều ghi `'error'`). Ghi thêm `retry_after_s` lấy từ `retryDelay` nếu có. Trong thời gian đó không gọi lại Gemini (circuit breaker trong RAM), bot trả lời bằng kịch bản ngay |
+| m3 | MINOR | `eval.js`: thêm `--pace-ms` (mặc định 0) và `--cases=S3-01,S3-02` để chạy từng phần khi quota thấp |
+| m4 | MINOR | **Khối "Nút & tự mở"** của P2.1 chưa có trong tab Cấu hình hệ thống: thêm ô `widget.cta_label`, `auto_open`, `auto_open_delay_s`, `auto_open_mobile`, `snooze_hours`, `subtitle`. Lưu phải chạy được khi chưa mở khung Nâng cao (bài học hotfix `acafbe08`) |
+| R0 | bắt buộc | Merge `origin/main` (đã có hotfix `2bcd53ca` lỗi khởi động, `3dc66bfa` avatar, `acafbe08` lưu cấu hình) vào `chatbot/p3`, **giữ** `Form.Item noStyle` của avatar và `onFinish` dùng `getFieldsValue(true)` |
+
+**Ảnh hưởng vận hành (báo Chủ dự án):** nếu key trên prod cũng là free tier thì chatbot và trợ lý nội bộ **dùng chung khoảng 20 request/ngày cho mỗi model**, tức chỉ khoảng 10 lượt chat khách/ngày, sau đó bot chạy bằng kịch bản. Muốn chạy thật cần bật billing (gói trả theo lượng) cho project của key prod. Đây là quyết định chi phí của Chủ dự án.
+
 ## Vòng 2 cần nộp
 - Sửa M1.
 - Trên DB vừa reset, chạy `accept-p3.js` (18 bài) ở `NODE_ENV=production` và `development`.
