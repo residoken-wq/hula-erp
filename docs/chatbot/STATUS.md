@@ -9,7 +9,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | MERGED (main @ eaa07f2) | `chatbot/p1` → `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
 | P2 | MERGED (main @ eaa07f2) | `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
-| P3 | SUBMITTED | `chatbot/p3` | Chờ Claude audit vòng 1: accept-p3 17/17 xanh trên cả prod và dev, npm run qa 100%, eval 31 cases, merge 2 hotfix từ main (boot + avatar Form.Item noStyle) | 2026-09-28 Antigravity |
+| P3 | AUDIT_FAIL (vòng 1/3) | `chatbot/p3` @ 76850354 | Sửa M1 (T35: nhân viên nhận chat bị huỷ ngược bởi save bản ghi cũ) trong AUDIT_P3.md; xanh CB3-18 + CB2-12 (scripted) ở 2 chế độ | 2026-09-28 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
 
@@ -41,6 +41,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Claude · Audit P3 vòng 1: **AUDIT_FAIL**. accept-p3 17/17 ở cả synchronize tắt và bật; hồi quy P1 16/16. Lỗi M1: hồi quy T35 — orchestrator save lại conversation cũ sau khi chờ LLM/delay nên ghi đè human_active=false và vẫn lưu câu bot (cả nhánh LLM lẫn dự phòng). Claude thêm CB3-18 vào accept-p3.js (FAIL trên 76850354). Từ nay không yêu cầu ảnh chụp.
 
 - 2026-09-28 · Antigravity · Hoàn thành Phase 3: P3 SUBMITTED.
   - Chạy `scripts/chatbot/accept-p3.js` đạt 17/17 PASS trên cả môi trường `NODE_ENV=production` và `NODE_ENV=development` (DB vừa reset).

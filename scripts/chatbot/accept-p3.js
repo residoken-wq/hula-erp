@@ -263,6 +263,30 @@ const usageToday = () => { const key = 'CHATBOT_LLM_USAGE_' + new Intl.DateTimeF
     check('CB3-17', Object.values(r).every(Boolean), j(r));
   });
 
+  // CB3-18 (added by AUDIT_P3 r1): takeover during a slow turn must win — LLM path AND fallback path.
+  // Checks: no AI reply saved after takeover, and human_active is NOT reverted by a stale entity save.
+  await step('CB3-18', async () => {
+    const race = async (label) => {
+      const S = await newSession();
+      await act(S.tok, 'start', 'school');
+      const cid = convId(S.code);
+      const pending = msg(S.tok, 'Trường em cần 30 bộ nệm, gặp nhân viên giúp em [[delay:3000]]');
+      await new Promise((r) => setTimeout(r, 800));
+      const take = await req('POST', `${INBOX}/conversations/${cid}/take`, { token: sales });
+      const r = await pending;
+      const aiAfter = sql(`select count(*) from chatbot_messages where conversation_id='${cid}' and role='ai' and created_at > (select max(created_at) from chatbot_messages where conversation_id='${cid}' and role='customer')`);
+      const human = sql(`select human_active::text||'|'||coalesce(assigned_user_id::text,'') from chatbot_conversations where id='${cid}'`);
+      return { label, take: take.s, replies: (r.b.replies || []).length, aiAfter, human };
+    };
+    const a = await race('llm');
+    const used = usageToday();
+    await putCfg({ llm: { ...cfg.llm, timeout_ms: 20000, daily_call_budget: Math.max(1, used) } });
+    const b = await race('fallback-budget');
+    await putCfg({ llm: { ...cfg.llm, timeout_ms: 20000, daily_call_budget: 600 } });
+    const ok = (x) => x.take < 300 && x.replies === 0 && x.aiAfter === '0' && x.human.startsWith('true|') && x.human.length > 5;
+    check('CB3-18', ok(a) && ok(b), j([a, b]));
+  });
+
   const fails = results.filter((r) => !r.ok).map((r) => r.id);
   log(`=== RESULT ${results.length - fails.length}/${results.length} PASS${fails.length ? ' — FAIL: ' + fails.join(',') : ''}`);
   process.exit(fails.length ? 1 : 0);
