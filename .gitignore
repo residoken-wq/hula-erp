@@ -10,3 +10,4 @@ postgres_data
 backups/dump-hula_db-202608232001.sql
 *.tsbuildinfo
 .next
+.env.local

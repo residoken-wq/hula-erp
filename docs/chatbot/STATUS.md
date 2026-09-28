@@ -9,7 +9,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | MERGED (main @ eaa07f2) | `chatbot/p1` → `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
 | P2 | MERGED (main @ eaa07f2) | `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
-| P3 | IN_PROGRESS | `chatbot/p3` | Bắt đầu P3: sửa UI tồn, Gemini key chung (Q-01), import JSON tri thức, TurnOrchestrator pipeline, gaps | 2026-09-28 Antigravity |
+| P3 | SUBMITTED | `chatbot/p3` | Chờ Claude audit vòng 1: accept-p3 17/17 xanh trên cả prod và dev, npm run qa 100%, eval 31 cases, merge 2 hotfix từ main (boot + avatar Form.Item noStyle) | 2026-09-28 Antigravity |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
 
@@ -41,6 +41,13 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Antigravity · Hoàn thành Phase 3: P3 SUBMITTED.
+  - Chạy `scripts/chatbot/accept-p3.js` đạt 17/17 PASS trên cả môi trường `NODE_ENV=production` và `NODE_ENV=development` (DB vừa reset).
+  - Đã merge đầy đủ 2 hotfix từ `origin/main`: fix crash khởi động (TypeORM synchronize, onModuleInit an toàn) và fix avatar upload (giữ Form.Item noStyle).
+  - QA suite (`npm run qa`) đạt 100% green (backend test, frontend build, cms tsc/lint, website tsc/lint, rbac checker, no-secrets, no-hardcoded-name).
+  - Triển khai eval runner 31 ca kiểm thử, lưu kết quả tại `docs/chatbot/evidence/P3/`.
+  - Viết `docs/chatbot/REPORT_P3.md` chi tiết.
 
 - 2026-09-28 · Antigravity · Bắt đầu P3 trên nhánh `chatbot/p3`. Triển khai theo P3_Instruction: sửa UI tồn (lời chào config, nút hero avatar cừu, phụ đề panel), dùng chung GEMINI_API_KEY (Q-01), import tri thức JSON (CB-120), template placeholder, retrieveForTurn, TurnOrchestrator pipeline (Understand v1, business rules, Compose v1, ReplyValidator, FakeProvider test hooks), quản lý khoảng trống kiến thức (CB-121, CB-122), CMS pages, chạy nghiệm thu accept-p3.js 17/17 và thu thập 4 ảnh bằng chứng. P3 IN_PROGRESS.
 
