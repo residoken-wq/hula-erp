@@ -6,7 +6,13 @@ export default defineConfig({
   server: {
     host: true, // Cho phep Docker map port
     port: 5173,
-    allowedHosts: ['erp.nemmamnon.com']
+    allowedHosts: ['erp.nemmamnon.com'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3999',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     minify: false, // Tắt minify để tránh treo RAM trên VPS yếu

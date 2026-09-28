@@ -17,7 +17,8 @@ import {
     FormatPainterOutlined,
     PictureOutlined,
     ProjectOutlined,
-    CompassOutlined
+    CompassOutlined,
+    RobotOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -142,8 +143,39 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const { user, loading, logout, hasCmsPermission } = useAuth();
+    const { user, loading, logout, hasCmsPermission, hasPermission } = useAuth();
     const router = useRouter();
+
+    const activeMenuItems = [...menuItems];
+    if (user?.username === 'admin' || (hasPermission && hasPermission('CHATBOT_KB', 'view'))) {
+        activeMenuItems.push({
+            path: '/chatbot',
+            name: 'Trợ lý AI',
+            icon: <RobotOutlined />,
+            routes: [
+                {
+                    path: '/chatbot/knowledge',
+                    name: 'Tri thức & Kịch bản',
+                },
+                {
+                    path: '/chatbot/products',
+                    name: 'Facts & Bộ sản phẩm',
+                },
+                {
+                    path: '/chatbot/prices',
+                    name: 'Bảng giá AI',
+                },
+                {
+                    path: '/chatbot/conflicts',
+                    name: 'Mâu thuẫn dữ liệu',
+                },
+                {
+                    path: '/chatbot/tools',
+                    name: 'Thử công cụ',
+                },
+            ],
+        });
+    }
 
     // If loading or checking auth
     if (loading) {
@@ -211,7 +243,7 @@ export default function AdminLayout({
             }}
             route={{
                 path: '/',
-                routes: menuItems.map(item => ({
+                routes: activeMenuItems.map(item => ({
                     path: item.path,
                     name: item.name,
                     icon: item.icon,

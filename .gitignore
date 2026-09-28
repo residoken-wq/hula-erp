@@ -8,3 +8,4 @@ postgres_data
 **/firebase-service-account.json
 **/firebase-credentials.json
 backups/dump-hula_db-202608232001.sql
+*.tsbuildinfo

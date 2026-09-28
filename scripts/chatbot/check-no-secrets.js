@@ -6,7 +6,8 @@ const projectRoot = path.resolve(__dirname, '../..');
 const scanTargets = [
   path.join(projectRoot, 'src/chatbot'),
   path.join(projectRoot, 'frontend/src/components/system/ChatbotConfigTab.tsx'),
-  path.join(projectRoot, 'hula-web/website/src/components/chat')
+  path.join(projectRoot, 'hula-web/website/src/components/chat'),
+  path.join(projectRoot, 'hula-web/cms/src/app/chatbot')
 ];
 
 function getFiles(targetPath) {

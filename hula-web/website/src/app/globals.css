@@ -397,3 +397,57 @@ body.tour-360-active [class*="zalo-chat"] {
   pointer-events: none !important;
   opacity: 0 !important;
 }
+
+/* Suppress floating widgets and Zalo while chat panel is open */
+body.chat-open .floating-action-widgets,
+body.chat-open .zalo-chat-widget,
+body.chat-open iframe[src*="zalo"],
+body.chat-open #za-chat-widget,
+body.chat-open [id*="zalo"],
+body.chat-open .za-chat-widget-window,
+body.chat-open [class*="zalo-chat"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+/* Chat CTA button pulse ring & wiggle animation */
+@keyframes chat-avatar-wiggle {
+  0%, 80%, 100% {
+    transform: rotate(0deg);
+  }
+  85% {
+    transform: rotate(-10deg) scale(1.08);
+  }
+  90% {
+    transform: rotate(10deg) scale(1.08);
+  }
+  95% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes chat-pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-chat-wiggle {
+    animation: chat-avatar-wiggle 4s ease-in-out infinite;
+  }
+  .animate-chat-pulse {
+    animation: chat-pulse-ring 2.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  }
+}

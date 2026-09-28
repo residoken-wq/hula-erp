@@ -1,0 +1,9 @@
+[FIXTURE-GUARD] allow_fixtures= false | publish fixture -> 400 {"code":"FIXTURE_NOT_ALLOWED"} | publish non-fixture -> 200
+check_rbac=0
+public_callers=0
+✅ check-no-secrets: Scanned 53 files. No secrets or real emails detected.
+✅ check-no-hardcoded-name: Scanned 46 files. No hardcoded name outside defaults.
+Tests:       44 passed, 44 total
+tsc=0
+cms_tsc=2
+cms_tsc (main dir, commit 0adfcf4)=0

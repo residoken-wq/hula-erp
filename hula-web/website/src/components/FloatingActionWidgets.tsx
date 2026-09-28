@@ -1,9 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useChatWidget } from './chat';
 
 export default function FloatingActionWidgets() {
     const { settings, loading } = useSettings();
+    const { config: chatConfig, openChat } = useChatWidget();
 
     if (loading) {
         return null;
@@ -12,7 +15,7 @@ export default function FloatingActionWidgets() {
     const PHONE_NUMBER = settings?.contact_phone || '0983882210';
 
     return (
-        <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-4 items-center">
+        <div className="floating-action-widgets fixed bottom-24 right-4 z-50 flex flex-col gap-4 items-center">
             {/* Phone Widget */}
             <div className="relative group">
                 <a
@@ -68,6 +71,27 @@ export default function FloatingActionWidgets() {
                     <span className="absolute top-1/2 -translate-y-1/2 right-full mr-4 bg-gray-800 text-white text-sm font-semibold px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-md">
                         Messenger
                     </span>
+                </div>
+            )}
+
+            {/* Mobile Chat Widget Trigger */}
+            {chatConfig?.enabled && (
+                <div className="relative sm:hidden">
+                    <button
+                        type="button"
+                        onClick={openChat}
+                        className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 border-2 border-primary-500 overflow-hidden active:scale-95"
+                        aria-label="Tư vấn với Cừu Hula"
+                    >
+                        <Image
+                            src={chatConfig.avatar_url || '/images/chatbot/cuu-hula-96.webp'}
+                            alt="Cừu Hula"
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 object-cover"
+                        />
+                        <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full animate-pulse" />
+                    </button>
                 </div>
             )}
         </div>

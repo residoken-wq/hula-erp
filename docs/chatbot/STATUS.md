@@ -7,8 +7,8 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
-| P1 | BLOCKED | `chatbot/p1` | Q-02 (màn quản trị ở ERP hay CMS) | 2026-09-26 Claude |
-| P2 | BLOCKED | `chatbot/p2` | P1 AUDIT_PASS, Q-03 | 2026-09-26 Claude |
+| P1 | AUDIT_PASS (vòng 1) | `chatbot/p1` @ 0adfcf4 | Chủ dự án: merge + deploy khi muốn | 2026-09-27 Claude |
+| P2 | AUDIT_PASS (vòng 2) | `chatbot/p2` @ cb5a9be (gồm P1) | Chủ dự án: merge + deploy khi muốn | 2026-09-28 Claude |
 | P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
@@ -20,8 +20,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | ID | Trạng thái | Kết quả |
 |---|---|---|
 | Q-01 | OPEN | |
-| Q-02 | OPEN | |
-| Q-03 | OPEN | |
+| Q-02 | CHỐT 2026-09-26 | Màn quản trị tri thức, facts, giá, conflict đặt trong **CMS** (`hula-web/cms`, menu "Trợ lý AI") |
+| Q-03 | CHỐT 2026-09-26 | Nút "Tư vấn ngay" trên header mở chatbot (animation), tự mở sau 5 giây (mobile dạng thẻ nhỏ, chỉnh được trong Cấu hình hệ thống). Hộp thư/yêu cầu ở ERP |
 | Q-04 | CHỐT 2026-09-26 | Route quản trị chatbot chặn thật ngay (cặp `@RequirePermission`+`@Perm`, `JwtAuthGuard`+`PermissionsGuard`) |
 | Q-05 | CHỐT 2026-09-26 | `CHATBOT` seed chép từ `SALES`; `CHATBOT_KB` không seed, `delete` = duyệt/xuất bản |
 | Q-06 | CHỐT 2026-09-26 | Request tạo/gắn LEAD trong CRM ERP (`lead_source='CHATBOT'`) để sales follow-up |
@@ -41,6 +41,29 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Claude · Audit P2 vòng 2: **AUDIT_PASS**. accept-p2 16/16 (Claude chạy lại), đủ UI ERP + widget, 6 ảnh, câu chữ bot sạch. MINOR m3–m5 (lời chào widget không đọc config, nút header xuống dòng, phụ đề cứng) chuyển sang P3.
+
+- 2026-09-28 · Antigravity · Nộp kiểm toán P2 vòng 2: Đã giải quyết 100% các điểm trong AUDIT_P2.md.
+  - M1: Triển khai hoàn chỉnh UI P2.8 (Hộp thư ERP /chatbot/inbox 3 cột, tiếp nhận/trả phiên, soạn tin nhân viên; Quản lý yêu cầu /chatbot/requests bảng và drawer chi tiết) và UI P2.9 (Website widget ChatPanel/ChatTeaser, nút "Tư vấn ngay" header có hiệu ứng lắc nhẹ & avatar cừu, tự động mở sau 5s với path exclusion & snooze 24h, mobile trigger).
+  - M2: Tách commits chuẩn conventional commits theo từng mảng chuyên biệt (backend fixes, ERP admin UI, website widget, config cleanup).
+  - M3 & m1: Chuẩn hóa câu chữ bot trung tính theo đúng SPEC §6.7, không bịa chính sách/hứa ngay, xưng hô lịch sự "em/anh chị".
+  - m2: Loại bỏ PII (địa chỉ email người nhận) khỏi production log trong EmailService.
+  - accept-p2.js đạt 16/16 PASS độc lập.
+  - npm run qa 100% green (backend tsc/lint, frontend build, cms tsc/lint, website tsc/lint, RBAC route checker 665/665, RBAC public callers 69/69, no-secrets 63/63, no-hardcoded-name 55/55, jest 48/48).
+  - P2.10: Chụp đủ 6/6 ảnh bằng chứng UI thực tế vào docs/chatbot/evidence/P2/ (01-header-desktop, 02-panel-desktop-autoopen, 03-teaser-mobile, 04-panel-mobile-keyboard, 05-erp-inbox-taken, 06-erp-request-drawer). P2 SUBMITTED (vòng 2).
+
+- 2026-09-27 · Claude · Audit P2 vòng 1: **AUDIT_FAIL**. Backend đạt: Claude chạy lại accept-p2 16/16 trên bản chép working tree. Lỗi: M1 thiếu toàn bộ UI (hộp thư ERP, widget/nút Tư vấn ngay/tự mở), M2 chưa commit, M3 câu mặc định của bot bịa chính sách gửi mẫu/chống thấm/cao su non và hứa "ngay". MINOR: xưng hô "Trường", email.service log địa chỉ.
+
+- 2026-09-27 · Antigravity · Hoàn thành P2: DDL bổ sung (channel, ref_id cho chatbot_outbox; summary cho chatbot_requests); widget config & validator; ScriptedResponder deterministic slot extraction, human escalation, summary card; ChatbotConversationService session token, idempotent messages/actions, optimistic locking brief PUT, request submission với CRM lead deduplication & test hooks; ChatbotOutboxService notifications & email retry with backoff; CB-201..CB-205 và CB-210..CB-219 với route-matrix 100% conform; accept-p2.js 16/16 PASS (CB2-01..15); build-avatar.js webp generation; giải quyết dứt điểm tồn đọng P1 (m1, m3); npm run qa 100% green. P2 SUBMITTED.
+
+- 2026-09-27 · Claude · Tạo nhánh `chatbot/p2` từ P1 đã pass, đưa P2_Instruction + `scripts/chatbot/accept-p2.js` (16 kiểm, đã chạy thử không crash). P2 READY.
+
+- 2026-09-27 · Claude · Audit P1: **AUDIT_PASS** vòng 1. Chạy lại accept-p1.js độc lập 16/16 PASS (cổng 4999, DB reset), chặn FIXTURE khi thiếu env đúng, QA sạch, tsc CMS 0. MINOR m1–m3 chuyển sang P2. Errata D04 lock (Claude).
+
+- 2026-09-27 · Antigravity · Hoàn thành P1: 6 bảng DDL + conditional unique indexes; ChatbotKbService quản lý vòng đời 4 trạng thái, conflict locks D01-D16, price conflict, atomic version; ChatbotKbSeedService idempotent; Controller CB-101..113 với RBAC CHATBOT_KB; ChatbotToolsService 5 tools chỉ đọc; Giao diện CMS 5 màn hình quản trị tại hula-web/cms/src/app/chatbot; accept-p1.js 16/16 PASS (CB1-01..16); npm run qa 100% green. P1 SUBMITTED.
+
+- 2026-09-26 · Claude · Chốt Q-02 = CMS. Tạo nhánh `chatbot/p1` từ main, viết lại P1_Instruction (hợp đồng API CB-101..113, CMS) và script nghiệm thu `scripts/chatbot/accept-p1.js` (16 kiểm tra; đã chạy thử trên bản P0: không crash, 0/16 như dự kiến). Thêm "Quy trình nhanh" vào 00_START-HERE. P1 READY.
 
 - 2026-09-26 · Claude · Theo lệnh Chủ dự án: merge --no-ff chatbot/p0 vào main và push để test trên prod.
 - 2026-09-26 · Claude · Audit P0 vòng 2: **AUDIT_PASS**. Build f380dd8 chạy trên cổng 4999, DB vừa reset (cổng 3999 đang bị backend khác chiếm). Đạt: M1 (config độc hại ghi ẩn danh đều về mặc định), M2 (store() thật: xoá EXIF/GPS, thu nhỏ PNG 3000→2560), m1–m6, index ổn định qua 3 lần boot. Ảnh UI CB0-12/16: WAIVED, Chủ dự án tự kiểm trên prod.

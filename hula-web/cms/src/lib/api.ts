@@ -148,5 +148,26 @@ export const schoolExperienceApi = {
     rollback: (id: number) => api.post(`/school-experience/rollback/${id}`),
 };
 
+// ============================================
+// CHATBOT KB APIs (P1)
+// ============================================
+export const chatbotKbApi = {
+    getList: (type: string, params?: any) => api.get(`/chatbot/admin/kb/${type}`, { params }),
+    getOne: (type: string, id: string) => api.get(`/chatbot/admin/kb/${type}/${id}`),
+    create: (type: string, data: any) => api.post(`/chatbot/admin/kb/${type}`, data),
+    update: (type: string, id: string, data: any) => api.put(`/chatbot/admin/kb/${type}/${id}`, data),
+    submit: (type: string, id: string) => api.post(`/chatbot/admin/kb/${type}/${id}/submit`),
+    publish: (type: string, id: string) => api.post(`/chatbot/admin/kb/${type}/${id}/publish`),
+    retire: (type: string, id: string) => api.post(`/chatbot/admin/kb/${type}/${id}/retire`),
+    getConflicts: () => api.get('/chatbot/admin/kb/conflicts'),
+    resolveConflict: (code: string, data: any) => api.put(`/chatbot/admin/kb/conflicts/${code}`, data),
+    getWebsiteProducts: (q?: string) => api.get('/chatbot/admin/kb/website-products', { params: { q } }),
+    getVersion: () => api.get('/chatbot/admin/kb/version'),
+    preview: (tool: string, args: any, ignore_feature_flag: boolean = true) =>
+        api.post('/chatbot/admin/kb/preview', { tool, args, ignore_feature_flag }),
+    getSources: () => api.get('/chatbot/admin/kb/sources'),
+};
+
 export default api;
+
 

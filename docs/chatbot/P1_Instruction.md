@@ -1,81 +1,189 @@
-# P1 — Dữ liệu, tri thức và quy trình duyệt
+# P1 — Tri thức, facts sản phẩm, giá (admin trong CMS)
 
-**Điều kiện:** P0 AUDIT_PASS, đã chốt Q-02. Nhánh `chatbot/p1`.
-**Sau deploy:** người có `CHATBOT_KB` thấy menu "Trợ lý AI → Tri thức" trong ERP. Khách không thấy gì.
-**Nguyên tắc:** mọi dữ liệu nhập từ SPEC mặc định ở trạng thái `draft` hoặc `needs_review`, `public_allowed=false`. **Không** tự đặt `approved_by`. **Không** có giá thật.
+**Điều kiện:** P0 đã merge (main @ `4210b60`). Q-02 chốt 2026-09-26: **màn quản trị đặt trong CMS** (`hula-web/cms`).
+**Nhánh:** `chatbot/p1` (Claude đã tạo từ main, có sẵn instruction và script nghiệm thu). Làm tiếp trên nhánh này, không tạo nhánh mới.
+**Sau deploy:**
+- Khách không thấy gì (cờ tắt).
+- CMS có thêm menu **"Trợ lý AI"** cho `admin` và cho người có quyền `CHATBOT_KB`.
+
+> **Luật nghiệm thu P1 (mới, để rút ngắn thời gian):**
+> - Claude đã viết sẵn `scripts/chatbot/accept-p1.js`. Đó là **hợp đồng**: code phải làm script chạy xanh, **không sửa script**.
+> - Thấy script sai thì ghi vào REPORT mục 4, làm tiếp phần khác.
+> - Evidence P1 chỉ cần: output của script, `npm run qa`, và 3 ảnh CMS (P1.6).
+> - Không cần viết smoke riêng.
 
 ---
 
-## P1.1 Bảng P1
-Tạo `chatbot_sources`, `chatbot_knowledge_items`, `chatbot_conflicts`, `chatbot_product_facts`, `chatbot_bundles`, `chatbot_bundle_items`, `chatbot_price_rules`, `chatbot_eval_cases` theo 01 §3.2. Cách làm như P0.1 (DDL, đăng ký entity, loại trừ `shouldLog`).
+## P1.1 Bảng dữ liệu
 
-- `search_text`: cột text đã bỏ dấu tiếng Việt và chữ thường, tính bằng JS khi lưu (`normalizeVi()`: NFD, bỏ dấu, `đ→d`).
-- Index GIN `to_tsvector('simple', search_text)`. Không cần extension `unaccent`.
+Bốn loại nội dung có vòng đời duyệt dùng **chung khung cột**:
 
-## P1.2 Vòng đời tri thức (áp dụng cho knowledge item, product fact, price rule, bundle)
-`draft → needs_review → approved → published → retired`
-- Soạn/sửa: `CHATBOT_KB:create/update`. Sửa một bản `published` thì tạo **phiên bản mới** ở `draft`, bản cũ vẫn chạy tới khi bản mới được xuất bản.
-- Duyệt / xuất bản / thu hồi: `CHATBOT_KB:delete` (Q-05). Ghi `approver_id`, `approved_at`, audit.
-- Chặn ở server:
-  - Không xuất bản được item có `conflict_code` mà conflict còn `open`, hoặc item thuộc `locked_topics` của conflict `open`.
-  - Price rule phải có đủ `valid_from`, `tax_included`, `qty_scope`. `is_fixture=true` thì **không bao giờ** xuất bản được khi `NODE_ENV=production`.
-  - Hai price rule `published` trùng target + phạm vi số lượng + thời gian thì từ chối xuất bản bản thứ hai và báo xung đột.
-- Nội dung public chỉ gồm bản `published` + `public_allowed=true` + đang trong `effective_from/to`. Viết **một** hàm `KnowledgeQuery.publicScope()` dùng chung cho mọi truy vấn phía khách, để không chỗ nào lọc thiếu (T33).
-- `kb_version`: số tăng mỗi lần có xuất bản hoặc thu hồi, lưu `system_configs.CHATBOT_KB_VERSION`. Cache phía khách được khoá theo `kb_version`.
-
-## P1.3 Seed từ SPEC (idempotent, key `CHATBOT_KB_SEED_V1`)
-| Nguồn SPEC | Đích | Trạng thái |
+| Cột chung | Kiểu | Ghi chú |
 |---|---|---|
-| §1 bảng S1–S4, A1 | `chatbot_sources` (không chép URL Google Docs vào cột public; lưu ở `internal_ref`) | — |
-| §3 D01–D16 | `chatbot_conflicts`, `status=open`, `locked_topics` theo bảng dưới | open |
-| §4.2 thông số | `chatbot_knowledge_items` topic `product.spec.*`, kèm `source_refs` và ghi chú lưu ý của SPEC | `needs_review` |
-| §6.7 mẫu câu | `chatbot_knowledge_items` topic `script.*` (không chứa dữ kiện thương mại) | `draft` |
-| §5 31 tình huống + §16 T01–T40 | `chatbot_eval_cases` (input nhiều lượt do Antigravity viết thành hội thoại mẫu, kết quả bắt buộc chép từ SPEC) | — |
+| `id` | uuid PK | |
+| `item_key` | uuid | Giữ nguyên qua các phiên bản của cùng một mục |
+| `version` | int | Tăng từ 1 |
+| `status` | varchar(16) | `draft` / `needs_review` / `published` / `retired` |
+| `topic` | varchar(80) | Dùng để khoá theo conflict. Chỉ loại `knowledge` do người nhập; loại khác tự sinh (xem dưới) |
+| `source_refs` | jsonb default `[]` | |
+| `conflict_code` | varchar(4) null | Ví dụ `D03` |
+| `effective_from`, `effective_to` | date null | Với `prices` là `valid_from` / `valid_to` |
+| `author_id`, `approver_id` | int null | |
+| `approved_at`, `created_at`, `updated_at` | timestamptz | |
 
-`locked_topics` tối thiểu: D01/D02/D13 → `price.*`; D03/D04 → `product.thickness.*`; D05/D06 → `service.logo.*`, `moq.*`; D07 → `leadtime.*`; D08 → `product.label.*`; D09 → `bundle.bag_fit.*`; D10 → `shipping.*`; D11 → `tax.*`; D12 → `policy.return.*`, `policy.warranty.*`; D15 → `product.material_claim.*`; D16 → `payment.*`, `contact.*`.
+- Ràng buộc: `UNIQUE(item_key, version)`, và unique index **có điều kiện** `ON (item_key) WHERE status='published'` (mỗi mục tối đa một bản đang xuất bản).
+- Tên index trong entity **phải trùng** DDL (bài học m4 của P0).
 
-**Kiểm PII trước khi lưu eval case và knowledge seed:** chạy `scanPii()` (regex SĐT VN `(\+84|0)(3|5|7|8|9)\d{8}`, email, STK 9–14 chữ số liền). Có kết quả thì dừng seed và báo lỗi. Evidence ghi số kết quả = 0.
+| Bảng | Cột riêng |
+|---|---|
+| `chatbot_knowledge_items` | `intent varchar(32) null`, `question text null`, `answer text not null`, `product_sku varchar(100) null`, `public_allowed boolean default false`, `search_text text` (bỏ dấu, chữ thường). Index GIN `to_tsvector('simple', search_text)` |
+| `chatbot_product_facts` | `sku varchar(100)`, `fact_key varchar(32)`, `value text`, `unit varchar(16) null`. Topic tự sinh theo bảng `FACT_TOPIC` (P1.2) |
+| `chatbot_bundles` | `code varchar(40)`, `name varchar(200)`, `items jsonb` (`[{sku, qty}]`). Topic = `bundle.<code>` |
+| `chatbot_price_rules` | `target_type varchar(12)` (`sku/bundle/service`), `target_code varchar(100)`, `fabric varchar(40) null`, `qty_min int`, `qty_max int null`, `qty_scope varchar(12)` (`per_design/per_color/per_order`), `unit_price bigint` (VND), `currency varchar(3) default 'VND'`, `tax_rate numeric(5,2) null`, `tax_included boolean`, `shipping_included boolean default false`, `included_services jsonb default '[]'`, `excluded_services jsonb default '[]'`, `customer_scope varchar(40) default 'PUBLIC'`, `is_fixture boolean default false`. Topic = `price.<target_type>.<target_code>` |
+| `chatbot_conflicts` | `code varchar(4) PK`, `title text`, `risk text`, `locked_topics text[]`, `owner_role varchar(40)`, `status varchar(10) default 'open'`, `resolution text null`, `resolved_by int null`, `resolved_at timestamptz null` |
+| `chatbot_sources` | `code varchar(10) PK`, `title text`, `internal_ref text` (URL Google Docs, **chỉ trả cho admin**, không bao giờ vào tool), `sensitivity varchar(16)`, `imported_at` |
 
-## P1.4 Facts sản phẩm và bộ
-- `chatbot_product_facts` gắn với `products.sku` **đã có** và `show_on_website=true`. Không tạo sản phẩm mới, không sửa bảng `products`.
-- Admin chọn SKU từ danh sách sản phẩm website, rồi thêm facts: `size`, `structure`, `finished_thickness`, `material_per_layer`, `care_instruction`, `age_guidance`, `anti_slip`, `bag_fit`.
-- Bộ (`chatbot_bundles`): mã bộ, tên, danh sách SKU + số lượng. Thẻ sản phẩm phía khách lấy `name`, `image_url`, `website_display_name` từ `products` (read-only).
+DDL trong `ChatbotSchemaService` (nối tiếp P0), đăng ký entity, loại trừ khỏi `shouldLog()` (tiền tố `Chatbot` đã được loại sẵn ở P0).
 
-## P1.5 Công cụ đọc (dùng ở P3, viết và test ở P1)
-`ChatbotToolsService`, mọi hàm chỉ đọc `publicScope()`:
-- `searchCatalog({purpose, age_band, surface, components, keywords})` → tối đa 5 SKU/bộ có facts `published`, kèm `fact_ids`.
-- `getProductDetails(sku)` → facts `published` + ảnh + `source_refs` + `version`.
-- `compareProducts(skus[2..3])` → cùng bộ tiêu chí. Thiếu fact thì ghi `chưa xác nhận`.
-- `searchKnowledge(query, intent)` → FTS trên `search_text`, tối đa 5 item.
-- `getPriceEstimate({target, quantity, fabric, services[], customer_scope:'PUBLIC'})` → `{status: 'available'|'needs_clarification'|'needs_sales'|'disabled', lines[], total?, missing[], rule_ids[]}`:
-  - `features.price_estimate=false` → `disabled`.
-  - Chỉ dùng rule `published`, còn hiệu lực, `customer_scope='PUBLIC'`. Rule riêng của khách **không bao giờ** dùng cho phiên public (T06).
-  - Không có rule đúng số lượng → `needs_sales`, không nội suy (T04). Hai rule xung đột → `needs_sales` (T05).
-  - Tính tiền bằng số nguyên VND. `tax_included=true` thì không cộng thuế (T08). Thiếu dòng dịch vụ (túi, logo) → không trả `total`, liệt kê `missing` (T09).
-  - Yêu cầu ưu đãi (ví dụ 70 bộ muốn giá 100) → `needs_sales` với `reason='discount_request'` (T07).
+## P1.2 Luật nghiệp vụ (service `ChatbotKbService`, mọi thao tác ghi đều trong transaction + audit)
 
-Unit test bằng rule `is_fixture=true` cho T04–T09, lưu output vào `evidence/P1/`.
+1. **Tạo:** status `draft`, `version=1`, `item_key` mới.
+2. **Sửa:** nếu bản đang sửa là `draft`/`needs_review` thì sửa tại chỗ. Nếu là `published` thì tạo **bản mới** (`version+1`, cùng `item_key`, status `draft`), bản đang chạy giữ nguyên. Sửa bản `retired` → 400 `INVALID_STATE`.
+3. **Gửi duyệt:** `draft` → `needs_review`.
+4. **Xuất bản** (từ `draft` hoặc `needs_review`):
+   - (a) Kiểm khoá: nếu `conflict_code` là conflict đang `open`, **hoặc** `topic` khớp một pattern trong `locked_topics` của conflict `open` bất kỳ (pattern `price.*` nghĩa là topic bắt đầu bằng `price.`), thì 409 `{code:'CONFLICT_LOCKED', conflicts:['D03',…]}`.
+   - (b) `prices`: nếu `is_fixture=true` mà env `CHATBOT_ALLOW_FIXTURES` khác `'true'` thì 400 `{code:'FIXTURE_NOT_ALLOWED'}`. **Không bao giờ** đặt env này trên VPS.
+   - (c) `prices`: đã có rule `published` **cùng** `target_type`, `target_code`, `fabric` (null coi như một giá trị), `customer_scope`, và **giao nhau** cả khoảng số lượng lẫn khoảng ngày, thì 409 `{code:'PRICE_CONFLICT', rule_ids:[…]}`.
+   - (d) Bản `published` cũ cùng `item_key` chuyển sang `retired`, bản mới thành `published`. Ghi `approver_id`, `approved_at`. `CHATBOT_KB_VERSION` +1 (UPSERT nguyên tử như `LlmBudgetService`). Audit `kb.publish`.
+5. **Thu hồi:** `published` → `retired`, `kb_version` +1, audit `kb.retire`.
+6. **Giải quyết conflict:** `PUT conflicts/:code {status:'open'|'resolved', resolution}`. Ghi `resolved_by`, `resolved_at`. `kb_version` +1, audit `kb.conflict`.
+7. **Validate theo loại:**
+   - `knowledge`: `topic` và `answer` bắt buộc; `topic` khớp `^[a-z0-9_.]+$`.
+   - `facts`: `sku` phải là sản phẩm có `show_on_website=true`, không thì 400 `SKU_NOT_ON_WEBSITE`. `fact_key` thuộc `FACT_TOPIC`.
+   - `bundles`: `items` ≥ 1, mọi `sku` phải là sản phẩm website, `qty ≥ 1`.
+   - `prices`: `qty_min ≥ 1`, `qty_max ≥ qty_min` nếu có, `unit_price ≥ 0` và là số nguyên, `valid_from` bắt buộc, `customer_scope` khớp `^(PUBLIC|CUSTOMER:\d+)$`.
+   - Chặn trường lạ: 400.
+8. **`FACT_TOPIC`:**
+   - `size → product.spec.size`
+   - `structure → product.spec.structure`
+   - `finished_thickness → product.thickness.finished`
+   - `material → product.material_claim`
+   - `care_instruction → product.care`
+   - `age_guidance → product.age`
+   - `anti_slip → product.spec.anti_slip`
+   - `bag_fit → bundle.bag_fit`
+   - `other → product.other`
+9. **`publicScope` (một hàm duy nhất, mọi tool đều dùng):** `status='published'` và ngày hôm nay (giờ VN) nằm trong `[effective_from, effective_to]` (null = không giới hạn). Riêng `knowledge` thêm điều kiện `public_allowed=true`; riêng `prices` thêm `customer_scope='PUBLIC'`.
+10. **`normalizeVi(text)`:** NFD, bỏ dấu, `đ→d`, chữ thường, gộp khoảng trắng. Dùng để tính `search_text` và câu truy vấn.
 
-## P1.6 Admin ERP (Q-02 = ERP frontend)
-Trong `frontend/src/pages/chatbot/`, dùng `utils/api` và antd, theo mẫu trang có Table + Drawer + Form:
+## P1.3 Seed `CHATBOT_KB_SEED_V1` (idempotent, một transaction)
 
-| Route | Nội dung | Quyền (menu **và** `<Route>` cùng điều kiện) |
+- `chatbot_sources`: S1, S2, S3, S4, A1, SPEC. `internal_ref` lấy URL từ SPEC §1.
+- `chatbot_conflicts`: **đủ 16 dòng D01–D16** từ SPEC §3, `status='open'`. `locked_topics` tối thiểu:
+  - D01, D02, D13 → `price.*`
+  - D03, D04 → `product.thickness.*`
+  - D05 → `service.logo.*`, `price.service.*`
+  - D06 → `moq.*`
+  - D07 → `leadtime.*`
+  - D08 → `product.label.*`
+  - D09 → `bundle.bag_fit*`
+  - D10 → `shipping.*`
+  - D11 → `tax.*`
+  - D12 → `policy.return.*`, `policy.warranty.*`
+  - D14 → `order.*`
+  - D15 → `product.material_claim*`
+  - D16 → `payment.*`, `contact.bank*`
+- `chatbot_knowledge_items`:
+  - 11 dòng từ SPEC §4.2: `topic='product.spec.<slug>'`, `needs_review`, `public_allowed=false`, `source_refs` và ghi chú lưu ý đặt trong `answer`.
+  - 8 mẫu câu từ SPEC §6.7: `topic='script.<slug>'`, `draft`, `public_allowed=true`.
+- Trước khi ghi: `scanPii()` (SĐT VN, email, chuỗi 9–14 chữ số). Có kết quả thì rollback và log lỗi.
+- **Eval cases dời sang P3** (P1 không làm).
+
+## P1.4 API quản trị (prefix `/api/chatbot/admin/kb`, mẫu cặp quyền như P0)
+
+Controller `ChatbotKbController`, `@UseGuards(JwtAuthGuard, PermissionsGuard)` ở class, mỗi method một cặp `@RequirePermission('CHATBOT_KB','can_x')` + `@Perm('CHATBOT_KB','x')`. `:type` ∈ `knowledge|facts|bundles|prices`, giá trị khác → 400.
+
+| id | Method | Route | Quyền | Trả về |
+|---|---|---|---|---|
+| CB-101 | GET | `/:type?status=&topic=&q=&sku=&page=&limit=` | view | `{items, total}` |
+| CB-102 | GET | `/:type/:id` | view | item + `versions:[{id,version,status,updated_at}]` + `previous_published` (để CMS hiển thị so sánh) |
+| CB-103 | POST | `/:type` | create | **201** item (`draft`) |
+| CB-104 | PUT | `/:type/:id` | update | item (có thể là bản mới, xem P1.2.2) |
+| CB-105 | POST | `/:type/:id/submit` | update | item |
+| CB-106 | POST | `/:type/:id/publish` | **delete** | item, hoặc lỗi P1.2.4 |
+| CB-107 | POST | `/:type/:id/retire` | **delete** | item |
+| CB-108 | GET | `/conflicts` | view | `{items:[{code,title,risk,locked_topics,owner_role,status,resolution,resolved_by,resolved_at}]}` |
+| CB-109 | PUT | `/conflicts/:code` | **delete** | conflict |
+| CB-110 | GET | `/website-products?q=` | view | `{items:[{sku,name,display_name,image_url}]}` (chỉ `show_on_website=true`, tối đa 50) |
+| CB-111 | GET | `/version` | view | `{kb_version:number, allow_fixtures:boolean}` |
+| CB-112 | POST | `/preview` | view | `{result}`: chạy tool P1.5 bằng `publicScope`; body `{tool, args, ignore_feature_flag?:boolean}` |
+| CB-113 | GET | `/sources` | view | `{items}` (có `internal_ref`, chỉ admin CMS thấy) |
+
+- **Thứ tự route:** các route tĩnh (`conflicts`, `website-products`, `version`, `preview`, `sources`) phải khai báo **trước** `/:type`.
+- Mỗi route có dòng `CB-1xx` trong `route-matrix.csv`, cùng commit.
+
+Item trả về có đủ cột chung + cột riêng. Với `prices`, `effective_from/to` trả thêm dưới tên `valid_from/valid_to`, và create/update nhận **cả hai tên**.
+
+## P1.5 Tool chỉ-đọc (`ChatbotToolsService`, P3 dùng lại; P1 truy cập qua `/preview`)
+
+| tool | args | result |
 |---|---|---|
-| `/chatbot/knowledge` | Danh sách, lọc theo trạng thái/topic, soạn, diff giữa hai phiên bản, nút Gửi duyệt / Duyệt / Xuất bản / Thu hồi | `hasPerm('CHATBOT_KB')`; các nút duyệt chỉ hiện khi có `CHATBOT_KB` delete |
-| `/chatbot/products` | Facts theo SKU, bộ | `hasPerm('CHATBOT_KB')` |
-| `/chatbot/prices` | Rule giá; cảnh báo xung đột; nhãn FIXTURE đỏ | `hasPerm('CHATBOT_KB')` |
-| `/chatbot/conflicts` | D01–D16, người phụ trách, giải quyết (ghi resolution, không tự đổi dữ liệu khác) | `hasPerm('CHATBOT_KB')` |
+| `searchKnowledge` | `{query, intent?, limit?≤5}` | `{items:[{id,item_key,version,topic,question,answer}]}`: FTS `simple` trên `search_text` bằng `plainto_tsquery` (**mọi từ phải khớp — AND**); không có kết quả thì `ILIKE` từng từ, cũng AND |
+| `searchCatalog` | `{keywords?, skus?}` | `{items:[{sku,name,image_url,facts:[{fact_key,value,unit}]}]}`: chỉ sản phẩm website **có ≥ 1 fact** trong `publicScope`; tối đa 5 |
+| `getProductDetails` | `{sku}` | `{product:{sku,name,image_url,facts:[…]}}`, hoặc `{product:null}` nếu không phải sản phẩm website |
+| `compareProducts` | `{skus:[2..3]}` | `{skus, rows:[{fact_key, values:{<sku>: string}}]}`: giá trị = `value` + (` ` + `unit` nếu có), ví dụ `120x60 cm`; thiếu fact thì **`chưa xác nhận`**; ngoài khoảng 2–3 SKU → 400 |
+| `getPriceEstimate` | `{target_type, target_code, quantity, fabric?, services?:[{code, quantity?}], requested_tier_qty?}` | `{status, reason?, lines:[…], total?, missing:[], currency:'VND'}` |
 
-- Menu nhóm "Trợ lý AI" đặt cạnh CMS/Website trong `App.tsx`.
-- Backend controller `chatbot/admin/knowledge|facts|bundles|prices|conflicts|eval-cases` theo mẫu P0.8, mọi route có dòng `CB-NNN` trong matrix.
-- Kiểm quyền duyệt **ở server**: frontend ẩn nút không phải là kiểm soát.
+`getPriceEstimate`, tính bằng **số nguyên VND**:
+1. `features.price_estimate=false` và không có `ignore_feature_flag` (chỉ `/preview` được truyền) → `{status:'disabled'}`.
+2. `requested_tier_qty > quantity` → `{status:'needs_sales', reason:'discount_request'}`.
+3. Lấy rule trong `publicScope` của đúng target, thỏa `qty_min ≤ quantity ≤ (qty_max ?? ∞)`, có `fabric` bằng giá trị truyền vào hoặc null. Nếu có cả rule fabric cụ thể lẫn rule null thì ưu tiên rule cụ thể. Còn lại 0 rule → `needs_sales`/`no_rule`; từ 2 rule cùng mức cụ thể trở lên → `needs_sales`/`conflicting_rules`.
+4. Mỗi dòng: `subtotal = unit_price × quantity`.
+   - `tax_included=true` → `tax=0`.
+   - Không gồm thuế mà có `tax_rate` → `tax = round(subtotal × tax_rate / 100)`.
+   - Không gồm thuế và `tax_rate` null → dòng đó bị ghi `missing:['tax:<code>']`.
+   - `total = subtotal + tax`.
+5. Mỗi `services[i]` tìm rule `target_type='service'`, `target_code=code` theo cùng cách. Không có thì ghi vào `missing`.
+6. `missing` rỗng → `status:'available'`, có `total` = tổng các dòng. Ngược lại → `status:'partial'`, **không có** `total`.
+7. Kết quả **không bao giờ** chứa `customer_scope`, id khách hay rule riêng.
+
+## P1.6 CMS (`hula-web/cms`)
+
+1. `src/lib/api.ts` thêm `chatbotKbApi` gọi các route P1.4 (dùng axios `api` có sẵn, kèm token).
+2. `AdminLayout.tsx` thêm nhóm menu **"Trợ lý AI"** (icon `RobotOutlined`). Chỉ hiện khi `user.username === 'admin'` **hoặc** `hasPermission('CHATBOT_KB','view')`. Trang con:
+
+   | Route CMS | Nội dung |
+   |---|---|
+   | `/chatbot/knowledge` | Bảng lọc theo status/topic/từ khoá; Drawer soạn (topic, câu hỏi, trả lời, SKU, cho phép công khai, nguồn, conflict, hiệu lực); tab **So sánh** với bản đang xuất bản (hiển thị từng trường, tô màu trường khác); nút Gửi duyệt / Xuất bản / Thu hồi |
+   | `/chatbot/products` | Chọn SKU từ `website-products` (có ảnh), danh sách facts, thêm/sửa fact; tab **Bộ sản phẩm** |
+   | `/chatbot/prices` | Bảng rule; form theo P1.1; **tag đỏ "FIXTURE"**; lỗi `PRICE_CONFLICT`/`CONFLICT_LOCKED` hiện rõ mã conflict |
+   | `/chatbot/conflicts` | D01–D16: trạng thái, topic bị khoá, người phụ trách, ô giải quyết |
+   | `/chatbot/tools` | Form "Thử công cụ" gọi `/preview` (5 tool), hiển thị JSON kết quả. Có checkbox "Bỏ qua cờ dự toán" |
+
+3. Nút Xuất bản / Thu hồi / Giải quyết conflict chỉ hiện khi `username==='admin'` hoặc `hasPermission('CHATBOT_KB','delete')`. Server vẫn là nơi kiểm quyền.
+4. Lỗi 401/403 dùng handler sẵn có. Hiển thị `message` và `code` từ server.
+5. Không dùng `dangerouslySetInnerHTML`. Nội dung tri thức hiển thị dạng text (`white-space: pre-wrap`).
+6. Không có chữ "Cừu Hula" cứng: tiêu đề menu là "Trợ lý AI". Đưa `hula-web/cms/src/app/chatbot/**` vào phạm vi `check-no-hardcoded-name.js` và `check-no-secrets.js`.
+7. **3 ảnh evidence:** trang knowledge có tab so sánh; trang prices có một rule FIXTURE và thông báo lỗi `CONFLICT_LOCKED`; trang tools có kết quả `getPriceEstimate`.
+
+## P1.7 Chạy nghiệm thu
+
+```bash
+bash docs/rbac_v2/test-env/pgenv.sh reset
+npx nest build
+DB_HOST=127.0.0.1 DB_PORT=5432 DB_USERNAME=hula_user DB_PASSWORD=hula_password DB_DATABASE=hula_db \
+  PORT=3999 NODE_ENV=production CHATBOT_ALLOW_FIXTURES=true node dist/main.js &
+node scripts/chatbot/accept-p1.js > docs/chatbot/evidence/P1/accept-p1.txt
+npm run qa
+```
+
+- `NODE_ENV=production` để chứng minh DDL chạy được khi synchronize tắt.
+- Script tự cấp quyền `CHATBOT_KB` (VCU--) cho nhóm **Planning Manager** (user `lou`) bằng SQL để kiểm "soạn được nhưng không duyệt được". Đây chỉ là dữ liệu test-env.
+- Script tạm giải quyết D01, D02, D03, D13 để test xuất bản giá và khoá, rồi mở lại. **Mỗi lần chạy script cần DB vừa `pgenv.sh reset`** (script tạo dữ liệu và đếm chính xác).
+- **Tắt backend sau khi chạy xong** (P0: cổng 3999 bị giữ làm lệch audit).
 
 ## Không làm ở P1
-- Không widget. Không LLM.
-- Không đọc/sửa `price_list_rules`, `sales_orders`.
-- Không nhập giá thật: giá thật do sales tự nhập và duyệt sau P5.
-
-## Tự kiểm
-- Draft/needs_review/hết hạn/retired **không** xuất hiện ở bất kỳ tool nào (CB1-02, CB1-03).
-- User không có `CHATBOT_KB` delete gọi API duyệt → 403 (kể cả khi RBAC SHADOW).
-- `pgenv.sh reset` + boot 2 lần: seed không nhân đôi.
+- Không widget, không LLM, không eval cases.
+- Không sửa ERP frontend.
+- Không đọc/sửa `price_list_rules` hay `sales_orders`.
+- Không nhập giá thật.
