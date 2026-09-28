@@ -1,0 +1,7 @@
+check_rbac=0
+public_callers=0
+✅ check-no-secrets: Scanned 63 files. No secrets or real emails detected.
+✅ check-no-hardcoded-name: Scanned 55 files. No hardcoded name outside defaults.
+Tests:       47 passed, 47 total
+tsc=0
+website_tsc=0 (main dir @ cb5a9be); frontend tsc: 0 lỗi trong src/pages/chatbot

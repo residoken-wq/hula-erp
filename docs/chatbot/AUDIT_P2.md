@@ -1,5 +1,34 @@
 # AUDIT P2 — Chatbot: hội thoại, yêu cầu, LEAD, hộp thư, widget
 
+## VÒNG 2 — 2026-09-28 — **AUDIT_PASS**
+
+- **Đối tượng:**  @  (7 commit, đã tách theo mục)
+- **Môi trường:** , cổng 4999,  + hook test
+- **Script:**  không bị sửa
+
+| Lỗi vòng 1 | Kết quả | Kiểm chứng |
+|---|---|---|
+| M1 thiếu UI | ĐẠT | Có , , menu ERP; , , . Đủ 6 ảnh: nút header có avatar, panel tự mở, teaser mobile khoảng 21% chiều cao, panel mobile, hộp thư đã nhận xử lý, drawer có link lead CRM |
+| M2 chưa commit | ĐẠT | 7 commit theo mục; đã bỏ  khỏi git và thêm vào  |
+| M3 câu chữ bot | ĐẠT | Các câu mặc định giờ trung tính: không còn chính sách gửi mẫu, chống thấm, cao su non, "ngay", "giá tốt nhất"; xưng "em", gọi "anh/chị" |
+| m1 xưng hô | ĐẠT | |
+| m2 log email | ĐẠT | Log không còn địa chỉ |
+
+Claude chạy lại:  **16/16 PASS**; check-rbac/public-callers exit 0; 2 script chatbot sạch; jest 47/47; tsc backend và website 0; frontend không có lỗi type trong  ().
+
+**MINOR, chuyển sang việc tồn P3 (không chặn, nhưng phải sửa trước go-live):**
+- m3: widget đọc  ( L216,  L61), trong khi API trả . Hậu quả: lời chào chỉnh trong Cấu hình hệ thống **không bao giờ hiện**, lúc nào cũng dùng câu cứng có chữ "**đạt chuẩn**" (khẳng định chưa được duyệt). Sửa: dùng  và bỏ câu cứng.
+- m4: nút header ở 1280px bị xuống dòng "Tư vấn / ngay", ép menu thành 2 dòng. Thêm , avatar 20px.
+- m5: phụ đề panel "Tư vấn nệm chăn ga mầm non" đang viết cứng. Nên lấy từ config hoặc bỏ.
+- Q (hỏi Chủ dự án): nút "Tư Vấn Ngay" thứ hai ở banner hero ( L122) vẫn dẫn sang . Có muốn nút này cũng mở chat không?
+
+**Ảnh hưởng vận hành khi deploy P1+P2:**
+- Khách: không đổi gì (cờ tắt, nút header vẫn dẫn ).
+- **ERP:** các nhóm có quyền  (seed từ SALES: Sales, Admin, Planning Manager, Accounting_manager chỉ xem) sẽ thấy ngay menu **"Trợ lý AI" → Hộp thư, Yêu cầu** (đang trống).
+- : prod thiếu SMTP thì email khác của ERP báo lỗi thay vì giả vờ thành công (prod có SMTP nên không đổi).
+- Không cần env mới. **Không đặt**  /  trên VPS.
+
+
 ## VÒNG 1 — 2026-09-27 — **AUDIT_FAIL** (vòng 1/3)
 
 - **Đối tượng:** working tree chưa commit trên `chatbot/p2`. HEAD vẫn là `6c5f0b5` do Claude mở phase, Antigravity **chưa có commit nào**.
