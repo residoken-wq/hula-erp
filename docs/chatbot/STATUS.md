@@ -9,7 +9,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | MERGED (main @ eaa07f2) | `chatbot/p1` → `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
 | P2 | MERGED (main @ eaa07f2) | `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
-| P3 | SUBMITTED (vòng 2) | `chatbot/p3` | Giải quyết 100% AUDIT_P3 vòng 1: M1 (FOR UPDATE), M2 (Gemini ranking + 404 retry), P3.10 (script_first), m2-m6; accept-p3 22/22 PASS; accept-p2 scripted 15/16 PASS (CB2-12 PASS); QA pass | 2026-09-28 Antigravity |
+| P3 | AUDIT_FAIL (vòng 2/3) — chỉ còn M3 | `chatbot/p3` @ 4bca3a7f | Sửa M3: seed V1 (từ P1) có thông số/chứng nhận bịa; retire các mục chưa duyệt | 2026-09-28 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
 
@@ -41,6 +41,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Claude · Audit P3 vòng 2: code đạt hết (accept-p3 22/22 dev mode, CB3-18 đạt, CB3-24 26/31, qa PASS 54s). **AUDIT_FAIL** vì M3: seed tri thức V1 (có từ P1, đã chạy trên prod) chứa 11 thông số bịa (Thắng Lợi, QCVN, kháng khuẩn, chống thấm…) và kịch bản hứa hẹn. Chủ dự án không duyệt các mục này trong CMS cho tới khi sửa.
 
 - 2026-09-28 · Antigravity · Nộp nghiệm thu P3 vòng 2: **P3 SUBMITTED (vòng 2)**.
   - Sửa dứt điểm M1: `commitTurn()` dùng transaction + `SELECT ... FOR UPDATE` (`pessimistic_write`), drop reply và bảo toàn trạng thái khi nhân viên tiếp quản giữa lượt (CB3-18 PASS ở cả 2 nhánh, CB2-12 PASS).

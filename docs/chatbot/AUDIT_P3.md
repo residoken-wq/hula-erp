@@ -1,5 +1,44 @@
 # AUDIT P3 — Chatbot: AI tư vấn, kho tri thức v2
 
+## VÒNG 2 — 2026-09-28 — **AUDIT_FAIL** (vòng 2/3), chỉ còn **1 lỗi nội dung M3**
+
+- **Đối tượng:** `chatbot/p3` @ `4bca3a7f`. Đã có main `a58d4f49` (3 hotfix + QA mới).
+- **Script:** `accept-p*.js` không bị sửa.
+- **Không đổi entity/DDL**, nên theo quy trình gọn chỉ boot ở chế độ giống prod (`NODE_ENV=development`).
+
+| Kiểm | Kết quả |
+|---|---|
+| `accept-p3.js` (22 bài), dev mode, provider fake | **22/22 PASS** |
+| CB3-18: nhận chat giữa lượt (M1) | ĐẠT: cả nhánh LLM lẫn nhánh dự phòng đều `replies=0`, `human_active=true`, `assigned_user_id=1` |
+| CB3-24: chỉ kịch bản | **26/31**, 0 lỗi an toàn (còn trượt: S3-01, 09, 22, 31 sai intent; S3-18 thiếu gợi ý ticket) |
+| `accept-p2.js`, dev mode, `scripted` | 15/16 (CB2-14 lệch vì email giả lập, đã biết) |
+| `npm run qa` (bản mới) | PASS, 54 giây. Frontend còn 45 lỗi cũ ở file khác |
+| M2 chọn model | Có sắp theo phiên bản, bỏ `-lite/-exp/preview`, gặp 404 thì loại và thử model kế |
+| m2 429/503 | `rate_limited` / `unavailable` + circuit breaker |
+| m4 UI | Có ô `llm.mode`, `llm.model`, `widget.*` (kể cả `subtitle`) |
+| m5 câu viết cứng trẻ < 18 tháng | Đã bỏ |
+
+**Lỗi còn lại:**
+
+| ID | Mức | Vị trí | Mô tả | Yêu cầu sửa |
+|---|---|---|---|---|
+| M3 | **MAJOR** (an toàn nội dung) | `src/chatbot/seed/chatbot-kb-seed.service.ts` L228–L377 (seed `CHATBOT_KB_SEED_V1`, **có từ P1, đã chạy trên prod**) | 11 mục `product.spec.*` **không lấy từ SPEC §4.2 / S1–S3 mà tự bịa**: "cotton 100% **Thắng Lợi**", gối "30x45 / 35x50", chăn "110x140", nệm lưới "khung inox… **kháng khuẩn**", túi "PU/PVC **chống thấm**", đồng phục "cá sấu co giãn 4 chiều", và **chứng nhận "không chứa formaldehyde… QCVN 01:2017/BCT"**. 8 kịch bản `script.*` có câu hứa: "khung giá tốt nhất", "báo giá chiết khấu", "phản hồi sớm nhất", "ưu tiên chuyển ngay". Hiện ở `needs_review`/`draft`, nhưng nút **Duyệt hàng loạt** (P3) có thể xuất bản chúng chỉ bằng một cú bấm. SPEC §4.2 và §12 cấm khẳng định vật liệu/chứng nhận chưa có hồ sơ. Lỗi lọt từ audit P1 vì `accept-p1` chỉ đếm số dòng | (1) Bỏ hẳn nội dung bịa khỏi seed V1: seed V1 chỉ còn `sources` + 16 conflict; tri thức thật nhập bằng `kb-v2.json`. (2) Migration idempotent `CHATBOT_KB_SEED_V1_CLEANUP`: chuyển sang `retired` mọi mục của seed V1 (19 topic đang có trong code) **đang ở `draft`/`needs_review`**; **không đụng** mục đã `published` (đã có người duyệt), chỉ log cảnh báo. Chạy trong transaction, bắt lỗi, không chặn khởi động. (3) Thêm kiểm vào `check-no-hardcoded-name.js` hoặc script mới: seed không được chứa `kháng khuẩn|chống thấm|chứng nhận|QCVN|đạt chuẩn|an toàn tuyệt đối` |
+
+**Ảnh hưởng vận hành:**
+- Trên prod đang có 19 mục seed V1 chờ duyệt. **Trước khi M3 được sửa: trong CMS → Tri thức, KHÔNG duyệt các mục `product.spec.mattress_*`, `pillow_*`, `blanket_cotton`, `bag_*`, `sheet_mesh`, `uniform_*`, `fabric_safety` và `script.greeting/ask_*/logo_support/lead_contact/outside_hours/fallback_busy`.**
+- Tri thức đúng nằm trong `kb-v2.json`, nhập bằng nút "Nhập JSON".
+
+**Vòng 3 cần nộp:**
+- Sửa M3.
+- Chạy `accept-p3.js` ở dev mode trên DB vừa reset.
+- Chạy thêm 1 lần `NODE_ENV=production` vì có migration dữ liệu.
+- `npm run qa`.
+
+**Smoke test prod cho Chủ dự án** (sau khi P3 deploy, thay cho ảnh):
+1. Cấu hình hệ thống → tab Trợ lý AI: đổi "Chế độ trả lời", lưu, rồi F5.
+2. CMS → Tri thức → Nhập JSON `kb-v2.json` → Duyệt hàng loạt các mục `faq.*`, `script.*` (bản kb2).
+3. Bật cờ trên staging hoặc giờ vắng khách, hỏi "Nệm dày bao nhiêu cm?". Bot phải trả lời không nêu số cm, và tab trạng thái không tăng lượt gọi AI.
+
 ## VÒNG 1 — 2026-09-28 — **AUDIT_FAIL** (vòng 1/3)
 
 - **Đối tượng:** `chatbot/p3` @ `76850354`. Đã merge 2 hotfix của main (`2bcd53ca` lỗi khởi động, `3dc66bfa` lỗi avatar).

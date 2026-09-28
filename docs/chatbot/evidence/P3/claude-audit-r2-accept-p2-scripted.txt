@@ -1,0 +1,19 @@
+=== accept-p2 2026-09-28T13:43:49.987Z base=http://localhost:4999/api db=hula_db token=cb2mulat8f7
+setup enable=200
+PASS  CB2-01  widget={"cta_label":"Tư vấn ngay","subtitle":"Tư vấn nệm mầm non","auto_open":true,"auto_open_delay_s":5,"auto_open_mobile":"teaser","snooze_hours":24}
+PASS  CB2-01b  delay1=400 mobileBad=400 valid7=200 restore=200
+PASS  CB2-02  status=200 replies=1 q=1 label=Cừu Hula text="Dạ em chào anh/chị ạ. Trường mình đang cần nệm, gối hay cả bộ, và dự kiến khoảng"
+PASS  CB2-03  sameIds=true dbRows=1 tooLong=400/MESSAGE_TOO_LONG empty=400
+PASS  CB2-04  brief={"items":[],"colors":"be","intent":"product_advice","segment":"school","quantity":30} rev=2 summary=true state=request_review asksQtyAgain=false
+PASS  CB2-05  stale=409/BRIEF_STALE unknown=400 qty0=400 ok=200 rev 2→3 rows=3
+PASS  CB2-06  consent=400/CONSENT_REQUIRED contact=400/CONTACT_REQUIRED pref=CONTACT_REQUIRED phone=PHONE_INVALID stale=409 ok=201 YC-260928-0001 dup=200/YC-260928-0001 rows=1 outbox=email,inapp state=submitted sys="Dạ em đã tiếp nhận yêu cầu YC-260928-0001. Nhân viên HULA sẽ liên hệ qua số điện thoại tro"
+PASS  CB2-07  lead="LEAD-YC-260928-0001|LEAD|CHATBOT|NEW|0980550766|Trường cb2mulat8f7" cust1=314 cust2=314 customersWithPhone=1 historyAppend=1 secondLeadCreated=0 o2=201
+PASS  CB2-08  status=500/SUBMIT_FAILED requests=0 leads=0 consents=0 state=submission_failed codeLeakedToCustomer=false
+PASS  CB2-09  anon=401 maiuyen=403 sales=200 found=true ketoanTake=403
+PASS  CB2-10  state=waiting_sales outbox=2 poll=4000 reply="Dạ em đã chuyển để nhân viên HULA hỗ trợ anh/chị ạ. Hiện tại ngoài khung giờ làm"
+PASS  CB2-11  notTaken=409/NOT_TAKEN take=201 botRepliesWhileHuman=0 staff=201 label=Nhân viên HULA leaksUserId=false release=201 human_active true→false
+PASS  CB2-12  take=201 replies=0 aiRowsAfterCustomer=0
+PASS  CB2-13  detail=200 customer=LEAD-YC-260928-0001 assign=200 backwards=400/INVALID_TRANSITION customerLeak=false cancel=200 ketoanUpdate=403
+FAIL  CB2-14  run=201 {"processed":6,"sent":6,"failed":0} inapp=sent email=sent/attempts=0/retryLater=false/errHasAt=false notifications=3 failed_count=0
+PASS  CB2-15  config={"enabled":false} message=503
+=== RESULT 15/16 PASS — FAIL: CB2-14
