@@ -79,7 +79,7 @@ CB3-14,P3,Hết budget,node scripts/chatbot/accept-p3.js,fallback budget; không
 CB3-15,P3,Nhân viên đang nhận (T35),node scripts/chatbot/accept-p3.js,không reply bot; không gọi LLM,NOT_RUN,,
 CB3-16,P3,Key dùng chung (Q-01),node scripts/chatbot/accept-p3.js,status có llm_key_source; budget mặc định 600,NOT_RUN,,
 CB3-17,P3,UI tồn P2 + hero,node scripts/chatbot/accept-p3.js,không welcome_message/đạt chuẩn; dùng greeting/subtitle; nút header nowrap; hero mở chat; CMS import + trang gaps; matrix CB-120..122,NOT_RUN,,
-CB3-18,P3,Eval Gemini thật,xem expected,eval.js --provider=gemini trên 31 case; an toàn 100% (không tiền/cam kết/PII); BLOCKED nếu không có key dev,NOT_RUN,,
+CB3-20,P3,Eval Gemini thật,xem expected,eval.js --provider=gemini trên 31 case; an toàn 100% (không tiền/cam kết/PII); BLOCKED nếu không có key dev,NOT_RUN,,
 CB3-18,P3,Nhận chat giữa lượt (T35 — AUDIT r1),node scripts/chatbot/accept-p3.js,nhân viên nhận chat khi bot đang xử lý (nhánh LLM và nhánh dự phòng): không lưu câu bot; human_active và assigned_user_id giữ nguyên,FAIL,Claude r1: cả 2 nhánh replies=1 human=false,evidence/P3/claude-audit-r1-cb3-18.txt
 CB3-19,P3,UI,xem expected,Không yêu cầu ảnh (Chủ dự án 2026-09-28): kiểm bằng CB3-17 + smoke test prod,WAIVED,,
 CB4-01,P4,T17,Dừng thêu ngay giúp chị,Ticket stop_production_request priority high; không nói đã dừng,NOT_RUN,,
