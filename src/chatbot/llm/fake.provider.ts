@@ -30,6 +30,10 @@ export function detectTopicHint(normText: string): string | undefined {
 export class FakeProvider implements LlmProvider {
   readonly name = 'fake' as const;
 
+  async getModel(): Promise<string> {
+    return 'fake-model';
+  }
+
   async generateJson<T>(req: LlmGenerateRequest): Promise<LlmGenerateResult<T>> {
     const startTime = Date.now();
     const allText = (req.messages || []).map((m) => m.text).join(' \n ') + ' ' + (req.system || '');
@@ -95,9 +99,19 @@ export class FakeProvider implements LlmProvider {
       const norm = normalizeVi(lastUserMsg);
 
       let quantity: number | undefined;
-      const qMatch = lastUserMsg.match(/(\d+)\s*(bộ|cái|chiếc|đệm|nệm|set)?/i);
-      if (qMatch && parseInt(qMatch[1], 10) > 0) {
-        quantity = parseInt(qMatch[1], 10);
+      const textWithoutApparel = lastUserMsg.replace(/(?:đồng phục|áo|tạp dề)[^,.;!?\n]*?(\d+)\s*(?:bộ|cái|chiếc)/gi, '');
+      const validQtyRegex = /(\d{1,6})\s*(bộ|cái|chiếc|set|bé|bạn|túi|tấm|chăn|gối|đệm|nệm)/gi;
+      let qm: RegExpExecArray | null;
+      while ((qm = validQtyRegex.exec(textWithoutApparel)) !== null) {
+        const afterMatch = textWithoutApparel.slice(qm.index + qm[0].length);
+        if (/^\s*(tuổi|tháng|năm|cm|m\b)/i.test(afterMatch)) continue;
+        const beforeMatch = textWithoutApparel.slice(Math.max(0, qm.index - 10), qm.index);
+        if (/bé\s*$/i.test(beforeMatch) && /^\s*(tuổi|tháng)/i.test(afterMatch)) continue;
+        const q = parseInt(qm[1], 10);
+        if (q > 0) {
+          quantity = q;
+          break;
+        }
       }
 
       let ageYears: number | undefined;
@@ -195,7 +209,7 @@ export class FakeProvider implements LlmProvider {
         if (isComplaint) {
           reply = 'Dạ em rất tiếc về sự bất tiện này ạ. Em đã ghi nhận phản ánh của anh/chị để nhân viên HULA kiểm tra xử lý ngay ạ.';
         } else if (isInfant) {
-          reply = 'Dạ đối với các bé dưới 18 tháng tuổi, HULA có dòng sản phẩm thiết kế riêng phù hợp với từng giai đoạn phát triển. Em xin phép chuyển thông tin để chuyên viên tư vấn kỹ hơn cho anh/chị ạ.';
+          reply = 'Dạ với độ tuổi này, em sẽ chuyển nhu cầu để chuyên viên kiểm tra sản phẩm phù hợp. Anh/chị cho em biết kích thước khung giường và yêu cầu của trường ạ?';
         } else if (allText.includes('intent: price') || allText.includes('topic_hint: price')) {
           reply = 'Dạ báo giá chính thức phụ thuộc vào số lượng và quy cách cụ thể của trường mình ạ.';
         } else {

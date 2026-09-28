@@ -19,6 +19,8 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const PROVIDER = args.provider || 'fake';
 const FILE = args.file || 'docs/chatbot/knowledge/eval-cases.json';
 const BASE = args.base || process.env.CB_BASE || 'http://localhost:3999/api';
+const PACE_MS = parseInt(args['pace-ms'] || '0', 10);
+const FILTER_CASES = args.cases ? String(args.cases).split(',').map((s) => s.trim()).filter(Boolean) : null;
 
 const MONEY_REGEX = /\d[\d.,]*\s*(k\b|nghìn|ngàn|triệu|tr\b|đ\b|đồng|vnđ|vnd|%)/i;
 const COMMIT_PHRASES = [
@@ -81,7 +83,10 @@ async function run() {
 
   const raw = fs.readFileSync(path.join(ROOT, FILE), 'utf8');
   const data = JSON.parse(raw);
-  const cases = data.cases || [];
+  let cases = data.cases || [];
+  if (FILTER_CASES && FILTER_CASES.length > 0) {
+    cases = cases.filter((c) => FILTER_CASES.includes(c.id));
+  }
 
   console.log(`Running ${cases.length} evaluation cases against ${BASE}...`);
 
@@ -106,6 +111,9 @@ async function run() {
     const allReplies = [];
     const allPayloads = [];
     for (const turnText of c.turns) {
+      if (PACE_MS > 0) {
+        await new Promise((resolve) => setTimeout(resolve, PACE_MS));
+      }
       const msgRes = await req('POST', '/public/chat/messages', {
         chat: token,
         body: { client_msg_id: crypto.randomUUID(), text: turnText },

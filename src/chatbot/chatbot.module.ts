@@ -35,6 +35,7 @@ import { ChatbotConversationService } from './conversation/chatbot-conversation.
 import { ChatbotOutboxService } from './outbox/chatbot-outbox.service';
 
 import { TurnOrchestratorService } from './conversation/turn-orchestrator.service';
+import { RuleUnderstanderService } from './conversation/rule-understander.service';
 import { resolveGeminiKey } from './llm/gemini.provider';
 
 @Module({
@@ -71,6 +72,7 @@ import { resolveGeminiKey } from './llm/gemini.provider';
     ChatbotKbService,
     ChatbotToolsService,
     ScriptedResponderService,
+    RuleUnderstanderService,
     TurnOrchestratorService,
     ChatbotConversationService,
     ChatbotOutboxService,
@@ -79,7 +81,7 @@ import { resolveGeminiKey } from './llm/gemini.provider';
     GeminiProvider,
     {
       provide: LLM_PROVIDER,
-      useFactory: () => {
+      useFactory: (configService: ChatbotConfigService) => {
         const providerName = (process.env.CHATBOT_LLM_PROVIDER || 'fake').toLowerCase();
         const resolved = resolveGeminiKey();
         const model = process.env.CHATBOT_LLM_MODEL;
@@ -90,10 +92,11 @@ import { resolveGeminiKey } from './llm/gemini.provider';
             );
             return new FakeProvider();
           }
-          return new GeminiProvider(resolved.key, model);
+          return new GeminiProvider(configService, resolved.key, model);
         }
         return new FakeProvider();
       },
+      inject: [ChatbotConfigService],
     },
   ],
   exports: [

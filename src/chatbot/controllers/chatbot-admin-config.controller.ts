@@ -13,6 +13,8 @@ import { ChatbotConfigService } from '../config/chatbot-config.service';
 import { LlmBudgetService } from '../llm/llm-budget.service';
 import { DataSource } from 'typeorm';
 import { SystemConfig } from '../../system/system-config.entity';
+import { LLM_PROVIDER, LlmProvider } from '../llm/llm-provider';
+import { Inject } from '@nestjs/common';
 
 @Controller('chatbot/admin')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -21,6 +23,7 @@ export class ChatbotAdminConfigController {
     private readonly configService: ChatbotConfigService,
     private readonly budgetService: LlmBudgetService,
     private readonly dataSource: DataSource,
+    @Inject(LLM_PROVIDER) private readonly llmProvider: LlmProvider,
   ) {}
 
   @RequirePermission('SYSTEM', 'can_view')
@@ -50,7 +53,12 @@ export class ChatbotAdminConfigController {
       keySource = 'GEMINI_API_KEY';
     }
     const keyConfigured = keySource !== 'none';
-    const model = process.env.CHATBOT_LLM_MODEL || 'models/gemini-1.5-flash';
+    let model = 'models/gemini-1.5-flash';
+    try {
+      model = await this.llmProvider.getModel();
+    } catch {
+      model = process.env.CHATBOT_LLM_MODEL || 'models/gemini-1.5-flash';
+    }
     const callsToday = await this.budgetService.getTodayCalls();
 
     let seedV1At: string | null = null;

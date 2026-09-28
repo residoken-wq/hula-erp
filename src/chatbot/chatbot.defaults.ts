@@ -60,6 +60,8 @@ export const CHATBOT_DEFAULTS = {
   llm: {
     daily_call_budget: 600,
     timeout_ms: 20000,
+    mode: 'script_first' as 'script_first' | 'llm_first' | 'script_only',
+    model: '',
   },
 };
 

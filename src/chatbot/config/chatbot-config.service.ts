@@ -333,6 +333,16 @@ export class ChatbotConfigService {
       } else if (raw.llm.timeout_ms !== undefined) {
         this.logger.warn('chatbot config invalid field llm.timeout_ms');
       }
+      if (['script_first', 'llm_first', 'script_only'].includes(raw.llm.mode)) {
+        result.llm.mode = raw.llm.mode;
+      } else if (raw.llm.mode !== undefined) {
+        this.logger.warn('chatbot config invalid field llm.mode');
+      }
+      if (typeof raw.llm.model === 'string' && /^[^<>{}]*$/.test(raw.llm.model) && checkNoSecret(raw.llm.model)) {
+        result.llm.model = raw.llm.model.trim();
+      } else if (raw.llm.model !== undefined) {
+        this.logger.warn('chatbot config invalid field llm.model');
+      }
     }
 
     // Widget: P2
