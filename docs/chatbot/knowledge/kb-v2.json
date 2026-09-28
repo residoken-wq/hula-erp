@@ -1,0 +1,593 @@
+{
+  "format": "hula-chatbot-kb",
+  "version": 2,
+  "generated_by": "Claude (BA) 2026-09-28 từ S1 TỔNG HỢP CÂU HỎI, S2 KỊCH BẢN BÁN HÀNG B2B, S3 HỘI THOẠI KHÁCH HÀNG (31 case) + SPEC §3, §6.7",
+  "notes": [
+    "Mọi mục đều ở trạng thái draft hoặc needs_review. Chỉ người có CHATBOT_KB (xoá = duyệt) mới xuất bản trong CMS.",
+    "Mục có conflict_code hoặc topic bị khoá (price.*, leadtime.*, shipping.*, tax.*, policy.return.*, product.thickness.*, service.logo.*, moq.*, product.label.*, bundle.bag_fit*, product.material_claim*, payment.*) sẽ KHÔNG xuất bản được cho tới khi giải quyết conflict. Mỗi nhóm bị khoá có một mục faq.*.process trả lời an toàn không nêu con số, xuất bản được ngay sau khi duyệt.",
+    "Placeholder được render khi trả lời: {short_name}, {hotline}, {email_public}, {zalo_url}, {working_hours_text}. Không ghi SĐT/email thật vào nội dung.",
+    "Không có dữ liệu khách hàng thật trong file này."
+  ],
+  "conflicts": [
+    {
+      "code": "D17",
+      "title": "Kích thước chăn/mền không thống nhất",
+      "risk": "S1: chăn Cara 130×70, Satin 130×90. S2 (bộ rời): chăn 130×80/90. Báo sai kích thước làm khách chọn sai bộ.",
+      "locked_topics": ["product.spec.size.blanket*"],
+      "owner_role": "Kỹ thuật"
+    }
+  ],
+  "knowledge": [
+    {
+      "seed_key": "kb2.faq.products.overview",
+      "topic": "faq.products.overview",
+      "intent": "product_advice",
+      "question": "HULA có những sản phẩm gì?",
+      "answer": "Dạ HULA chuyên may đồ ngủ trưa cho trường mầm non và bé đi học: nệm, gối, chăn (mền), túi ngủ và túi bảo quản. Bên em còn nhận túi đồ dơ/đồ ướt, túi tote, balo sự kiện, tạp dề/áo Bib và đồng phục cho trường. Anh/chị đang quan tâm hạng mục nào để em tư vấn kỹ hơn ạ?",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 6 upsell" }, { "src": "S3", "ref": "case 18, 25" }]
+    },
+    {
+      "seed_key": "kb2.faq.structure.compare",
+      "topic": "faq.structure.compare",
+      "intent": "product_advice",
+      "question": "Nên chọn túi ngủ hay bộ chăn gối nệm rời?",
+      "answer": "Dạ tùy không gian cất và thói quen của các bé ạ.\n- Túi ngủ: nệm, chăn, gối liền một khối, cuộn gọn và có móc cố định nên các cô xếp nhanh; bé ngủ không đạp tung chăn.\n- Bộ rời: nệm, chăn, gối tách riêng, giặt riêng từng món dễ, chăn rộng hơn nên hợp mùa nóng hoặc bé lớn.\nTrường mình ưu tiên xếp gọn nhanh hay giặt riêng từng món ạ?",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 2.1 bảng so sánh" }]
+    },
+    {
+      "seed_key": "kb2.product.structure.sleeping_bag",
+      "topic": "product.structure.sleeping_bag",
+      "intent": "product_advice",
+      "question": "Túi ngủ mầm non là gì, giặt thế nào?",
+      "answer": "Dạ túi ngủ là bộ nệm, chăn, gối may liền thành một khối. Dòng Tiêu chuẩn giặt nguyên bộ; dòng Nâng cao có dây kéo để tháo chăn ra giặt riêng. Khi cất chỉ cần cuộn lại và cài móc cố định ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 2.1" }]
+    },
+    {
+      "seed_key": "kb2.product.structure.separate",
+      "topic": "product.structure.separate",
+      "intent": "product_advice",
+      "question": "Bộ chăn gối nệm rời có gì?",
+      "answer": "Dạ bộ rời gồm nệm, gối, chăn tách riêng hoàn toàn nên giặt riêng từng món dễ. Khi xếp cần gấp từng món; bên em có đai dán/móc cố định để gối không rơi ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 2.1" }]
+    },
+    {
+      "seed_key": "kb2.product.structure.foam",
+      "topic": "product.structure.foam",
+      "intent": "product_advice",
+      "question": "Nệm foam gấp là loại nào?",
+      "answer": "Dạ nệm foam của HULA gấp được thành nhiều khúc, vỏ và ruột rời nhau, phù hợp khi cần trải trực tiếp trên sàn gạch hoặc dùng mùa lạnh. Độ dày và số khúc tùy quy cách, em sẽ nhờ nhân viên xác nhận theo mẫu cụ thể ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.2" }, { "src": "S3", "ref": "case 6" }]
+    },
+    {
+      "seed_key": "kb2.faq.tiers",
+      "topic": "faq.tiers",
+      "intent": "product_advice",
+      "question": "Dòng Tiêu chuẩn và Cao cấp khác nhau thế nào?",
+      "answer": "Dạ HULA có hai phân khúc: dòng Tiêu chuẩn dùng vải Cotton Cara, và dòng Cao cấp dùng vải Satin Hàn Quốc với nhiều tone màu để phối. Em có thể gửi bảng màu và ảnh vải thật để trường mình so sánh ạ. Mình đang nghiêng về phân khúc nào ạ?",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 2.2" }, { "src": "S3", "ref": "case 1, 29" }],
+      "review_note": "Đã bỏ các câu quảng cáo 'thoáng mát, mau khô, mềm mại, 80 tone màu' vì chưa có hồ sơ vật liệu (D15). Người duyệt có thể thêm lại nếu xác nhận."
+    },
+    {
+      "seed_key": "kb2.product.material_claim.top_bottom",
+      "topic": "product.material_claim.top_bottom",
+      "intent": "product_advice",
+      "question": "Vải mặt trên, mặt dưới nệm là gì?",
+      "answer": "Dạ mặt trên tiếp xúc với bé là vải 100% cotton, không pha nilon nên không bị xù lông. Mặt dưới là vải dù chịu cọ xát với sàn, bền và dễ vệ sinh ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D15",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.3" }, { "src": "S3", "ref": "case 2, 8" }],
+      "review_note": "S3 case 2 gọi 'cotton satin HQ 100% cotton'. Cần kỹ thuật xác nhận thành phần theo từng dòng vải trước khi mở khoá D15."
+    },
+    {
+      "seed_key": "kb2.faq.material.confirm",
+      "topic": "faq.material.confirm",
+      "intent": "product_advice",
+      "question": "Vải có phải 100% cotton không?",
+      "answer": "Dạ thành phần vải khác nhau theo từng dòng (Cotton Cara hay Satin) và theo mẫu. Em sẽ nhờ nhân viên xác nhận đúng chất liệu của mẫu anh/chị quan tâm, và gửi ảnh vải thật hoặc mẫu vải để mình xem trực tiếp ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "D15" }]
+    },
+    {
+      "seed_key": "kb2.product.spec.size.preschool",
+      "topic": "product.spec.size.preschool",
+      "intent": "product_advice",
+      "question": "Nệm mầm non kích thước bao nhiêu?",
+      "answer": "Dạ nệm mầm non dành cho bé khoảng 18 tháng đến 5 tuổi: vải Cotton Cara 120 × 60 cm, vải Satin Hàn Quốc 120 × 65 cm. Nệm có lớp chống trượt và vừa giường lưới mầm non ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.1" }]
+    },
+    {
+      "seed_key": "kb2.product.spec.size.primary",
+      "topic": "product.spec.size.primary",
+      "intent": "product_advice",
+      "question": "Nệm tiểu học kích thước bao nhiêu?",
+      "answer": "Dạ nệm tiểu học: vải Cotton Cara 150 × 60 cm, vải Satin Hàn Quốc 150 × 65 cm. Dòng này không có lớp chống trượt ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.1" }]
+    },
+    {
+      "seed_key": "kb2.product.spec.size.blanket",
+      "topic": "product.spec.size.blanket",
+      "intent": "product_advice",
+      "question": "Chăn/mền kích thước bao nhiêu?",
+      "answer": "Dạ chăn (mền) vải Cotton Cara 130 × 70 cm, vải Satin Hàn Quốc 130 × 90 cm ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D17",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.1" }, { "src": "S2", "ref": "Bước 2.1: bộ rời 130×80/90" }],
+      "review_note": "S2 ghi chăn bộ rời 130×80/90. Cần kỹ thuật chốt theo dòng (túi ngủ / bộ rời / vải)."
+    },
+    {
+      "seed_key": "kb2.product.spec.size.pillow",
+      "topic": "product.spec.size.pillow",
+      "intent": "product_advice",
+      "question": "Gối kích thước bao nhiêu?",
+      "answer": "Dạ gối đi kèm kích thước 25 × 40 cm, có móc cố định gối với nệm ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.1" }]
+    },
+    {
+      "seed_key": "kb2.bundle.bag_fit.fold",
+      "topic": "bundle.bag_fit.fold",
+      "intent": "product_advice",
+      "question": "Nệm gấp lại có vừa túi không?",
+      "answer": "Dạ nệm mầm non 120 × 60 cm gấp gọn bỏ vừa túi 47 × 35 cm, gọn nhẹ cho bé mang đi học ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D09",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.1" }],
+      "review_note": "Túi 47×35 không có trong bảng 5 form túi của S2. Cần bảng tương thích nệm–túi (D09)."
+    },
+    {
+      "seed_key": "kb2.product.spec.bags",
+      "topic": "product.spec.bags",
+      "intent": "product_advice",
+      "question": "Có những loại túi bảo quản nào?",
+      "answer": "Dạ túi bảo quản có in logo trường, kích thước chuẩn size M:\n- Balo rút 42 × 52 cm: đeo 2 vai, miệng rút nhanh, bé tự đeo được.\n- Túi quai xách 50 × 42 cm: xách tay, dây kéo mặt sau.\n- Túi quai đeo 50 × 42 cm: quai đeo vai, tiện cho phụ huynh vừa bế bé vừa đeo.\n- Túi hộp quai đeo 36 × 30 cm: form hộp, dây kéo mặt trên, có túi hông nhỏ.\n- Túi hộp diễu 45 × 35 cm: form hộp ép cạnh, rộng nhất.\nTrường mình thích kiểu nào ạ?",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 3 bảng túi bảo quản" }],
+      "review_note": "Bỏ câu 'đựng vừa bộ nệm lớn cùng thú bông' vì chưa có bảng tương thích (D09). Túi hộp chưa có chiều sâu."
+    },
+    {
+      "seed_key": "kb2.product.thickness.quilted",
+      "topic": "product.thickness.quilted",
+      "intent": "product_advice",
+      "question": "Nệm chần gòn dày bao nhiêu?",
+      "answer": "Dạ nệm chần gòn thành phẩm dày khoảng 1–1,5 cm (vải Cara) và 1,5–2 cm (Satin Hàn Quốc); lớp gòn trước khi chần dày 4–5 cm, độ phồng phù hợp bé 18 tháng–5 tuổi ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D03",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.2" }],
+      "review_note": "SPEC D03: S2 gọi 'ruột chần gòn 3–5 cm'. Cần chốt cách đo độ dày thành phẩm."
+    },
+    {
+      "seed_key": "kb2.product.thickness.foam",
+      "topic": "product.thickness.foam",
+      "intent": "product_advice",
+      "question": "Nệm foam dày bao nhiêu?",
+      "answer": "Dạ nệm foam 4 khúc dày khoảng 2,5–3 cm, vỏ và ruột rời ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D04",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 2.2" }, { "src": "S3", "ref": "case 6: 3–5 cm tùy đặt" }]
+    },
+    {
+      "seed_key": "kb2.faq.thickness.process",
+      "topic": "faq.thickness.process",
+      "intent": "product_advice",
+      "question": "Nệm dày bao nhiêu cm?",
+      "answer": "Dạ độ dày tùy dòng nệm (chần gòn hay foam) và loại vải, nên em chưa báo một con số chung được ạ. Anh/chị cho em biết mình quan tâm nệm chần gòn hay foam, bé nằm trên giường lưới hay trải sàn, em nhờ nhân viên gửi thông số đúng mẫu ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "D03, D04, T10" }]
+    },
+    {
+      "seed_key": "kb2.product.pattern",
+      "topic": "product.pattern",
+      "intent": "product_advice",
+      "question": "Có vải hoa văn không?",
+      "answer": "Dạ hiện HULA chuyên làm vải màu trơn để màu ổn định giữa các đợt ạ. Anh/chị gửi tone màu hoặc logo trường, em tư vấn cách phối màu nệm, chăn, viền và túi cho đồng bộ ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S3", "ref": "case 6, 26, 30" }]
+    },
+    {
+      "seed_key": "kb2.product.care.quilted",
+      "topic": "product.care.quilted",
+      "intent": "care",
+      "question": "Nệm chần gòn giặt thế nào?",
+      "answer": "Dạ nệm chần gòn giặt được bằng máy giặt; giặt xong nên lấy ra phơi ngay ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 5" }]
+    },
+    {
+      "seed_key": "kb2.product.care.pillow",
+      "topic": "product.care.pillow",
+      "intent": "care",
+      "question": "Gối giặt thế nào?",
+      "answer": "Dạ gối nên tháo vỏ và ruột ra giặt riêng. Ruột gòn bi không nên cho vào máy vắt sấy để tránh vón cục ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 5" }]
+    },
+    {
+      "seed_key": "kb2.product.care.color",
+      "topic": "product.care.color",
+      "intent": "care",
+      "question": "Vải có bị phai màu không?",
+      "answer": "Dạ vải cotton tự nhiên không dùng hóa chất cầm màu công nghiệp như vải poly nên màu có thể nhạt dần nhẹ theo thời gian sử dụng ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 5" }]
+    },
+    {
+      "seed_key": "kb2.faq.care.foam",
+      "topic": "faq.care.foam",
+      "intent": "care",
+      "question": "Nệm foam giặt máy được không?",
+      "answer": "Dạ nệm foam có vỏ và ruột rời nên cách vệ sinh khác nệm chần gòn. Em nhờ nhân viên gửi hướng dẫn đúng cho mẫu foam anh/chị đang dùng hoặc định mua ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "T11" }]
+    },
+    {
+      "seed_key": "kb2.service.logo.embroider",
+      "topic": "service.logo.embroider",
+      "intent": "customization",
+      "question": "Có thêu logo lên nệm/chăn không, giá bao nhiêu?",
+      "answer": "Dạ bên em nhận thêu tên/logo lên nệm với số lượng từ 50 bộ, chi phí khoảng 10–15 nghìn/cái tùy mẫu và kích thước logo ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D05",
+      "source_refs": [{ "src": "S1", "ref": "Phần 2 Bước 2" }, { "src": "S3", "ref": "case 3: thêu chăn 20 nghìn" }]
+    },
+    {
+      "seed_key": "kb2.moq.bag_print",
+      "topic": "moq.bag_print",
+      "intent": "customization",
+      "question": "In logo lên túi tối thiểu bao nhiêu?",
+      "answer": "Dạ in logo trường lên túi bảo quản áp dụng từ 30 túi ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D06",
+      "source_refs": [{ "src": "S3", "ref": "case 25" }, { "src": "S1", "ref": "Phần 2 Bước 2: in túi cho đơn ít" }]
+    },
+    {
+      "seed_key": "kb2.moq.backpack",
+      "topic": "moq.backpack",
+      "intent": "customization",
+      "question": "Có may balo/cặp không?",
+      "answer": "Dạ bên em nhận may balo theo mẫu với số lượng từ 300 cái/mẫu ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D06",
+      "source_refs": [{ "src": "S3", "ref": "case 4" }, { "src": "S3", "ref": "case 18: balo số lượng ít cho chi nhánh mới" }]
+    },
+    {
+      "seed_key": "kb2.moq.uniform",
+      "topic": "moq.uniform",
+      "intent": "customization",
+      "question": "Có may đồng phục không?",
+      "answer": "Dạ đồng phục bên em thiết kế riêng theo hệ thống nên nhận từ 500 bộ, chưa đáp ứng được số lượng ít ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D06",
+      "source_refs": [{ "src": "S3", "ref": "case 25" }]
+    },
+    {
+      "seed_key": "kb2.faq.customization.process",
+      "topic": "faq.customization.process",
+      "intent": "customization",
+      "question": "In/thêu logo, balo, đồng phục số lượng ít có được không?",
+      "answer": "Dạ số lượng tối thiểu khác nhau theo từng hạng mục (in túi, thêu nệm/chăn, balo, đồng phục) và theo mẫu có sẵn hay may mới. Anh/chị cho em biết hạng mục và số lượng dự kiến, em nhờ nhân viên kiểm tra phương án phù hợp nhất ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "D05, D06, T13" }]
+    },
+    {
+      "seed_key": "kb2.faq.logo.process",
+      "topic": "faq.logo.process",
+      "intent": "customization",
+      "question": "Gửi logo thế nào để lên mẫu?",
+      "answer": "Dạ anh/chị gửi file logo gốc (vector hoặc PNG) qua email {email_public} hoặc gửi trong khung chat này khi có chức năng tải file. Bộ phận thiết kế sẽ lên bản mockup vị trí in/thêu trên chăn và túi để mình duyệt. Màu trên màn hình chỉ để tham khảo, màu thực tế nên xem trên mẫu vải trước khi sản xuất ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 3 chốt thiết kế" }, { "src": "S3", "ref": "case 5, 17, 30" }]
+    },
+    {
+      "seed_key": "kb2.product.label.name",
+      "topic": "product.label.name",
+      "intent": "customization",
+      "question": "Nhãn tên trên chăn/túi ghi gì?",
+      "answer": "Dạ tem nhãn bên em đã cải tiến chỉ để trường điền tên bé (Name), bỏ phần lớp (Class) để bé dùng lâu dài khi chuyển lớp không bị sai thông tin ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D08",
+      "source_refs": [{ "src": "S2", "ref": "Bước 3" }, { "src": "S3", "ref": "case 30" }, { "src": "S1", "ref": "Chăn có nhãn tên lớp" }]
+    },
+    {
+      "seed_key": "kb2.faq.color.palette",
+      "topic": "faq.color.palette",
+      "intent": "customization",
+      "question": "Có những màu nào?",
+      "answer": "Dạ bảng màu khác nhau theo chất liệu (Cotton Cara hay Satin). Anh/chị gửi tone màu hoặc logo trường, em nhờ nhân viên gửi bảng màu và ảnh vải thực tế phù hợp; mình nên chốt màu sớm để tránh chờ nhập vải vào mùa cao điểm ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 2.2" }, { "src": "S3", "ref": "case 2, 18, 29" }]
+    },
+    {
+      "seed_key": "kb2.faq.sample.how",
+      "topic": "faq.sample.how",
+      "intent": "sample",
+      "question": "Muốn xem mẫu thật thì làm sao?",
+      "answer": "Dạ trường ở TP.HCM có thể đặt lịch để nhân viên mang mẫu và bảng màu đến tư vấn; trường ở tỉnh có thể tư vấn online (video call) và nhận mẫu vải gửi về. Anh/chị cho em biết khu vực và thời gian mong muốn, nhân viên sẽ liên hệ xác nhận lịch ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S1", "ref": "Phần 2 Bước 3" }, { "src": "S3", "ref": "case 4, 11, 22" }],
+      "review_note": "Không nói 'đã đặt lịch' khi nhân viên chưa xác nhận (SPEC §6.5)."
+    },
+    {
+      "seed_key": "kb2.price.range.retail",
+      "topic": "price.range.retail",
+      "intent": "price",
+      "question": "Giá bộ nệm cho bé (mua lẻ)?",
+      "answer": "Dạ bộ trọn gồm nệm, gối và túi bảo quản có giá khoảng 290–400 nghìn tùy loại vải; bên em hỗ trợ in tên bé lên túi ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D02",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 3" }]
+    },
+    {
+      "seed_key": "kb2.price.range.school_set",
+      "topic": "price.range.school_set",
+      "intent": "price",
+      "question": "Giá bộ cho trường theo phân khúc?",
+      "answer": "Dạ bộ chăn gối nệm kèm túi, vải cotton, tham khảo: Bộ Tiêu chuẩn khoảng 350–400 nghìn/bộ, Bộ Cao cấp khoảng 420–500 nghìn/bộ, tùy số lượng và in/thêu logo ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D02",
+      "source_refs": [{ "src": "S3", "ref": "case 1, 29" }]
+    },
+    {
+      "seed_key": "kb2.price.table.s2",
+      "topic": "price.table.s2",
+      "intent": "price",
+      "question": "Bảng giá theo số lượng (S2)",
+      "answer": "Tham khảo theo bảng S2 (chưa duyệt):\n- Bộ túi ngủ: 30–49 bộ khoảng 350–380 nghìn; 50–300 bộ khoảng 420–450 nghìn.\n- Bộ nệm gối: 30–49 bộ khoảng 330–350 nghìn; 50–300 bộ khoảng 400–420 nghìn.\n- Bộ nệm gối mền: 30–49 bộ khoảng 310–330 nghìn; 50–300 bộ khoảng 380–400 nghìn.\n- Trên 300 bộ: chưa có.",
+      "public_allowed": false,
+      "status": "draft",
+      "conflict_code": "D01",
+      "source_refs": [{ "src": "S2", "ref": "Bước 2.2 bảng giá" }],
+      "review_note": "BẢNG CÓ BẤT THƯỜNG: bậc 50–300 đắt hơn bậc 30–49; 'nệm gối mền' rẻ hơn 'nệm gối'; cột >300 trống. Chỉ để sales đối chiếu, KHÔNG xuất bản. Giá chính thức nhập bằng Rule giá trong CMS."
+    },
+    {
+      "seed_key": "kb2.faq.price.process",
+      "topic": "faq.price.process",
+      "intent": "price",
+      "question": "Giá bao nhiêu? Báo giá thế nào?",
+      "answer": "Dạ giá phụ thuộc dòng sản phẩm (túi ngủ hay bộ rời), chất liệu (Cotton Cara hay Satin), các món trong bộ (nệm, gối, chăn, túi), số lượng và phần in/thêu logo. Anh/chị cho em biết các món cần và số lượng dự kiến, em ghi nhận để nhân viên HULA gửi báo giá chính thức cho mình ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "D01, D02, §6.7" }]
+    },
+    {
+      "seed_key": "kb2.faq.price.quantity",
+      "topic": "faq.price.quantity",
+      "intent": "price",
+      "question": "Đặt nhiều có được giảm giá không?",
+      "answer": "Dạ báo giá của HULA có các mức theo số lượng đặt. Mức cụ thể và điều kiện áp dụng sẽ nằm trong báo giá nhân viên gửi cho trường mình; em chưa tự áp ưu đãi trong khung chat được ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 1: mốc 30, 50, 100" }, { "src": "SPEC", "ref": "D13, T07" }]
+    },
+    {
+      "seed_key": "kb2.leadtime.standard",
+      "topic": "leadtime.standard",
+      "intent": "order_status",
+      "question": "Sản xuất mất bao lâu?",
+      "answer": "Dạ thời gian sản xuất tiêu chuẩn khoảng 20–30 ngày làm việc (không kể Chủ nhật, lễ) kể từ ngày xác nhận đơn hàng và tạm ứng; mùa cao điểm nên chốt màu vải sớm để tránh chờ nhập vải ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D07",
+      "source_refs": [{ "src": "S2", "ref": "Bước 4" }, { "src": "S3", "ref": "case 2, 15, 28" }]
+    },
+    {
+      "seed_key": "kb2.leadtime.small_stock",
+      "topic": "leadtime.small_stock",
+      "intent": "order_status",
+      "question": "Số lượng ít có sẵn hàng không?",
+      "answer": "Dạ với số lượng ít (khoảng 15 bộ), một số mẫu nệm gối có sẵn tùy màu, hoặc đặt may khoảng 15–20 ngày ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D07",
+      "source_refs": [{ "src": "S3", "ref": "case 25" }]
+    },
+    {
+      "seed_key": "kb2.faq.leadtime.process",
+      "topic": "faq.leadtime.process",
+      "intent": "order_status",
+      "question": "Bao lâu có hàng? Giao gấp được không?",
+      "answer": "Dạ thời gian có hàng tùy thời điểm chốt đơn, số lượng, màu vải và phần in/thêu. Anh/chị cho em biết ngày cần nhận hàng và tỉnh/thành, em ghi rõ để bộ phận phụ trách kiểm tra khả năng đáp ứng ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "§6.7 giao gấp, T14" }]
+    },
+    {
+      "seed_key": "kb2.shipping.retail_hcm",
+      "topic": "shipping.retail_hcm",
+      "intent": "product_advice",
+      "question": "Phí giao hàng mua lẻ?",
+      "answer": "Dạ giá chưa bao gồm phí giao hàng. Bên em miễn phí giao nội thành TP.HCM khi chuyển khoản trước ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D10",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 4" }]
+    },
+    {
+      "seed_key": "kb2.shipping.wholesale",
+      "topic": "shipping.wholesale",
+      "intent": "product_advice",
+      "question": "Giao hàng cho trường ở tỉnh?",
+      "answer": "Dạ bên em giao toàn quốc qua chành xe, Viettel Post hoặc đường sắt. Với đơn sỉ từ 100 bộ, HULA hỗ trợ khoảng 20–50% phí vận chuyển tùy khu vực ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D10",
+      "source_refs": [{ "src": "S1", "ref": "Phần 2 Bước 4" }, { "src": "S3", "ref": "case 19, 24" }]
+    },
+    {
+      "seed_key": "kb2.faq.shipping.process",
+      "topic": "faq.shipping.process",
+      "intent": "product_advice",
+      "question": "Có giao hàng không? Phí ship bao nhiêu?",
+      "answer": "Dạ HULA giao hàng toàn quốc. Phí và phần hỗ trợ vận chuyển tùy khu vực, số lượng và cách thanh toán, sẽ ghi rõ trong báo giá. Anh/chị cho em biết tỉnh/thành nhận hàng để em ghi nhận ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "D10" }]
+    },
+    {
+      "seed_key": "kb2.tax.vat",
+      "topic": "tax.vat",
+      "intent": "invoice",
+      "question": "Giá đã gồm VAT chưa?",
+      "answer": "Dạ giá bán ra đã bao gồm thuế VAT 8% ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D11",
+      "source_refs": [{ "src": "S2", "ref": "Bước 4" }, { "src": "S3", "ref": "case 17" }],
+      "review_note": "Kế toán duyệt thuế suất theo từng mặt hàng và ngày hiệu lực. Không trả lời 'không lấy hóa đơn thì có giảm không' (T32)."
+    },
+    {
+      "seed_key": "kb2.faq.invoice.process",
+      "topic": "faq.invoice.process",
+      "intent": "invoice",
+      "question": "Hóa đơn, hợp đồng, biên bản giao nhận?",
+      "answer": "Dạ các yêu cầu về hóa đơn, hợp đồng mua bán, biên bản giao nhận hay thuế sẽ do bộ phận kế toán xử lý. Em tạo yêu cầu để kế toán liên hệ; khi làm hợp đồng, bên em sẽ xin thông tin pháp nhân (tên đơn vị, mã số thuế, địa chỉ, email nhận hóa đơn) ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S2", "ref": "Bước 4" }, { "src": "S3", "ref": "case 12, 17, 20, 31" }, { "src": "SPEC", "ref": "T32" }]
+    },
+    {
+      "seed_key": "kb2.policy.return.retail",
+      "topic": "policy.return.retail",
+      "intent": "complaint",
+      "question": "Chính sách đổi trả?",
+      "answer": "Dạ nếu sản phẩm không vừa ý, bên em hỗ trợ đổi trả với mỗi bên chịu một chiều phí vận chuyển; nếu lỗi từ nhà sản xuất, bên em đổi trả hai chiều miễn phí ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D12",
+      "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 4" }],
+      "review_note": "Chưa có thời hạn đổi trả và điều kiện sản phẩm (SPEC D12)."
+    },
+    {
+      "seed_key": "kb2.faq.return.process",
+      "topic": "faq.return.process",
+      "intent": "complaint",
+      "question": "Hàng lỗi/không vừa ý thì sao?",
+      "answer": "Dạ em rất tiếc vì sản phẩm chưa như mong muốn ạ. Anh/chị cho em biết đơn hàng hoặc sản phẩm đang dùng và tình trạng gặp phải; nếu tiện, gửi thêm ảnh. Em tạo yêu cầu để bộ phận chăm sóc khách hàng kiểm tra và hỗ trợ theo chính sách hiện hành ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S3", "ref": "case 18, 24, 27" }, { "src": "SPEC", "ref": "§6.6, T22" }]
+    },
+    {
+      "seed_key": "kb2.payment.deposit",
+      "topic": "payment.deposit",
+      "intent": "payment",
+      "question": "Thanh toán, tạm ứng thế nào?",
+      "answer": "Dạ khi thông tin đơn hàng đã chính xác, trường chuyển khoản tạm ứng để bên em đưa vào sản xuất; phần còn lại thanh toán khi nhận hàng. Sau khi chuyển khoản, mình gửi ảnh ủy nhiệm chi để kế toán đối chiếu ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "conflict_code": "D16",
+      "source_refs": [{ "src": "S2", "ref": "Bước 4, 6" }, { "src": "S3", "ref": "case 24, 27, 28" }],
+      "review_note": "Chưa có mức tạm ứng chuẩn. Tuyệt đối không đưa số tài khoản/QR vào tri thức."
+    },
+    {
+      "seed_key": "kb2.faq.payment.process",
+      "topic": "faq.payment.process",
+      "intent": "payment",
+      "question": "Chuyển khoản vào đâu? Đã nhận tiền chưa?",
+      "answer": "Dạ thông tin thanh toán và xác nhận đã nhận tiền do bộ phận kế toán gửi trực tiếp cho trường, em không gửi số tài khoản trong khung chat ạ. Nếu mình đã chuyển khoản, anh/chị gửi ảnh chứng từ, em chuyển kế toán đối chiếu trước khi xác nhận ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "SPEC", "ref": "§6.6, T18, D16" }]
+    },
+    {
+      "seed_key": "kb2.faq.infant",
+      "topic": "faq.infant",
+      "intent": "product_advice",
+      "question": "Có nệm cho bé dưới 18 tháng / nệm y tế không?",
+      "answer": "Dạ với bé dưới 18 tháng hoặc nệm theo quy cách riêng (như nệm y tế), em sẽ chuyển để chuyên viên tư vấn đúng nhu cầu ạ. Anh/chị cho em biết kích thước cần (dài × rộng × cao), có cần vỏ không, và nệm đặt trên khung giường hay trực tiếp trên sàn ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S3", "ref": "case 7, 14" }, { "src": "SPEC", "ref": "T12" }]
+    },
+    {
+      "seed_key": "kb2.faq.custom_spec",
+      "topic": "faq.custom_spec",
+      "intent": "customization",
+      "question": "Làm theo mẫu/kích thước riêng được không?",
+      "answer": "Dạ bên em nhận làm theo quy cách của trường. Anh/chị gửi giúp em ảnh mẫu đang dùng, kích thước (dài × rộng × cao), chất liệu và số lượng dự kiến; bộ phận kỹ thuật cần xem mẫu để tư vấn và báo giá chính xác ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S3", "ref": "case 4, 6, 11" }]
+    },
+    {
+      "seed_key": "kb2.faq.reorder",
+      "topic": "faq.reorder",
+      "intent": "reorder",
+      "question": "Muốn đặt lại như đợt trước?",
+      "answer": "Dạ em cảm ơn trường mình đã tiếp tục tin dùng HULA ạ. Anh/chị cho em biết số lượng lần này và có thay đổi gì so với mẫu cũ không (màu, logo, nhãn), em chuyển nhân viên tra lại đơn cũ và gửi báo giá/đơn hàng mới ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S3", "ref": "case 9, 15, 24" }]
+    },
+    {
+      "seed_key": "kb2.faq.order_status",
+      "topic": "faq.order_status",
+      "intent": "order_status",
+      "question": "Đơn hàng của tôi khi nào giao?",
+      "answer": "Dạ em chưa tra được tiến độ đơn hàng trực tiếp trong khung chat này ạ. Anh/chị muốn em chuyển yêu cầu kiểm tra cho nhân viên phụ trách không ạ? Nếu có mã đơn hoặc tên trường, mình ghi thêm để nhân viên tra nhanh hơn ạ.",
+      "public_allowed": true,
+      "status": "needs_review",
+      "source_refs": [{ "src": "S3", "ref": "case 14, 16, 19" }, { "src": "SPEC", "ref": "§6.7, T19, T34" }]
+    }
+  ],
+  "scripts": [
+    { "seed_key": "kb2.script.greeting", "topic": "script.greeting", "answer": "Dạ em là {short_name}, trợ lý AI của HULA. Anh/chị đang chọn sản phẩm cho bé, đặt cho trường hay cần hỗ trợ đơn đã mua ạ?", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }] },
+    { "seed_key": "kb2.script.school.open", "topic": "script.school.open", "answer": "Dạ em chào anh/chị ạ. Trường mình trước giờ đang dùng giường lưới hay nệm, và dự kiến cần khoảng bao nhiêu bộ ạ?", "source_refs": [{ "src": "S2", "ref": "Bước 1" }, { "src": "S3", "ref": "case 1, 2" }] },
+    { "seed_key": "kb2.script.school.care", "topic": "script.school.care", "answer": "Dạ các bé sẽ để nệm lại trường hay cuối tuần phụ huynh mang về giặt ạ? Em hỏi để tư vấn loại túi bảo quản phù hợp ạ.", "source_refs": [{ "src": "S2", "ref": "Bước 1" }, { "src": "S3", "ref": "case 29" }] },
+    { "seed_key": "kb2.script.school.components", "topic": "script.school.components", "answer": "Dạ trường mình cần nệm gối thôi hay bộ đầy đủ nệm, gối, chăn và túi bảo quản ạ?", "source_refs": [{ "src": "S3", "ref": "case 1, 4, 29" }] },
+    { "seed_key": "kb2.script.parent.open", "topic": "script.parent.open", "answer": "Dạ em chào anh/chị, em hỗ trợ tư vấn nệm cho bé đi học ạ. Bé nhà mình khoảng mấy tuổi, học mầm non hay tiểu học ạ?", "source_refs": [{ "src": "S1", "ref": "Phần 1 Bước 1 (bỏ câu hỏi giới tính)" }] },
+    { "seed_key": "kb2.script.sample.open", "topic": "script.sample.open", "answer": "Dạ anh/chị muốn xem mẫu vải, mẫu nệm hay cả bộ ạ? Trường mình ở khu vực nào để em ghi nhận cách xem mẫu phù hợp ạ?", "source_refs": [{ "src": "S1", "ref": "Phần 2 Bước 3" }] },
+    { "seed_key": "kb2.script.support.open", "topic": "script.support.open", "answer": "Dạ anh/chị cần hỗ trợ về giao hàng, hóa đơn, thanh toán hay chất lượng sản phẩm ạ?", "source_refs": [{ "src": "SPEC", "ref": "§6.6" }] },
+    { "seed_key": "kb2.script.price_pending", "topic": "script.price_pending", "answer": "Dạ giá cần đối chiếu theo chất liệu và các món trong bộ. Em có thể ghi nhận cấu hình để nhân viên gửi báo giá; mình muốn gồm nệm, gối, chăn và túi hay chỉ một số món ạ?", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }] },
+    { "seed_key": "kb2.script.logo_small_qty", "topic": "script.logo_small_qty", "answer": "Dạ em ghi nhận nhu cầu có logo với số lượng này. Em sẽ nhờ nhân viên kiểm tra phương án phù hợp; mình muốn logo trên túi hay trên nệm, chăn ạ?", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }] },
+    { "seed_key": "kb2.script.rush", "topic": "script.rush", "answer": "Dạ anh/chị cần nhận hàng vào ngày nào và tại tỉnh/thành nào ạ? Em ghi rõ thời hạn mong muốn để bộ phận phụ trách kiểm tra khả năng đáp ứng ạ.", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }] },
+    { "seed_key": "kb2.script.complaint", "topic": "script.complaint", "answer": "Dạ em rất tiếc vì sản phẩm chưa đáp ứng trải nghiệm mong muốn. Anh/chị cho em biết đơn hàng hoặc sản phẩm đang dùng; nếu tiện, gửi thêm ảnh để bộ phận hỗ trợ kiểm tra ạ.", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }, { "src": "S3", "ref": "case 18, 27" }] },
+    { "seed_key": "kb2.script.payment_evidence", "topic": "script.payment_evidence", "answer": "Dạ khoản thanh toán cần bộ phận kế toán đối chiếu trước khi xác nhận ạ. Em sẽ chuyển thông tin để kế toán kiểm tra và phản hồi mình ạ.", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }] },
+    { "seed_key": "kb2.script.no_erp", "topic": "script.no_erp", "answer": "Dạ em chưa tra được tiến độ trực tiếp trong cuộc trò chuyện này. Anh/chị muốn em chuyển yêu cầu kiểm tra cho bộ phận phụ trách không ạ?", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }] },
+    { "seed_key": "kb2.script.infant", "topic": "script.infant", "answer": "Dạ với độ tuổi này, em sẽ chuyển nhu cầu để chuyên viên kiểm tra sản phẩm phù hợp. Anh/chị cho em biết kích thước khung giường và yêu cầu của trường ạ?", "source_refs": [{ "src": "SPEC", "ref": "§6.7" }, { "src": "S3", "ref": "case 7" }] },
+    { "seed_key": "kb2.script.handoff", "topic": "script.handoff", "answer": "Dạ em đã chuyển để nhân viên HULA hỗ trợ anh/chị ạ. Nhân viên phụ trách sẽ liên hệ lại trong giờ làm việc ạ.", "source_refs": [{ "src": "SPEC", "ref": "§6.2" }] },
+    { "seed_key": "kb2.script.after_hours", "topic": "script.after_hours", "answer": "Dạ hiện đang ngoài giờ làm việc ({working_hours_text}). Em đã ghi nhận, nhân viên HULA sẽ liên hệ lại trong giờ làm việc ạ.", "source_refs": [{ "src": "SPEC", "ref": "§13" }] },
+    { "seed_key": "kb2.script.ask_contact", "topic": "script.ask_contact", "answer": "Dạ để nhân viên gửi báo giá, anh/chị muốn nhận qua số điện thoại, Zalo hay email ạ? Mình chỉ cần để lại một kênh thuận tiện nhất ạ.", "source_refs": [{ "src": "SPEC", "ref": "§6.3, T23" }] },
+    { "seed_key": "kb2.script.thanks_referral", "topic": "script.thanks_referral", "answer": "Dạ em cảm ơn anh/chị đã tin tưởng giới thiệu và tham khảo HULA ạ.", "source_refs": [{ "src": "S3", "ref": "case 1, 4" }] }
+  ]
+}

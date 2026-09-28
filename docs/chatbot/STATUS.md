@@ -7,9 +7,9 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | Phase | Trạng thái | Nhánh | Chặn bởi | Cập nhật |
 |---|---|---|---|---|
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
-| P1 | AUDIT_PASS (vòng 1) | `chatbot/p1` @ 0adfcf4 | Chủ dự án: merge + deploy khi muốn | 2026-09-27 Claude |
-| P2 | AUDIT_PASS (vòng 2) | `chatbot/p2` @ cb5a9be (gồm P1) | Chủ dự án: merge + deploy khi muốn | 2026-09-28 Claude |
-| P3 | BLOCKED | `chatbot/p3` | P2 AUDIT_PASS, Q-01 (chạy provider thật) | 2026-09-26 Claude |
+| P1 | MERGED (main @ eaa07f2) | `chatbot/p1` → `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
+| P2 | MERGED (main @ eaa07f2) | `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
+| P3 | **READY** | `chatbot/p3` (từ main @ eaa07f2, có instruction + `accept-p3.js` + `knowledge/kb-v2.json`) | — | 2026-09-28 Claude |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
 
@@ -19,7 +19,7 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 
 | ID | Trạng thái | Kết quả |
 |---|---|---|
-| Q-01 | OPEN | |
+| Q-01 | CHỐT 2026-09-28 | Dùng chung key Google của trợ lý nội bộ (`GEMINI_API_KEY`), `CHATBOT_LLM_API_KEY` ghi đè nếu có. Budget mặc định 600 lượt gọi/ngày |
 | Q-02 | CHỐT 2026-09-26 | Màn quản trị tri thức, facts, giá, conflict đặt trong **CMS** (`hula-web/cms`, menu "Trợ lý AI") |
 | Q-03 | CHỐT 2026-09-26 | Nút "Tư vấn ngay" trên header mở chatbot (animation), tự mở sau 5 giây (mobile dạng thẻ nhỏ, chỉnh được trong Cấu hình hệ thống). Hộp thư/yêu cầu ở ERP |
 | Q-04 | CHỐT 2026-09-26 | Route quản trị chatbot chặn thật ngay (cặp `@RequirePermission`+`@Perm`, `JwtAuthGuard`+`PermissionsGuard`) |
@@ -41,6 +41,8 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Claude · Theo lệnh Chủ dự án: merge --no-ff chatbot/p2 (gồm P1) vào main (eaa07f2), push. Chốt Q-01 (dùng chung GEMINI_API_KEY). Nút hero thay bằng avatar chatbot (P3.0). Phân tích S1/S2/S3 → knowledge/kb-v2.json (52 tri thức + 18 kịch bản, D17 mới) + eval-cases.json (31 case ẩn danh). Mở P3 với accept-p3.js (17 kiểm, gồm kiểm file UI).
 
 - 2026-09-28 · Claude · Audit P2 vòng 2: **AUDIT_PASS**. accept-p2 16/16 (Claude chạy lại), đủ UI ERP + widget, 6 ảnh, câu chữ bot sạch. MINOR m3–m5 (lời chào widget không đọc config, nút header xuống dòng, phụ đề cứng) chuyển sang P3.
 
