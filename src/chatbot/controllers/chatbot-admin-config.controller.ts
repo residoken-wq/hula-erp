@@ -43,7 +43,14 @@ export class ChatbotAdminConfigController {
   @Get('status')
   async getStatus() {
     const provider = process.env.CHATBOT_LLM_PROVIDER || 'fake';
-    const keyConfigured = !!process.env.CHATBOT_LLM_API_KEY;
+    let keySource: 'CHATBOT_LLM_API_KEY' | 'GEMINI_API_KEY' | 'none' = 'none';
+    if (process.env.CHATBOT_LLM_API_KEY) {
+      keySource = 'CHATBOT_LLM_API_KEY';
+    } else if (process.env.GEMINI_API_KEY) {
+      keySource = 'GEMINI_API_KEY';
+    }
+    const keyConfigured = keySource !== 'none';
+    const model = process.env.CHATBOT_LLM_MODEL || 'models/gemini-1.5-flash';
     const callsToday = await this.budgetService.getTodayCalls();
 
     let seedV1At: string | null = null;
@@ -88,6 +95,8 @@ export class ChatbotAdminConfigController {
     return {
       llm_provider: provider,
       llm_key_configured: keyConfigured,
+      llm_key_source: keySource,
+      llm_model: model,
       llm_calls_today: callsToday,
       seed_v1_at: seedV1At,
       schema_ok: schemaOk,

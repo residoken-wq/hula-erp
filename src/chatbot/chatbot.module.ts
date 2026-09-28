@@ -34,6 +34,9 @@ import { ScriptedResponderService } from './conversation/scripted-responder.serv
 import { ChatbotConversationService } from './conversation/chatbot-conversation.service';
 import { ChatbotOutboxService } from './outbox/chatbot-outbox.service';
 
+import { TurnOrchestratorService } from './conversation/turn-orchestrator.service';
+import { resolveGeminiKey } from './llm/gemini.provider';
+
 @Module({
   imports: [
     AuthModule,
@@ -68,6 +71,7 @@ import { ChatbotOutboxService } from './outbox/chatbot-outbox.service';
     ChatbotKbService,
     ChatbotToolsService,
     ScriptedResponderService,
+    TurnOrchestratorService,
     ChatbotConversationService,
     ChatbotOutboxService,
     EmailService,
@@ -77,16 +81,16 @@ import { ChatbotOutboxService } from './outbox/chatbot-outbox.service';
       provide: LLM_PROVIDER,
       useFactory: () => {
         const providerName = (process.env.CHATBOT_LLM_PROVIDER || 'fake').toLowerCase();
-        const apiKey = process.env.CHATBOT_LLM_API_KEY;
+        const resolved = resolveGeminiKey();
         const model = process.env.CHATBOT_LLM_MODEL;
         if (providerName === 'gemini') {
-          if (!apiKey) {
+          if (!resolved.key) {
             new Logger('ChatbotModule').warn(
-              'CHATBOT_LLM_PROVIDER is gemini but CHATBOT_LLM_API_KEY is not configured. Falling back to FakeProvider.',
+              'CHATBOT_LLM_PROVIDER is gemini but no API key is configured. Falling back to FakeProvider.',
             );
             return new FakeProvider();
           }
-          return new GeminiProvider(apiKey, model);
+          return new GeminiProvider(resolved.key, model);
         }
         return new FakeProvider();
       },
@@ -101,6 +105,7 @@ import { ChatbotOutboxService } from './outbox/chatbot-outbox.service';
     LlmBudgetService,
     ChatbotKbService,
     ChatbotToolsService,
+    TurnOrchestratorService,
     LLM_PROVIDER,
   ],
 })

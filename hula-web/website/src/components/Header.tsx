@@ -185,24 +185,24 @@ export default function Header() {
                                 <button
                                     type="button"
                                     onClick={openChat}
-                                    className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white font-semibold rounded-pill hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-95 animate-chat-wiggle"
+                                    className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white font-semibold rounded-pill hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-95 animate-chat-wiggle whitespace-nowrap text-sm"
                                     id="header-chat-cta"
                                 >
-                                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-white/20 border border-white/40 flex-shrink-0">
+                                    <div className="relative w-5 h-5 rounded-full overflow-hidden bg-white/20 border border-white/40 flex-shrink-0">
                                         <Image
                                             src={avatarUrl}
-                                            alt="Cừu Hula"
-                                            width={24}
-                                            height={24}
+                                            alt={config?.short_name || 'Trợ lý'}
+                                            width={20}
+                                            height={20}
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
-                                    <span>{ctaLabel}</span>
+                                    <span className="whitespace-nowrap">{ctaLabel}</span>
                                 </button>
                             ) : (
                                 <Link
                                     href="/lien-he"
-                                    className="hidden sm:inline-flex items-center px-5 py-2.5 bg-primary-500 text-white font-semibold rounded-pill hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-95"
+                                    className="hidden sm:inline-flex items-center px-4 py-2 bg-primary-500 text-white font-semibold rounded-pill hover:bg-primary-600 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-95 whitespace-nowrap text-sm"
                                 >
                                     {ctaLabel}
                                 </Link>

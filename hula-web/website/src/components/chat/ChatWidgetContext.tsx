@@ -13,6 +13,7 @@ import { usePathname } from 'next/navigation';
 
 export interface ChatbotWidgetConfig {
   cta_label: string;
+  subtitle?: string;
   auto_open: boolean;
   auto_open_delay_s: number;
   auto_open_mobile: 'teaser' | 'panel' | 'off';
@@ -24,7 +25,7 @@ export interface ChatbotConfig {
   display_name: string;
   short_name: string;
   avatar_url: string;
-  welcome_message: string;
+  greeting?: string;
   contact_channels: {
     hotline?: string;
     zalo_url?: string;

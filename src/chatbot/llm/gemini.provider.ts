@@ -6,27 +6,81 @@ import {
   LlmInvalidOutputError,
 } from './llm-provider';
 
+export function resolveGeminiKey(): { key: string; source: 'CHATBOT_LLM_API_KEY' | 'GEMINI_API_KEY' | 'none' } {
+  if (process.env.CHATBOT_LLM_API_KEY) {
+    return { key: process.env.CHATBOT_LLM_API_KEY, source: 'CHATBOT_LLM_API_KEY' };
+  }
+  if (process.env.GEMINI_API_KEY) {
+    return { key: process.env.GEMINI_API_KEY, source: 'GEMINI_API_KEY' };
+  }
+  return { key: '', source: 'none' };
+}
+
 @Injectable()
 export class GeminiProvider implements LlmProvider {
   readonly name = 'gemini' as const;
   private readonly logger = new Logger(GeminiProvider.name);
   private readonly apiKey: string;
-  private readonly model: string;
+  private readonly configuredModel: string;
   private readonly fetchFn: typeof fetch;
+  private cachedBestModel: { model: string; expiresAt: number } | null = null;
 
   constructor(
     @Optional() @Inject('GEMINI_API_KEY') apiKey?: string,
     @Optional() @Inject('GEMINI_MODEL') model?: string,
     @Optional() @Inject('GEMINI_FETCH') fetchFn?: typeof fetch,
   ) {
-    this.apiKey = apiKey || process.env.CHATBOT_LLM_API_KEY || '';
-    this.model = model || process.env.CHATBOT_LLM_MODEL || 'gemini-1.5-flash';
+    const resolved = resolveGeminiKey();
+    this.apiKey = apiKey || resolved.key;
+    this.configuredModel = model || process.env.CHATBOT_LLM_MODEL || '';
     this.fetchFn = fetchFn || globalThis.fetch;
+  }
+
+  async getModel(): Promise<string> {
+    if (this.configuredModel) {
+      return this.configuredModel;
+    }
+    const now = Date.now();
+    if (this.cachedBestModel && now < this.cachedBestModel.expiresAt) {
+      return this.cachedBestModel.model;
+    }
+
+    let selected = 'models/gemini-1.5-flash';
+    if (this.apiKey) {
+      try {
+        const listUrl = `https://generativelanguage.googleapis.com/v1/models`;
+        const res = await this.fetchFn(listUrl, {
+          headers: { 'x-goog-api-key': this.apiKey },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.models)) {
+            const models = data.models.filter((m: any) =>
+              m.supportedGenerationMethods?.includes('generateContent'),
+            );
+            const preferred = models.find((m: any) => m.name?.includes('flash')) || models[0];
+            if (preferred?.name) {
+              selected = preferred.name;
+            }
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`Could not list Gemini models: ${err?.message}, using fallback`);
+      }
+    }
+
+    this.cachedBestModel = {
+      model: selected,
+      expiresAt: now + 24 * 60 * 60 * 1000,
+    };
+    return selected;
   }
 
   async generateJson<T>(req: LlmGenerateRequest): Promise<LlmGenerateResult<T>> {
     const startTime = Date.now();
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
+    const model = await this.getModel();
+    const cleanModel = model.startsWith('models/') ? model.slice(7) : model;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent`;
 
     const payload: any = {
       contents: req.messages.map((m) => ({
@@ -117,7 +171,7 @@ export class GeminiProvider implements LlmProvider {
 
     return {
       data: parsedData,
-      model: this.model,
+      model,
       latencyMs,
       usage: usageMetadata
         ? {

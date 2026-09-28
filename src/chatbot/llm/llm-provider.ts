@@ -6,10 +6,10 @@ export class LlmInvalidOutputError extends Error {
 }
 
 export interface LlmGenerateRequest {
-  system: string;
+  system?: string;
   messages: { role: 'user' | 'model'; text: string }[];
   schemaName: string;
-  jsonSchema: object;
+  jsonSchema?: object;
   timeoutMs: number;
 }
 

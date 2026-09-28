@@ -289,6 +289,13 @@ export class WidgetDto {
   cta_label?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  @Matches(/^[^<>{}]*$/, { message: 'subtitle cannot contain <, >, {, }' })
+  @IsNoSecret()
+  subtitle?: string;
+
+  @IsOptional()
   @IsBoolean()
   auto_open?: boolean;
 

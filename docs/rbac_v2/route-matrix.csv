@@ -664,4 +664,7 @@ CB-216,GET,/api/chatbot/admin/inbox/requests/:id,src/chatbot/controllers/chatbot
 CB-217,PUT,/api/chatbot/admin/inbox/requests/:id,src/chatbot/controllers/chatbot-inbox.controller.ts:374,updateRequest,NEW,PERM,CHATBOT:update,NEW_CHATBOT_P2,THẤP,,Cập nhật yêu cầu
 CB-218,GET,/api/chatbot/admin/inbox/outbox,src/chatbot/controllers/chatbot-inbox.controller.ts:445,listOutbox,NEW,PERM,CHATBOT:view,NEW_CHATBOT_P2,THẤP,,Danh sách outbox
 CB-219,POST,/api/chatbot/admin/inbox/outbox/run,src/chatbot/controllers/chatbot-inbox.controller.ts:479,runOutbox,NEW,PERM,CHATBOT:update,NEW_CHATBOT_P2,THẤP,,Kích hoạt xử lý outbox
+CB-120,POST,/api/chatbot/admin/kb/import,src/chatbot/controllers/chatbot-kb.controller.ts:110,importKb,NEW,PERM,CHATBOT_KB:create,NEW_CHATBOT_P3,THẤP,,Nhập tri thức từ JSON
+CB-121,GET,/api/chatbot/admin/kb/gaps,src/chatbot/controllers/chatbot-kb.controller.ts:120,getGaps,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P3,THẤP,,Danh sách khoảng trống kiến thức
+CB-122,PUT,/api/chatbot/admin/kb/gaps/:id,src/chatbot/controllers/chatbot-kb.controller.ts:127,updateGap,NEW,PERM,CHATBOT_KB:update,NEW_CHATBOT_P3,THẤP,,Cập nhật trạng thái khoảng trống kiến thức
 
