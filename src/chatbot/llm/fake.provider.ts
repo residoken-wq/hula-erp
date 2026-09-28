@@ -6,6 +6,7 @@ import {
   LlmInvalidOutputError,
 } from './llm-provider';
 import { normalizeVi } from '../security/pii';
+import { CHATBOT_DEFAULTS } from '../chatbot.defaults';
 
 export function detectTopicHint(normText: string): string | undefined {
   if (/\b(gia|bao nhieu tien|bao gia)\b/i.test(normText)) return 'price';
@@ -33,10 +34,37 @@ export class FakeProvider implements LlmProvider {
     const startTime = Date.now();
     const allText = (req.messages || []).map((m) => m.text).join(' \n ') + ' ' + (req.system || '');
 
+    // FAKE_MODE env overrides (unit tests)
+    const fakeMode = process.env.CHATBOT_FAKE_MODE;
+    if (fakeMode === 'timeout') {
+      const waitMs = Math.min(req.timeoutMs || 20, 50);
+      await new Promise((resolve) => setTimeout(resolve, waitMs + 10));
+      const err = new Error(`LLM request timed out after ${req.timeoutMs || 20}ms`);
+      err.name = 'TimeoutError';
+      throw err;
+    }
+    if (fakeMode === 'invalid_json') {
+      throw new LlmInvalidOutputError('Invalid JSON output from LLM');
+    }
+    if (fakeMode === 'inject') {
+      const data = {
+        reply: 'Dạ em đã gửi báo giá 350.000đ/bộ cho anh/chị, xem tại http://evil.example ạ?? ??',
+        reply_text: 'Dạ em đã gửi báo giá 350.000đ/bộ cho anh/chị, xem tại http://evil.example ạ?? ??',
+        questions: [],
+      } as unknown as T;
+      return {
+        data,
+        model: 'fake-model',
+        latencyMs: Date.now() - startTime,
+        usage: { input: 10, output: 20 },
+      };
+    }
+
     // Test Hooks
     if (process.env.CHATBOT_TEST_HOOKS === 'true') {
       if (allText.includes('[[fake:inject]]')) {
         const data = {
+          reply: 'Dạ em đã gửi báo giá 350.000đ/bộ cho anh/chị, xem tại http://evil.example ạ?? ??',
           reply_text: 'Dạ em đã gửi báo giá 350.000đ/bộ cho anh/chị, xem tại http://evil.example ạ?? ??',
           questions: [],
         } as unknown as T;
@@ -171,7 +199,7 @@ export class FakeProvider implements LlmProvider {
         } else if (allText.includes('intent: price') || allText.includes('topic_hint: price')) {
           reply = 'Dạ báo giá chính thức phụ thuộc vào số lượng và quy cách cụ thể của trường mình ạ.';
         } else {
-          reply = 'Dạ em là Cừu Hula, trợ lý AI của HULA. Em có thể hỗ trợ tư vấn các sản phẩm chăn ga gối nệm mầm non cho anh/chị ạ.';
+          reply = `Dạ em là ${CHATBOT_DEFAULTS.short_name}, trợ lý AI của HULA. Em có thể hỗ trợ tư vấn các sản phẩm chăn ga gối nệm mầm non cho anh/chị ạ.`;
         }
       }
 
@@ -193,6 +221,7 @@ export class FakeProvider implements LlmProvider {
 
       return {
         data: {
+          reply: reply,
           reply_text: reply,
           questions: questions.slice(0, 1),
         } as unknown as T,
@@ -205,6 +234,7 @@ export class FakeProvider implements LlmProvider {
     // Default
     return {
       data: {
+        reply: 'Dạ vâng, em ghi nhận thông tin của anh/chị rồi ạ.',
         reply_text: 'Dạ vâng, em ghi nhận thông tin của anh/chị rồi ạ.',
       } as unknown as T,
       model: 'fake-model',

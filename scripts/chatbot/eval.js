@@ -37,10 +37,11 @@ const COMMIT_PHRASES = [
   'đạt chuẩn',
 ];
 
-async function req(method, p, { token, chat, body } = {}) {
+async function req(method, p, { token, chat, body, ip } = {}) {
   const h = { 'Content-Type': 'application/json' };
   if (token) h.Authorization = `Bearer ${token}`;
   if (chat) h['X-Chat-Session'] = chat;
+  if (ip) h['X-Forwarded-For'] = ip;
   const res = await fetch(BASE + p, {
     method,
     headers: h,
@@ -87,11 +88,13 @@ async function run() {
   const results = [];
   const csvRows = ['id,title,turns,passed,failed_criteria,replies,human_review'];
 
-  for (const c of cases) {
+  for (let idx = 0; idx < cases.length; idx++) {
+    const c = cases[idx];
+    const caseIp = `10.99.${idx + 1}.1`;
     process.stdout.write(`Evaluating ${c.id}: ${c.title}... `);
 
     // 1. Create session
-    const sRes = await req('POST', '/public/chat/sessions', { body: {} });
+    const sRes = await req('POST', '/public/chat/sessions', { body: {}, ip: caseIp });
     if (!sRes.body || !sRes.body.session_token) {
       console.log('FAIL (session creation)');
       results.push({ id: c.id, ok: false, fails: ['session_creation'] });
@@ -106,6 +109,7 @@ async function run() {
       const msgRes = await req('POST', '/public/chat/messages', {
         chat: token,
         body: { client_msg_id: crypto.randomUUID(), text: turnText },
+        ip: caseIp,
       });
       const replies = (msgRes.body && msgRes.body.replies) || [];
       for (const r of replies) {
@@ -115,7 +119,7 @@ async function run() {
     }
 
     // 3. Get conversation & brief
-    const convRes = await req('GET', '/public/chat/conversation', { chat: token });
+    const convRes = await req('GET', '/public/chat/conversation', { chat: token, ip: caseIp });
     const brief = (convRes.body && convRes.body.brief && convRes.body.brief.data) || {};
     const conv = (convRes.body && convRes.body.conversation) || {};
 

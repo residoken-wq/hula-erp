@@ -191,7 +191,7 @@ export default function Header() {
                                     <div className="relative w-5 h-5 rounded-full overflow-hidden bg-white/20 border border-white/40 flex-shrink-0">
                                         <Image
                                             src={avatarUrl}
-                                            alt={config?.short_name || 'Trợ lý'}
+                                            alt={chatConfig?.short_name || 'Trợ lý'}
                                             width={20}
                                             height={20}
                                             className="w-full h-full object-cover"
