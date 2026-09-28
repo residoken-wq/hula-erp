@@ -3,6 +3,29 @@ Nhánh: `chatbot/p3` · Ngày: 2026-09-28 · Tác giả: Antigravity
 
 ---
 
+# BÁO CÁO NGHIỆM THU VÒNG 3 (2026-09-28)
+Trạng thái: **SUBMITTED (vòng 3)**
+
+## 1. Sửa lỗi M3 (an toàn nội dung tri thức seed)
+1. **Loại bỏ nội dung bịa khỏi seed V1**:
+   - `src/chatbot/seed/chatbot-kb-seed.service.ts`: Xóa bỏ toàn bộ 11 mục `product.spec.*` và 8 `script.*` bịa đặt khỏi `CHATBOT_KB_SEED_V1`. Seed V1 hiện chỉ còn 6 nguồn (`sources`) và 16 mã xung đột (`conflicts`).
+   - Sửa tiêu đề nguồn S4 thành: *"Hồ sơ công bố hợp quy & kiểm định dệt may"* (loại bỏ từ "chứng nhận").
+2. **Migration idempotent `CHATBOT_KB_SEED_V1_CLEANUP`**:
+   - `src/chatbot/seed/chatbot-kb-seed.service.ts`: Triển khai hàm `cleanupV1Seed()` tự động chuyển sang `retired` các mục của seed V1 (19 topics) đang ở trạng thái `draft` / `needs_review`.
+   - Giữ nguyên các mục đã `published` và ghi nhận log cảnh báo (`WARN`).
+   - Chạy trong database transaction độc lập, bắt lỗi và không bao giờ chặn khởi động ứng dụng. Lưu cờ `CHATBOT_KB_SEED_V1_CLEANUP` trong `system_configs`.
+3. **Thêm kiểm tra chặn từ cấm trong seed**:
+   - `scripts/chatbot/check-no-hardcoded-name.js`: Bổ sung kiểm tra quét các file seed (`src/chatbot/seed/` và `docs/chatbot/knowledge/kb-v2.json`), chặn tuyệt đối các từ ngữ: `kháng khuẩn|chống thấm|chứng nhận|QCVN|đạt chuẩn|an toàn tuyệt đối`.
+
+## 2. Kết quả nghiệm thu tự động Vòng 3
+- **`accept-p3.js` (22/22 PASS)** trên database PostgreSQL vừa reset (`pgenv.sh reset`):
+  - `NODE_ENV=development`: **22/22 PASS** (exit code 0) — xem [`docs/chatbot/evidence/P3/accept-p3-dev.txt`](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/chatbot/evidence/P3/accept-p3-dev.txt).
+  - `NODE_ENV=production`: **22/22 PASS** (exit code 0) — xem [`docs/chatbot/evidence/P3/accept-p3-prod.txt`](file:///c:/Users/admin/Documents/GitHub/hula-erp/docs/chatbot/evidence/P3/accept-p3-prod.txt).
+- **QA Suite (`npm run qa`)**: **ALL PASSED (49s)**.
+  - Quét 61 file kiểm tra, 0 vi phạm tên bot và 0 vi phạm từ ngữ cấm trong seed.
+
+---
+
 # BÁO CÁO NGHIỆM THU VÒNG 2 (2026-09-28)
 Trạng thái: **SUBMITTED (vòng 2)**
 

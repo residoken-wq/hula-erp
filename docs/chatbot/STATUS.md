@@ -9,7 +9,7 @@ Cập nhật theo collaboration-rules §4. Nhật ký: dòng mới nhất ở tr
 | P0 | MERGED (main, chờ deploy) | `chatbot/p0` @ f380dd8 → main | Chủ dự án: deploy VPS + smoke test prod (AUDIT_P0 vòng 2) | 2026-09-26 Claude |
 | P1 | MERGED (main @ eaa07f2) | `chatbot/p1` → `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
 | P2 | MERGED (main @ eaa07f2) | `chatbot/p2` → main | Chủ dự án: deploy VPS | 2026-09-28 Claude |
-| P3 | AUDIT_FAIL (vòng 2/3) — chỉ còn M3 | `chatbot/p3` @ 4bca3a7f | Sửa M3: seed V1 (từ P1) có thông số/chứng nhận bịa; retire các mục chưa duyệt | 2026-09-28 Claude |
+| P3 | SUBMITTED (vòng 3) | `chatbot/p3` | Sửa M3: loại bỏ 19 mục bịa khỏi seed V1; migration CHATBOT_KB_SEED_V1_CLEANUP retire mục chưa duyệt; thêm kiểm chặn seed chứa từ cấm; accept-p3 22/22 PASS cả dev/prod; QA pass | 2026-09-28 Antigravity |
 | P4 | BLOCKED | `chatbot/p4` | P3 AUDIT_PASS, Q-09 | 2026-09-26 Claude |
 | P5 | BLOCKED | `chatbot/p5` | P4 AUDIT_PASS, Q-01, Q-10, Q-11, Q-12, đã điền tab cấu hình (Q-08), sales duyệt nội dung, lỗ hổng /system/config (Q-14) đã vá | 2026-09-26 Claude |
 
@@ -41,6 +41,12 @@ Trạng thái: `BLOCKED → READY → IN_PROGRESS → SUBMITTED → AUDIT_FAIL|A
 | 2026-09-26 | Q-04: route `chatbot/admin/*` dùng cặp `@RequirePermission` + `@Perm` với `JwtAuthGuard` + `PermissionsGuard` ở class (lệch luật 2 rbac_v2 và điều 3 RBAC v2 trong technical-rules) | Chỉ controller trong `src/chatbot/controllers/chatbot-admin-*` | Chứa PII khách; RBAC SHADOW tới 2026-10-26 không chặn ẩn danh |
 
 ## Nhật ký
+
+- 2026-09-28 · Antigravity · Nộp nghiệm thu P3 vòng 3: **P3 SUBMITTED (vòng 3)**.
+  - Sửa triệt để M3: loại bỏ toàn bộ 11 mục `product.spec.*` và 8 `script.*` bịa khỏi `CHATBOT_KB_SEED_V1` (seed V1 chỉ còn sources + 16 conflict).
+  - Bổ sung migration idempotent `CHATBOT_KB_SEED_V1_CLEANUP`: tự động chuyển sang `retired` các mục V1 cũ đang ở `draft` / `needs_review`; bỏ qua và giữ nguyên các mục `published` kèm cảnh báo log.
+  - Bổ sung kiểm tra trong `scripts/chatbot/check-no-hardcoded-name.js` chặn mọi file seed chứa các từ ngữ quảng cáo bịa (`kháng khuẩn|chống thấm|chứng nhận|QCVN|đạt chuẩn|an toàn tuyệt đối`).
+  - Nghiệm thu tự động độc lập trên DB PostgreSQL vừa reset: `accept-p3.js` 22/22 PASS ở cả `NODE_ENV=development` và `NODE_ENV=production`; `npm run qa` 100% green (49s).
 
 - 2026-09-28 · Claude · Audit P3 vòng 2: code đạt hết (accept-p3 22/22 dev mode, CB3-18 đạt, CB3-24 26/31, qa PASS 54s). **AUDIT_FAIL** vì M3: seed tri thức V1 (có từ P1, đã chạy trên prod) chứa 11 thông số bịa (Thắng Lợi, QCVN, kháng khuẩn, chống thấm…) và kịch bản hứa hẹn. Chủ dự án không duyệt các mục này trong CMS cho tới khi sửa.
 
