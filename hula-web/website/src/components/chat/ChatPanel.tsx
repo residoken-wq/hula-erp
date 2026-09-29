@@ -356,6 +356,39 @@ export default function ChatPanel() {
                     )}
                   </div>
                 )}
+
+                {/* Flow quick replies: only on the latest message, hidden once the customer answered */}
+                {m.payload?.type === 'quick_replies' &&
+                  Array.isArray(m.payload.buttons) &&
+                  idx === messages.length - 1 &&
+                  !conversation?.human_active && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5" data-testid="chat-quick-replies">
+                      {m.payload.buttons.map((b: { id: string; label: string }) => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          disabled={sending}
+                          onClick={() => sendMessage(b.label)}
+                          className="px-3 py-1.5 rounded-pill border border-primary-300 bg-primary-50 text-primary-700 text-[11px] font-semibold hover:bg-primary-100 disabled:opacity-50 transition-all active:scale-95"
+                        >
+                          {b.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                {m.payload?.type === 'handoff_suggest' &&
+                  idx === messages.length - 1 &&
+                  !conversation?.human_active && (
+                    <button
+                      type="button"
+                      disabled={sending}
+                      onClick={requestHuman}
+                      className="mt-2.5 px-3 py-1.5 rounded-pill bg-primary-500 text-white text-[11px] font-semibold hover:bg-primary-600 disabled:opacity-50 transition-all active:scale-95"
+                    >
+                      Gặp nhân viên tư vấn
+                    </button>
+                  )}
               </div>
             </div>
           );

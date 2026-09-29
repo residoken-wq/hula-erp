@@ -176,6 +176,15 @@ export const chatbotGapsApi = {
     updateGap: (id: string, data: { status: string }) => api.put(`/chatbot/admin/kb/gaps/${id}`, data),
 };
 
+export const chatbotFlowApi = {
+    list: () => api.get('/chatbot/admin/flows'),
+    topics: () => api.get('/chatbot/admin/flows/topics'),
+    get: (id: string) => api.get(`/chatbot/admin/flows/${id}`),
+    create: (data: any) => api.post('/chatbot/admin/flows', data),
+    update: (id: string, data: any) => api.put(`/chatbot/admin/flows/${id}`, data),
+    publish: (id: string) => api.post(`/chatbot/admin/flows/${id}/publish`),
+    setEnabled: (id: string, enabled: boolean) => api.post(`/chatbot/admin/flows/${id}/enabled`, { enabled }),
+    remove: (id: string) => api.delete(`/chatbot/admin/flows/${id}`),
+};
+
 export default api;
-
-
