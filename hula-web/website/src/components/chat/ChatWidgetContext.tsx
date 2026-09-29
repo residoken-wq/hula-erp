@@ -62,6 +62,19 @@ const ChatWidgetContext = createContext<ChatWidgetContextValue | undefined>(unde
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '');
 const EXCLUDED_PATHS = ['/checkout', '/lien-he', '/dat-hang-si', '/beta-login'];
 
+// Backend column chatbot_messages.client_msg_id is uuid: any other format fails with 500.
+function newClientMsgId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 export function ChatWidgetProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
@@ -288,7 +301,7 @@ export function ChatWidgetProvider({ children }: { children: ReactNode }) {
     const token = await ensureSession();
     if (!token) return;
 
-    const clientMsgId = 'msg_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const clientMsgId = newClientMsgId();
 
     // Optimistic append
     const tempMsg = {
@@ -334,7 +347,7 @@ export function ChatWidgetProvider({ children }: { children: ReactNode }) {
     if (!token) return;
 
     setSending(true);
-    const clientMsgId = 'act_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const clientMsgId = newClientMsgId();
 
     try {
       const res = await fetch(`${API_BASE}/public/chat/actions`, {
