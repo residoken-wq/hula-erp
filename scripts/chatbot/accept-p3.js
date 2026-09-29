@@ -110,12 +110,13 @@ const usageToday = () => { const key = 'CHATBOT_LLM_USAGE_' + new Intl.DateTimeF
   await step('CB3-03', async () => {
     const p1 = await req('POST', `${KB}/knowledge/${idOf('kb2.price.range.school_set')}/publish`, { token: admin });
     const p2 = await req('POST', `${KB}/knowledge/${idOf('kb2.product.spec.size.blanket')}/publish`, { token: admin });
-    const p3 = await req('POST', `${KB}/knowledge/${idOf('kb2.leadtime.standard')}/publish`, { token: admin });
+    // leadtime.* (D07) was resolved by the owner on 2026-09-29; tax.* (D11) is still locked
+    const p3 = await req('POST', `${KB}/knowledge/${idOf('kb2.tax.vat')}/publish`, { token: admin });
     const safe = [];
     for (const k of SAFE) { const r = await req('POST', `${KB}/knowledge/${idOf(k)}/publish`, { token: admin }); safe.push(r.s); }
     const d17 = p2.b && p2.b.conflicts ? p2.b.conflicts.includes('D17') : false;
     check('CB3-03', p1.s === 409 && code(p1) === 'CONFLICT_LOCKED' && p2.s === 409 && d17 && p3.s === 409 && safe.every((s) => s === 200),
-      `price=${p1.s}/${code(p1)} blanket=${p2.s} D17=${d17} leadtime=${p3.s} safePublish=${safe.join(',')}`);
+      `price=${p1.s}/${code(p1)} blanket=${p2.s} D17=${d17} tax=${p3.s} safePublish=${safe.join(',')}`);
   });
 
   // CB3-04 placeholders rendered

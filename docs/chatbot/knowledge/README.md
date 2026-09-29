@@ -48,3 +48,13 @@ Người lập: Claude (BA), 2026-09-28. Nguồn do Chủ dự án gửi:
 2. Duyệt hàng loạt các mục `faq.*`, `script.*` và các mục thông số, cách giặt không bị khoá.
 3. Với từng conflict: chốt con số trong CMS → Mâu thuẫn → Giải quyết, sửa mục bị khoá, rồi xuất bản.
 4. Giá chính thức nhập bằng **Rule giá** (CMS → Giá), không nhập vào tri thức.
+
+## Triage conflict 2026-09-29 (chủ dự án duyệt)
+
+Chạy tự động khi app khởi động và ngay sau mỗi lần import (`src/chatbot/seed/kb-v2-conflict-triage*.ts`). Chỉ đụng mục `kb2.*` chưa xuất bản **và** còn nguyên câu gốc, nên mục đã sửa tay trong CMS không bị ghi đè.
+
+- **Retire (8)**: `price.table.s2`, `price.range.retail`, `price.range.school_set`, `tax.vat`, `product.material_claim.top_bottom`, `policy.return.retail`, `bundle.bag_fit.fold`, `product.spec.size.blanket`. Conflict D01, D02, D09, D11–D15, D17 **vẫn khoá**; bot trả lời các chủ đề này bằng mục `faq.*.process`. Giá chính thức nhập ở **Bảng giá AI**.
+- **Viết lại (10)**: độ dày chần gòn/foam, thêu logo, balo, thời gian sản xuất (2), tem nhãn, giao hàng (2), tạm ứng. Câu mới theo đúng cách xử lý của spec: không hứa ngày giao, không nêu % hỗ trợ ship, không đưa STK/QR.
+- **Resolve (8)**: D03, D04, D05, D06, D07, D08, D10, D16. Lý do ghi trong cột `resolution` (marker `CHATBOT_KB_V2_CONFLICT_TRIAGE_1`).
+
+Sau khi deploy: CMS → Tri thức → chọn các mục nháp → **Duyệt hàng loạt** (62 mục xuất bản được).

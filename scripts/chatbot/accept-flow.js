@@ -232,6 +232,15 @@ const graph = () => ({
     if (r.b && r.b.id) await req('DELETE', `${F}/${r.b.id}`, { token: admin });
   });
 
+  await step('FL-20 unapproved script drafts never reach customers', async () => {
+    const c = await req('POST', '/chatbot/admin/kb/knowledge', { token: admin, body: { topic: 'script.complaint', question: 'draft', answer: 'DRAFT-LEAK-CHECK', public_allowed: true } });
+    const s = await newSession();
+    const r = await msg(s.tok, 'tôi muốn khiếu nại, nệm bị lỗi');
+    const leaked = String(reply(r).text || '').includes('DRAFT-LEAK-CHECK');
+    check('FL-20 no draft leak', c.s < 300 && r.s === 200 && !leaked && !!reply(r).text, `create=${c.s} reply=${short(reply(r).text)}`);
+    if (c.b && c.b.id) sql(`delete from chatbot_knowledge_items where id='${esc(c.b.id)}'`);
+  });
+
   await step('FL-19 static: widget + CMS wiring', async () => {
     const ctx = read('hula-web/website/src/components/chat/ChatWidgetContext.tsx') || '';
     const panel = read('hula-web/website/src/components/chat/ChatPanel.tsx') || '';
