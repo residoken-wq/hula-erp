@@ -668,3 +668,11 @@ CB-120,POST,/api/chatbot/admin/kb/import,src/chatbot/controllers/chatbot-kb.cont
 CB-121,GET,/api/chatbot/admin/kb/gaps,src/chatbot/controllers/chatbot-kb.controller.ts:120,getGaps,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_P3,THẤP,,Danh sách khoảng trống kiến thức
 CB-122,PUT,/api/chatbot/admin/kb/gaps/:id,src/chatbot/controllers/chatbot-kb.controller.ts:127,updateGap,NEW,PERM,CHATBOT_KB:update,NEW_CHATBOT_P3,THẤP,,Cập nhật trạng thái khoảng trống kiến thức
 
+CB-130,GET,/api/chatbot/admin/flows,src/chatbot/controllers/chatbot-flow.controller.ts:20,list,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_FLOW,THẤP,,Danh sách kịch bản sơ đồ
+CB-131,GET,/api/chatbot/admin/flows/topics,src/chatbot/controllers/chatbot-flow.controller.ts:28,topics,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_FLOW,THẤP,,Chủ đề tri thức đã duyệt cho bước Tri thức
+CB-132,GET,/api/chatbot/admin/flows/:id,src/chatbot/controllers/chatbot-flow.controller.ts:36,get,NEW,PERM,CHATBOT_KB:view,NEW_CHATBOT_FLOW,THẤP,,Chi tiết sơ đồ kịch bản kèm kiểm tra lỗi
+CB-133,POST,/api/chatbot/admin/flows,src/chatbot/controllers/chatbot-flow.controller.ts:44,create,NEW,PERM,CHATBOT_KB:create,NEW_CHATBOT_FLOW,THẤP,,Tạo sơ đồ kịch bản
+CB-134,PUT,/api/chatbot/admin/flows/:id,src/chatbot/controllers/chatbot-flow.controller.ts:52,update,NEW,PERM,CHATBOT_KB:update,NEW_CHATBOT_FLOW,THẤP,,Lưu nháp sơ đồ kịch bản
+CB-135,POST,/api/chatbot/admin/flows/:id/publish,src/chatbot/controllers/chatbot-flow.controller.ts:60,publish,NEW,PERM,CHATBOT_KB:delete,NEW_CHATBOT_FLOW,THẤP,,Xuất bản sơ đồ (duyệt)
+CB-136,POST,/api/chatbot/admin/flows/:id/enabled,src/chatbot/controllers/chatbot-flow.controller.ts:68,setEnabled,NEW,PERM,CHATBOT_KB:delete,NEW_CHATBOT_FLOW,THẤP,,Bật/tắt sơ đồ kịch bản
+CB-137,DELETE,/api/chatbot/admin/flows/:id,src/chatbot/controllers/chatbot-flow.controller.ts:76,remove,NEW,PERM,CHATBOT_KB:delete,NEW_CHATBOT_FLOW,THẤP,,Xoá sơ đồ kịch bản

@@ -158,6 +158,10 @@ export default function AdminLayout({
                     name: 'Tri thức & Kịch bản',
                 },
                 {
+                    path: '/chatbot/flows',
+                    name: 'Sơ đồ kịch bản',
+                },
+                {
                     path: '/chatbot/gaps',
                     name: 'Khoảng trống kiến thức',
                 },
