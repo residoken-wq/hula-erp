@@ -1,8 +1,10 @@
 ---
-description: Quy trình và lệnh đồng bộ cập nhật từ hula-erp sang repo public erp4u-demo
+description: Quy trình đồng bộ cập nhật từ hula-erp sang repo public erp4u-demo (ĐÃ NGƯNG 2026-11)
 ---
 
-# Quy Trình Đồng Bộ: hula-erp → erp4u-demo
+# Quy Trình Đồng Bộ: hula-erp → erp4u-demo [ĐÃ NGƯNG 2026-11]
+
+> **LƯU Ý**: Cơ chế tự động đồng bộ sang `erp4u-demo` đã ngưng từ tháng 2026-11. Repo `erp4u-demo` hiện phát triển độc lập. Hướng dẫn dưới đây chỉ lưu trữ tham khảo lịch sử.
 
 Workflow này hướng dẫn chi tiết cách đồng bộ các thay đổi từ repository nội bộ `hula-erp` sang repository demo public `erp4u-demo`.
 

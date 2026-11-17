@@ -54,7 +54,7 @@ P0-10, P0-12, P0-13, P0-14, P0-15 là kiểm thử UI. Claude đã review code: 
    - **(b)** merge nhưng xoá `docs/rbac_v2/02_Current-State-Audit.md`, `AUDIT_*.md`, `route-matrix.csv` khỏi `main`, bản gốc giữ ở local.
 2. **Có đường lùi cho image:** image chỉ có tag `latest`. Trước khi `docker compose pull` trên VPS, tag lại image đang chạy:
    `docker tag ghcr.io/residoken-wq/hula-erp-app:latest hula-erp-app:pre-rbac-p0`, tương tự cho `hula-erp-frontend`.
-3. **Push `main` sẽ kích hoạt:** build lại image app + frontend, và sync code sang `erp4u-demo` (có code RBAC, không có `docs/`).
+3. **Push `main` sẽ kích hoạt:** build lại image app + frontend (lưu ý: đồng bộ code sang `erp4u-demo` đã ngưng 2026-11).
 4. **Smoke test sau deploy (15 phút):**
    - Đăng nhập admin → Hệ thống → Nhật ký RBAC có dữ liệu.
    - Mở lần lượt Kế hoạch, NCC, Vật tư, Danh mục, Công đoạn, Tuyến SX, Dashboard SX, Marketing, Social, TikTok, Sản phẩm: không lỗi.

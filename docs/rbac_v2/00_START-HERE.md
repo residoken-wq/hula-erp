@@ -24,7 +24,7 @@ Gói này dùng để chuyển HULA ERP từ "mặc định mở" sang "mặc đ
 5. Không in token, mật khẩu, query string ra log.
 6. Chạy `npm run qa` (tsc + lint) trước khi báo xong. Build frontend: `cd frontend && npm run build`.
 7. Commit bằng tiếng Anh, prefix `feat(rbac):` / `fix(rbac):`. Mỗi phase một nhánh `rbac/p0`, `rbac/p1`…, tạo từ `rbac/plan`. **Không commit/merge vào `main`, không push** khi chưa có lệnh của Chủ dự án.
-8. Code sẽ tự đồng bộ sang repo `erp4u-demo` khi push main (`sync-demo.yml`). Không commit dữ liệu thật hay IP thật vào seed.
+8. Không commit dữ liệu thật hay IP thật vào seed (lưu ý: cơ chế tự đồng bộ sang repo `erp4u-demo` đã ngưng 2026-11).
 
 ## Kết thúc mỗi phase phải nộp
 

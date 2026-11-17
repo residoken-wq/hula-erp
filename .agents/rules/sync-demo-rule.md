@@ -1,6 +1,8 @@
-# Sync Rule: hula-erp → erp4u-demo
+# Sync Rule: hula-erp → erp4u-demo [ĐÃ NGƯNG 2026-11]
 
-> **Mục đích**: Đảm bảo mọi tính năng, sửa lỗi hoặc cải tiến mới trên `hula-erp` có thể đồng bộ sang repository demo public `erp4u-demo` một cách an toàn, tự động hóa và tuân thủ giấy phép mã nguồn mở AGPL-3.0.
+> **LƯU Ý**: Cơ chế tự động đồng bộ sang `erp4u-demo` đã ngưng từ 2026-11. Repo `erp4u-demo` hiện phát triển độc lập. Các quy tắc dưới đây chỉ giữ lại để tham khảo lịch sử.
+
+> **Mục đích (cũ)**: Đảm bảo mọi tính năng, sửa lỗi hoặc cải tiến mới trên `hula-erp` có thể đồng bộ sang repository demo public `erp4u-demo` một cách an toàn, tự động hóa và tuân thủ giấy phép mã nguồn mở AGPL-3.0.
 
 ---
 
