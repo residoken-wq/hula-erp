@@ -38,7 +38,7 @@ Instruction bị đổi sau khi đã giao thì Claude ghi **Changelog** ở đ�
 ## 3. Git
 
 1. **Không ai commit hay push trực tiếp lên `main`.** Mọi thay đổi vào `main` đi qua merge do Chủ dự án thực hiện.
-2. Lý do: mỗi push lên `main` sẽ build lại image trên ghcr **và** tự đồng bộ code sang repo public `erp4u-demo` (`.github/workflows/sync-demo.yml`).
+2. Lý do: mỗi push lên `main` sẽ build lại image trên ghcr (lưu ý: cơ chế tự đồng bộ sang repo `erp4u-demo` đã ngưng 2026-11).
 3. Nhánh:
    - `<topic>/plan` là nhánh tài liệu của Claude, ví dụ `rbac/plan`.
    - `<topic>/p<n>` là nhánh code của Antigravity, tạo từ `<topic>/plan` (hoặc từ `main` nếu plan đã merge). Ví dụ `rbac/p0`.

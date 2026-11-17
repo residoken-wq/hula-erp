@@ -54,7 +54,7 @@ _(chưa có)_
 - 2026-09-25 · Antigravity · Nhận P1, tạo nhánh rbac/p1 từ main, khởi động test-env, chuyển trạng thái IN_PROGRESS.
 
 - 2026-09-25 · Claude · Chủ dự án xác nhận "P0 deployed OK" (smoke test đạt) → P0 DEPLOYED. Dựng môi trường test local (PG 15.18 portable + dump 23/08 đã sanitize, docs/rbac_v2/test-env/), kiểm chứng backend chạy được. P1_Instruction thêm Phụ lục A (seed dự kiến trên dữ liệu thật) và Phụ lục B (ảnh hưởng vận hành, thêm I-18). P1 → READY.
-- 2026-09-25 · Claude · Theo lệnh Chủ dự án: xác nhận repo đã private (GitHub API 404), merge --no-ff rbac/p0 vào main (3f491fe), push origin main. CI sẽ build image app + frontend và sync sang erp4u-demo. Chờ Chủ dự án deploy VPS.
+- 2026-09-25 · Claude · Theo lệnh Chủ dự án: xác nhận repo đã private (GitHub API 404), merge --no-ff rbac/p0 vào main (3f491fe), push origin main. CI sẽ build image app + frontend và sync sang erp4u-demo (đồng bộ đã ngưng 2026-11). Chờ Chủ dự án deploy VPS.
 
 - 2026-09-25 · Claude · Chủ dự án chốt D1–D7. Cập nhật P1_Instruction: bảng quyết định, seed tạo nhóm CMS (D4), P1.4 viết lại thành API /hr/me/* (D7; vá lỗi ProfilePage xem được lương/nghỉ phép/hồ sơ người khác). Master Plan: I-15 đổi, thêm I-17.
 - 2026-09-24 · Claude · Audit P0 vòng 2: AUDIT_PASS. Boot backend thật trên Postgres tạm, runtime PASS P0-01..09, 16, 18; P0-19 WAIVED (lỗi instruction E1). UI P0-10,12..15 chờ smoke test sau deploy. Trước khi push: repo đang public (xem điều kiện 1).

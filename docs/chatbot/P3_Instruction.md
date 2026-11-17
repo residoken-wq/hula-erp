@@ -53,7 +53,7 @@
    - Nút **"Nhập JSON"**: chọn file, xem trước số mục, gửi, hiện kết quả.
    - Hiện `review_note` trong Drawer (khung vàng "Ghi chú cho người duyệt").
    - **"Duyệt hàng loạt"**: chọn nhiều dòng, gọi publish lần lượt, hiện kết quả từng dòng (thành công / `CONFLICT_LOCKED` + mã conflict). Chỉ hiện khi có quyền `CHATBOT_KB delete` hoặc là `admin`.
-4. Không seed tự động file này khi boot. **Người duyệt nhập tay trong CMS.** File nằm trong `docs/` (repo private, không sync sang erp4u-demo).
+4. Không seed tự động file này khi boot. **Người duyệt nhập tay trong CMS.** File nằm trong `docs/` (repo private; đồng bộ sang erp4u-demo đã ngưng 2026-11).
 
 ## P3.3 Placeholder trong câu trả lời
 Khi trả tri thức cho khách (tool, pipeline, bot kịch bản), render `{short_name}`, `{hotline}`, `{email_public}`, `{zalo_url}`, `{working_hours_text}` từ `publicView()` (đã áp giá trị dự phòng). Dùng hàm `renderTemplate` có escape. `working_hours_text` ví dụ: `T2–T6 08:00–17:30, T7 08:00–12:00`. Placeholder không có giá trị thì thay bằng chuỗi rỗng.

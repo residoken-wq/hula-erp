@@ -34,7 +34,7 @@ Chạy lại các dòng khác bằng harness vòng 1: CB0-02, 04, 05, 06 (sessio
 - Không cần thêm env.
 - Rollback: deploy lại image cũ; bảng mới không ảnh hưởng bản cũ.
 - Rủi ro còn lại (thuộc E7, agent khác đang xử lý): người lạ vẫn có thể bật cờ qua `/system/config`. Khi đó chỉ mở được `sessions` và `ping` (có rate limit), và mọi giá trị độc hại đã bị lọc (M1).
-- Code chatbot sẽ sync sang repo public `erp4u-demo`: đã kiểm, không có secret, không có email thật.
+- Code chatbot sẽ sync sang repo public `erp4u-demo` (lưu ý: đồng bộ đã ngưng 2026-11): đã kiểm, không có secret, không có email thật.
 
 ## VÒNG 1 — 2026-09-26 — **AUDIT_FAIL** (vòng 1/3)
 

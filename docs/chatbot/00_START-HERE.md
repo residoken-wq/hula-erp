@@ -27,7 +27,7 @@ Mục tiêu: có một trợ lý AI trên `nemmamnon.com`. Trợ lý tư vấn t
 8. Không thêm lib nặng (LangChain, vector DB, Redis, socket.io). Không đổi image Postgres (không có pgvector). Không dùng dịch vụ trả phí ngoài provider LLM Chủ dự án chốt ở Q-01.
 9. Chạy `npm run qa`, `cd frontend && npm run build`, `cd hula-web/website && npm run build` (và `hula-web/cms` nếu phase có đụng) trước khi nộp.
 10. Commit tiếng Anh, prefix `feat(chatbot):` / `fix(chatbot):` / `test(chatbot):`. Mỗi phase một nhánh `chatbot/p<n>`, tạo từ `main` mới nhất; phase sau tạo từ phase trước nếu phase trước chưa merge. **Không commit/merge vào `main`, không push** khi Chủ dự án chưa ra lệnh.
-11. Code tự sync sang repo public `erp4u-demo`, nên seed/fixture **không** chứa dữ liệu khách thật, SĐT, email, giá thật của HULA. Giá test phải có nhãn `FIXTURE`.
+11. Seed/fixture **không** chứa dữ liệu khách thật, SĐT, email, giá thật của HULA (đồng bộ erp4u-demo đã ngưng 2026-11). Giá test phải có nhãn `FIXTURE`.
 12. **Không ghi PASS cho thứ chưa chạy thật.** Evidence phải là output thật (HTTP status + body, query DB, ảnh chụp). Tính năng chưa bật thì ghi `NOT_ENABLED` kèm bằng chứng fallback, không ghi PASS.
 13. **Tên trợ lý sửa được:** "Cừu Hula" chỉ là mặc định trong `src/chatbot/chatbot.defaults.ts`. Mọi nơi hiển thị tên (widget, lời chào, email, prompt, tin hệ thống) đọc `display_name`/`short_name` từ `CHATBOT_CONFIG`. QA fail nếu hard-code ở chỗ khác (P0.4).
 
